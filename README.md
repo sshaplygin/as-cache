@@ -1,6 +1,6 @@
-# ABCS - Adaptive bandit cache selection
+# AS-cache - Adaptive selection cache
 
-select method store Multi-Armed Bandit
+Adaptive selection cache with Multi-Armed Bandit method
 
 ## Disclaimer
 
@@ -22,7 +22,6 @@ Because choosing a specific algorithm for specific tasks is a separate research 
 ### In runtime
 
 - Hitrate into start algorithm
-
 
 ### Questions
 
@@ -46,7 +45,8 @@ TODO
 
 ## Reference
 
-TODO
+- [Article](https://hypermode.com/blog/introducing-ristretto-high-perf-go-cache) from ristretto
+- Adaptive selection cache from [ristretto](https://github.com/dgraph-io/ristretto) from [dgraph](https://github.com/dgraph-io/dgraph) project
 
 ## Implementarions
 
