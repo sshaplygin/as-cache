@@ -15,6 +15,8 @@ type CacheStats interface {
 type EvictionPolicy[K comparable, V any] interface {
 	Get(key K) (V, bool)
 	Set(key K, value V)
+
+	Name() string
 }
 
 type ShadowCache[K comparable] interface {

@@ -2,34 +2,48 @@ package ascache
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 )
+
+var ErrEmptyPolicies = errors.New("empty input policies")
+
+// TODO: add settings for use bandit to selec policies
+type Settings struct {
+	EpochDuration time.Duration
+}
 
 func NewAdaptiveCache[K comparable, V any](
 	policies []EvictionPolicy[K, V],
 	shadowCaches []ShadowCache[K],
 	bandit Bandit,
-	epochDuration time.Duration,
-) *AdaptiveCache[K, V] {
+	settings *Settings,
+) (*AdaptiveCache[K, V], error) {
+	if len(policies) == 0 {
+		return nil, ErrEmptyPolicies
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
-	initialPolicyName := bandit.SelectPolicy()
-	activePolicy := policies[initialPolicyName]
+	availablePolicies := make(map[string]EvictionPolicy[K, V], len(policies))
+	for _, policy := range policies {
+		availablePolicies[policy.Name()] = policy
+	}
 
 	ac := &AdaptiveCache[K, V]{
-		policies:     policies,
-		activePolicy: activePolicy,
+		policies:     availablePolicies,
+		activePolicy: policies[0],
 		bandit:       bandit,
 		shadowCaches: shadowCaches,
-		epochTicker:  time.NewTicker(epochDuration),
+		epochTicker:  time.NewTicker(settings.EpochDuration),
 		ctx:          ctx,
 		cancel:       cancel,
 	}
 
 	go ac.runAdaptiveSelect()
 
-	return ac
+	return ac, nil
 }
 
 type AdaptiveCache[K comparable, V any] struct {
@@ -101,7 +115,7 @@ func (c *AdaptiveCache[K, V]) Get(key K) (V, bool) {
 	return val, found
 }
 
-func (c *AdaptiveCache[K, V]) Add(key K, value V) {
+func (c *AdaptiveCache[K, V]) Set(key K, value V) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -110,7 +124,7 @@ func (c *AdaptiveCache[K, V]) Add(key K, value V) {
 	}
 
 	// 2. Кладем данные в реальный кеш
-	c.activePolicy.Add(key, value)
+	c.activePolicy.Set(key, value)
 }
 
 func (c *AdaptiveCache[K, V]) Stats() GlobalStats {
@@ -118,6 +132,12 @@ func (c *AdaptiveCache[K, V]) Stats() GlobalStats {
 	return GlobalStats{}
 }
 
-func (c *AdaptiveCache[K, V]) Close() {
+func (c *AdaptiveCache[K, V]) Del(key K) {
+}
+
+func (c *AdaptiveCache[K, V]) Close() error {
 	c.cancel()
+	c.epochTicker.Stop()
+
+	return nil
 }
