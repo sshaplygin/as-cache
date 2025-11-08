@@ -1,3 +1,6 @@
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
 package simplelfu
 
 import (
@@ -99,6 +102,10 @@ func (c *LFU[K, V]) Remove(key K) (present bool) {
 
 func (c *LFU[K, V]) Len() int {
 	return len(c.items)
+}
+
+func (c *LFU[K, V]) Cap() int {
+	return c.size
 }
 
 // Keys returns a slice of the keys in the cache, from low frequency oldest to newest with most frequency.
