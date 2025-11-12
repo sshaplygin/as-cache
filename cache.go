@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var ErrEmptyPolicies = errors.New("empty input policies")
+var ErrEmptyPolicies = errors.New("must provide non zero policies size")
 
 // TODO: add settings for use bandit to selec policies
 type Settings struct {
@@ -15,7 +15,7 @@ type Settings struct {
 }
 
 func NewAdaptiveCache[K comparable, V any](
-	policies []EvictionPolicy[K, V],
+	policies []Policy[K, V],
 	shadowCaches []ShadowCache[K],
 	bandit Bandit,
 	settings *Settings,
@@ -26,14 +26,14 @@ func NewAdaptiveCache[K comparable, V any](
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	availablePolicies := make(map[string]EvictionPolicy[K, V], len(policies))
+	availablePolicies := make(map[PolicyType]Policy[K, V], len(policies))
 	for _, policy := range policies {
-		availablePolicies[policy.Name()] = policy
+		availablePolicies[policy.GetType()] = policy
 	}
 
 	ac := &AdaptiveCache[K, V]{
 		policies:     availablePolicies,
-		activePolicy: policies[0],
+		activePolicy: policies[0].GetType(),
 		bandit:       bandit,
 		shadowCaches: shadowCaches,
 		epochTicker:  time.NewTicker(settings.EpochDuration),
@@ -51,8 +51,8 @@ type AdaptiveCache[K comparable, V any] struct {
 	mu sync.RWMutex
 
 	// --- Data Plane ---
-	activePolicy EvictionPolicy[K, V]
-	policies     map[string]EvictionPolicy[K, V]
+	activePolicy PolicyType
+	policies     map[PolicyType]Policy[K, V]
 
 	// --- Control Plane ---
 	bandit       Bandit
@@ -82,12 +82,12 @@ func (c *AdaptiveCache[K, V]) runAdaptiveSelect() {
 			newPolicyName := c.bandit.SelectPolicy()
 
 			// 4. Применить решение (переключить "руку")
-			if c.policies[newPolicyName] != c.activePolicy {
+			if newPolicyName != c.activePolicy {
 				// ВАЖНО: Здесь будет логика "постепенного перелива"
 				// или "холодной" замены.
 				// Для прототипа просто меняем указатель.
 				// log.Printf("MAB Agent: Switching active policy to %s", newPolicyName)
-				c.activePolicy = c.policies[newPolicyName]
+				c.activePolicy = newPolicyName
 
 				// При "холодном" старте мы бы очищали кеш.
 				// При "переливе" мы бы запустили процесс миграции.
@@ -106,7 +106,7 @@ func (c *AdaptiveCache[K, V]) Get(key K) (V, bool) {
 	}
 
 	// 2. Идем в реальный кеш за данными
-	val, found := c.activePolicy.Get(key)
+	val, found := c.policies[c.activePolicy].Get(key)
 	c.mu.RUnlock()
 
 	// 3. (Опционально) Обновляем глобальную статистику
@@ -115,7 +115,7 @@ func (c *AdaptiveCache[K, V]) Get(key K) (V, bool) {
 	return val, found
 }
 
-func (c *AdaptiveCache[K, V]) Set(key K, value V) {
+func (c *AdaptiveCache[K, V]) Add(key K, value V) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -123,8 +123,7 @@ func (c *AdaptiveCache[K, V]) Set(key K, value V) {
 		shadow.Access(key)
 	}
 
-	// 2. Кладем данные в реальный кеш
-	c.activePolicy.Set(key, value)
+	return c.policies[c.activePolicy].Add(key, value)
 }
 
 func (c *AdaptiveCache[K, V]) Stats() GlobalStats {
@@ -132,7 +131,8 @@ func (c *AdaptiveCache[K, V]) Stats() GlobalStats {
 	return GlobalStats{}
 }
 
-func (c *AdaptiveCache[K, V]) Del(key K) {
+func (c *AdaptiveCache[K, V]) Remove(key K) bool {
+	return false
 }
 
 func (c *AdaptiveCache[K, V]) Close() error {

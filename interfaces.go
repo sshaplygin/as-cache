@@ -1,26 +1,37 @@
 package ascache
 
-var _ Cache[int, string] = (*AdaptiveCache[int, string])(nil)
+var _ Cacher[int, string] = (*AdaptiveCache[int, string])(nil)
 
-type Cache[K comparable, V any] interface {
-	Get(key K) (V, bool)
-	Set(key K, value V)
-	Del(key K)
+// cache interface comparable from hashicorp/golang-lru/v2 cache's
+type Cacher[K comparable, V any] interface {
+	Add(key K, value V) (evicted bool)
+	Contains(key K) bool
+	Get(key K) (value V, ok bool)
+	Keys() []K
+	Len() int
+	Peek(key K) (value V, ok bool)
+	Purge()
+	Remove(key K) (present bool)
+	Resize(size int) (evicted int)
+	Values() []V
+
+	// ContainsOrAdd(key K, value V) (ok bool, evicted bool)
+	// GetOldest() (key K, value V, ok bool)
+	// PeekOrAdd(key K, value V) (previous V, ok bool, evicted bool)
+	// RemoveOldest() (key K, value V, ok bool)
 }
 
 type CacheStats interface {
 	Stats() GlobalStats
 }
 
-type EvictionPolicy[K comparable, V any] interface {
-	Get(key K) (V, bool)
-	Set(key K, value V)
-
-	Name() string
+type Policy[K comparable, V any] interface {
+	Cacher[K, V]
+	GetType() PolicyType
 }
 
 type ShadowCache[K comparable] interface {
-	Name() string
+	GetType() PolicyType
 
 	// Access симулирует доступ к ключу (Get или Put).
 	// Возвращает 'true', если это был "хит" (ключ уже был в кеше).
@@ -39,5 +50,5 @@ type Bandit interface {
 
 	// SelectPolicy просит бандита выбрать, какая политика
 	// должна стать "основной" (active) на следующую эпоху.
-	SelectPolicy() (policyName string)
+	SelectPolicy() PolicyType
 }

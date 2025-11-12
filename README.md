@@ -38,18 +38,18 @@ TODO
 ### Supported cached methods
 
 - Random
-- LRU by default
+- LRU
 - LFU
 - 2Q
 - ARC
 
 ## Reference
 
+- [Wiki page](https://en.wikipedia.org/wiki/Cache_replacement_policies)
 - [Article](https://hypermode.com/blog/introducing-ristretto-high-perf-go-cache) from ristretto
 - Adaptive selection cache from [ristretto](https://github.com/dgraph-io/ristretto) from [dgraph](https://github.com/dgraph-io/dgraph) project
 
 ## Implementarions
 
 - LRU, ARC, 2Q [golang-lru](https://github.com/hashicorp/golang-lru)
-- LFUDA [lfuda-go](https://github.com/bparli/lfuda-go/)
-- Multi-Armed Bandit(MAB) [go-bandit](https://github.com/alextanhongpin/go-bandit)
+- [Multi-Armed Bandit(MAB)](https://github.com/stitchfix/mab) by Stitch Fix Technology
