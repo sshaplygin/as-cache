@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"strings"
+	"fmt"
 	"sync"
 	"time"
 
@@ -13,22 +13,28 @@ import (
 	"github.com/stitchfix/mab"
 )
 
+type UserProfile struct {
+	Name      string
+	Email     string
+	CreatedAt time.Time
+}
+
 func main() {
-	lruCache, err := hlru.New[string, string](100)
+	lruCache, err := hlru.New[string, *UserProfile](100)
 	if err != nil {
 		panic(err)
 	}
 
-	policiesList := []ascache.Policy[string, string]{
-		NewCache[string, string](lruCache, ascache.LRU),
+	policiesList := []ascache.Policy[string, *UserProfile]{
+		ascache.NewCache[string, *UserProfile](lruCache, ascache.LRU, 100),
 	}
 
-	lfuCache, err := slfu.New[string, string](100)
+	lfuCache, err := slfu.New[string, *UserProfile](100)
 	if err != nil {
 		panic(err)
 	}
 
-	policiesList = append(policiesList, NewCache[string, string](lfuCache, ascache.LFU))
+	policiesList = append(policiesList, ascache.NewCache[string, *UserProfile](lfuCache, ascache.LFU, 100))
 
 	armNames := []ascache.PolicyType{ascache.LRU, ascache.LFU}
 
@@ -38,8 +44,6 @@ func main() {
 
 	cache, err := ascache.NewAdaptiveCache(
 		policiesList,
-		nil,
-		// []ShadowCache[string]{lruShadow, lfuShadow},
 		myBandit,
 		&ascache.Settings{
 			EpochDuration: 5 * time.Minute,
@@ -51,29 +55,8 @@ func main() {
 
 	defer cache.Close()
 
-}
-
-func NewCache[K comparable, V any](
-	cache ascache.Cacher[K, V],
-	policy ascache.PolicyType,
-) *CacheWrapper[K, V] {
-	return &CacheWrapper[K, V]{
-		Cacher: cache,
-		policy: policy,
-	}
-}
-
-type CacheWrapper[K comparable, V any] struct {
-	ascache.Cacher[K, V]
-	policy ascache.PolicyType
-}
-
-func (c *CacheWrapper[K, V]) Name() string {
-	return strings.ToLower(c.policy.String())
-}
-
-func (c *CacheWrapper[K, V]) GetType() ascache.PolicyType {
-	return c.policy
+	val, ok := cache.Get("key")
+	fmt.Println(val, ok)
 }
 
 func NewThompsonBanditAdapter(armNames []ascache.PolicyType) *StitchFixBanditAdapter {

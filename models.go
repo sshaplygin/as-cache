@@ -14,6 +14,11 @@ type GlobalStats struct {
 	Misses int64
 }
 
+type PolicyStats struct {
+	Hits   int64
+	Misses int64
+}
+
 // ShadowStats — результат работы "сенсора" за эпоху.
 type ShadowStats struct {
 	Policy PolicyType

@@ -22,25 +22,17 @@ type Cacher[K comparable, V any] interface {
 }
 
 type CacheStats interface {
-	Stats() GlobalStats
+	GetStats() PolicyStats
+	ResetStats()
 }
 
 type Policy[K comparable, V any] interface {
 	Cacher[K, V]
+	// hashicorp/golang-lru/v2 doesn't have this method
+	Cap() int
+
+	CacheStats
 	GetType() PolicyType
-}
-
-type ShadowCache[K comparable] interface {
-	GetType() PolicyType
-
-	// Access симулирует доступ к ключу (Get или Put).
-	// Возвращает 'true', если это был "хит" (ключ уже был в кеше).
-	// Возвращает 'false', если это был "промах".
-	Access(key K) (wasHit bool)
-
-	// GetStatsAndReset возвращает собранную статистику за эпоху
-	// и немедленно сбрасывает счетчики.
-	GetStatsAndReset() ShadowStats
 }
 
 type Bandit interface {
