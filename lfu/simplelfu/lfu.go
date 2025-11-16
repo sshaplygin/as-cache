@@ -104,10 +104,6 @@ func (c *LFU[K, V]) Len() int {
 	return len(c.items)
 }
 
-func (c *LFU[K, V]) Cap() int {
-	return c.size
-}
-
 // Keys returns a slice of the keys in the cache, from low frequency oldest to newest with most frequency.
 func (c *LFU[K, V]) Keys() []K {
 	keysFreq := make([]int, len(c.evictList))
