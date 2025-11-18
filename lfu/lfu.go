@@ -167,8 +167,3 @@ func (c *Cache[K, V]) Len() int {
 	c.lock.RUnlock()
 	return length
 }
-
-// Cap returns the capacity of the cache
-func (c *Cache[K, V]) Cap() int {
-	return c.lfu.Cap()
-}
