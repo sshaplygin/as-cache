@@ -41,7 +41,6 @@ func NewAdaptiveCache[K comparable, V any](
 		ctx:          ctx,
 		cancel:       cancel,
 		settings:     settings,
-		onEvict:      nil,
 	}
 
 	go ac.runAdaptiveSelect()

@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
 	"sync"
 	"time"
 
@@ -57,6 +61,77 @@ func main() {
 
 	val, ok := cache.Get("key")
 	fmt.Println(val, ok)
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query().Get("key")
+		if key == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		val, ok := cache.Get(key)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.Write([]byte(val.Name))
+	})
+
+	mux.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query().Get("key")
+		if key == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		email := r.URL.Query().Get("email")
+		if email == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		_ = cache.Add(key, &UserProfile{})
+		w.Write([]byte("ok"))
+	})
+
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	go func() {
+		log.Println("server started on :8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Panicf("error: %v", err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	<-stop
+	log.Println("shutting down...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Panicf("shutdown error: %v", err)
+	}
+
+	log.Println("server stopped")
 }
 
 func NewThompsonBanditAdapter(armNames []ascache.PolicyType) *StitchFixBanditAdapter {
