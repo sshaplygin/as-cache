@@ -125,23 +125,91 @@ func (c *Cache[K, V]) Purge() {
 }
 
 func (c *Cache[K, V]) Resize(size int) (evicted int) {
-	panic("implement me")
+	var ks []K
+	var vs []V
+	c.lock.Lock()
+	evicted = c.lfu.Resize(size)
+	if c.onEvictedCB != nil && len(c.evictedKeys) > 0 {
+		ks, vs = c.evictedKeys, c.evictedVals
+		c.initEvictBuffers()
+	}
+	c.lock.Unlock()
+	if c.onEvictedCB != nil {
+		for i := 0; i < len(ks); i++ {
+			c.onEvictedCB(ks[i], vs[i])
+		}
+	}
+	return
 }
 
+// ContainsOrAdd checks if a key exists and returns it, otherwise adds the value.
+// ok is true if the key already existed. evicted is true if an eviction occurred on add.
 func (c *Cache[K, V]) ContainsOrAdd(key K, value V) (ok, evicted bool) {
-	panic("implement me")
+	var k K
+	var v V
+	c.lock.Lock()
+	if c.lfu.Contains(key) {
+		c.lock.Unlock()
+		return true, false
+	}
+	evicted = c.lfu.Add(key, value)
+	if c.onEvictedCB != nil && evicted {
+		k, v = c.evictedKeys[0], c.evictedVals[0]
+		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
+	}
+	c.lock.Unlock()
+	if c.onEvictedCB != nil && evicted {
+		c.onEvictedCB(k, v)
+	}
+	return false, evicted
 }
 
+// PeekOrAdd returns the existing value for a key without updating frequency, or adds
+// it if absent. ok is true if the key already existed.
 func (c *Cache[K, V]) PeekOrAdd(key K, value V) (previous V, ok, evicted bool) {
-	panic("implement me")
+	var k K
+	var v V
+	c.lock.Lock()
+	previous, ok = c.lfu.Peek(key)
+	if ok {
+		c.lock.Unlock()
+		return previous, true, false
+	}
+	evicted = c.lfu.Add(key, value)
+	if c.onEvictedCB != nil && evicted {
+		k, v = c.evictedKeys[0], c.evictedVals[0]
+		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
+	}
+	c.lock.Unlock()
+	if c.onEvictedCB != nil && evicted {
+		c.onEvictedCB(k, v)
+	}
+	return
 }
 
+// RemoveOldest removes the least-frequently-used item and returns it.
 func (c *Cache[K, V]) RemoveOldest() (key K, value V, ok bool) {
-	panic("implement me")
+	var k K
+	var v V
+	c.lock.Lock()
+	key, value, ok = c.lfu.RemoveOldest()
+	if c.onEvictedCB != nil && ok {
+		k, v = c.evictedKeys[0], c.evictedVals[0]
+		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
+	}
+	c.lock.Unlock()
+	if c.onEvictedCB != nil && ok {
+		c.onEvictedCB(k, v)
+	}
+	return
 }
 
+// GetOldest returns the least-frequently-used item without removing it.
 func (c *Cache[K, V]) GetOldest() (key K, value V, ok bool) {
-	panic("implement me")
+	c.lock.RLock()
+	key, value, ok = c.lfu.GetOldest()
+	c.lock.RUnlock()
+	return
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.

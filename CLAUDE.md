@@ -109,8 +109,8 @@ GetType() PolicyType
 ### `Bandit` (interfaces.go)
 MAB strategy abstraction:
 ```go
-RecordStats(stats []ShadowStats) error
-SelectPolicy() (PolicyType, error)
+RecordStats(stats ShadowStats)
+SelectPolicy() PolicyType
 ```
 
 ---
@@ -192,18 +192,21 @@ cd examples/basic && go mod tidy
 
 ### Implemented
 - [x] `AdaptiveCache.Add()` and `Get()` with shadow policy tracking
+- [x] `AdaptiveCache.Remove()` - delegates to active policy, propagates to shadows
+- [x] `AdaptiveCache.Purge()` - purges all policies
+- [x] `AdaptiveCache.Resize()` - resizes all policies, returns total eviction count
+- [x] `AdaptiveCache.Contains()` - delegates to active policy
+- [x] `AdaptiveCache.Keys()` / `Values()` / `Len()` / `Peek()` - delegate to active policy
+- [x] `AdaptiveCache.Stats()` - returns cumulative hit/miss from active policy
 - [x] Background epoch goroutine with bandit-based policy selection
 - [x] `CacheWrapper` with hit/miss statistics
-- [x] LFU implementation (simplelfu + thread-safe wrapper)
+- [x] LFU implementation (simplelfu + thread-safe wrapper) — all methods implemented
+- [x] `lfu.Cache`: `Resize`, `ContainsOrAdd`, `PeekOrAdd`, `RemoveOldest`, `GetOldest`
+- [x] `simplelfu.LFU`: `Resize`, `GetOldest`, `RemoveOldest`
 - [x] Basic example with HTTP server
 
 ### Incomplete / TODO
-- [ ] `AdaptiveCache.Remove()` - returns false (not implemented)
-- [ ] `AdaptiveCache.Purge()` - no-op
-- [ ] `AdaptiveCache.Resize()` - returns 0
-- [ ] `AdaptiveCache.Contains()` - returns false
-- [ ] `AdaptiveCache.Keys()` / `Values()` / `Len()` / `Peek()` - return nil/0
-- [ ] `AdaptiveCache.Stats()` - returns empty `GlobalStats`
+
 - [ ] Data migration between policies on switch (currently starts fresh)
 - [x] Unit tests for LFU packages (simplelfu: 100% coverage, lfu wrapper: 93.2% coverage)
 - [ ] Unit tests for root package (cache_test.go, wrapper_test.go -- still empty stubs)

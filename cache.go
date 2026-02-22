@@ -169,39 +169,84 @@ func (c *AdaptiveCache[K, V]) Add(key K, value V) bool {
 }
 
 func (c *AdaptiveCache[K, V]) Stats() GlobalStats {
-	// ... реализация сбора общей статистики ...
-	return GlobalStats{}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	ps := c.policies[c.activePolicy].GetStats()
+	return GlobalStats{
+		Hits:   ps.Hits,
+		Misses: ps.Misses,
+	}
 }
 
 func (c *AdaptiveCache[K, V]) Remove(key K) bool {
-	return false
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for _, policy := range c.policies {
+		if policy.GetType() == c.activePolicy {
+			continue
+		}
+		policy.Remove(key)
+	}
+
+	return c.policies[c.activePolicy].Remove(key)
 }
 
 func (c *AdaptiveCache[K, V]) Purge() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for _, policy := range c.policies {
+		policy.Purge()
+	}
 }
 
 func (c *AdaptiveCache[K, V]) Resize(size int) int {
-	return 0
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	evicted := 0
+	for _, policy := range c.policies {
+		evicted += policy.Resize(size)
+	}
+
+	return evicted
 }
 
-func (c *AdaptiveCache[K, V]) Contains(size int) bool {
-	return false
+func (c *AdaptiveCache[K, V]) Contains(key K) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.policies[c.activePolicy].Contains(key)
 }
 
 func (c *AdaptiveCache[K, V]) Keys() []K {
-	return nil
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.policies[c.activePolicy].Keys()
 }
 
 func (c *AdaptiveCache[K, V]) Values() []V {
-	return nil
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.policies[c.activePolicy].Values()
 }
 
 func (c *AdaptiveCache[K, V]) Len() int {
-	return 0
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.policies[c.activePolicy].Len()
 }
 
 func (c *AdaptiveCache[K, V]) Peek(key K) (value V, ok bool) {
-	return
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.policies[c.activePolicy].Peek(key)
 }
 
 func (c *AdaptiveCache[K, V]) Close() error {

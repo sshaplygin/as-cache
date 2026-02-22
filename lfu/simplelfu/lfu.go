@@ -145,6 +145,62 @@ func (c *LFU[K, V]) Values() []V {
 	return values
 }
 
+// Resize changes the cache capacity. If shrinking, evicts least-frequently-used
+// items until Len() <= size. Returns the number of evicted items.
+func (c *LFU[K, V]) Resize(size int) (evicted int) {
+	diff := c.Len() - size
+	if diff < 0 {
+		diff = 0
+	}
+	for i := 0; i < diff; i++ {
+		_, _, ok := c.evictOldest()
+		if !ok {
+			break
+		}
+		evicted++
+	}
+	c.size = size
+	return
+}
+
+// GetOldest returns the least-frequently-used item without removing it.
+func (c *LFU[K, V]) GetOldest() (key K, value V, ok bool) {
+	if len(c.items) == 0 {
+		return
+	}
+	ent := c.evictList[c.minFreq].Back()
+	return ent.Key, ent.Value, true
+}
+
+// RemoveOldest removes the least-frequently-used item and returns it.
+func (c *LFU[K, V]) RemoveOldest() (key K, value V, ok bool) {
+	return c.evictOldest()
+}
+
+// evictOldest removes the back entry of the minFreq bucket and returns it.
+func (c *LFU[K, V]) evictOldest() (key K, value V, ok bool) {
+	if len(c.items) == 0 {
+		return
+	}
+	ent := c.evictList[c.minFreq].Back()
+	key, value, ok = ent.Key, ent.Value, true
+	c.evictList[c.minFreq].Remove(ent)
+	if c.evictList[c.minFreq].Length() == 0 {
+		delete(c.evictList, c.minFreq)
+		c.minFreq = 0
+		for freq := range c.evictList {
+			if c.minFreq == 0 || freq < c.minFreq {
+				c.minFreq = freq
+			}
+		}
+	}
+	delete(c.items, ent.Key)
+	if c.onEvict != nil {
+		c.onEvict(ent.Key, ent.Value)
+	}
+	return
+}
+
 func (c *LFU[K, V]) Purge() {
 	for k, v := range c.items {
 		if c.onEvict != nil {
