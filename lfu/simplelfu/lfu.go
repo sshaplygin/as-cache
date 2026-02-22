@@ -63,7 +63,6 @@ func (c *LFU[K, V]) Add(key K, value V) (evicted bool) {
 
 	ent = c.evictList[newFreq].PushFront(key, value)
 	c.items[key] = ent
-	ent.Freq++
 
 	c.minFreq = newFreq
 
@@ -106,7 +105,7 @@ func (c *LFU[K, V]) Len() int {
 
 // Keys returns a slice of the keys in the cache, from low frequency oldest to newest with most frequency.
 func (c *LFU[K, V]) Keys() []K {
-	keysFreq := make([]int, len(c.evictList))
+	keysFreq := make([]int, 0, len(c.evictList))
 	for freq := range c.evictList {
 		keysFreq = append(keysFreq, freq)
 	}
@@ -127,7 +126,7 @@ func (c *LFU[K, V]) Keys() []K {
 
 // Values returns a slice of the values in the cache, from low frequency oldest to newest with most frequency.
 func (c *LFU[K, V]) Values() []V {
-	keysFreq := make([]int, len(c.evictList))
+	keysFreq := make([]int, 0, len(c.evictList))
 	for freq := range c.evictList {
 		keysFreq = append(keysFreq, freq)
 	}
@@ -159,14 +158,17 @@ func (c *LFU[K, V]) Purge() {
 }
 
 func (c *LFU[K, V]) updateFreq(ent *internal.Entry[K, V]) {
-	c.evictList[ent.Freq].Remove(ent)
+	oldFreq := ent.Freq
+	c.evictList[oldFreq].Remove(ent)
 
-	if c.evictList[ent.Freq].Length() == 0 {
-		delete(c.evictList, ent.Freq)
+	if c.evictList[oldFreq].Length() == 0 {
+		delete(c.evictList, oldFreq)
+		if c.minFreq == oldFreq {
+			c.minFreq = oldFreq + 1
+		}
 	}
 
-	newFreq := ent.Freq + 1
-	c.minFreq = min(c.minFreq, newFreq)
+	newFreq := oldFreq + 1
 
 	if _, ok := c.evictList[newFreq]; !ok {
 		c.evictList[newFreq] = internal.NewList[K, V]()
