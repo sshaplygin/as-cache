@@ -122,6 +122,7 @@ SelectPolicy() PolicyType
 | `AdaptiveCache[K,V]` | cache.go | Main adaptive cache orchestrator |
 | `CacheWrapper[K,V]` | wrapper.go | Wraps any Cacher, adds hit/miss tracking |
 | `PolicyType` | models.go | Enum: Undefined, LRU, LFU |
+| `MigrationStrategy` | models.go | Enum: MigrationCold, MigrationWarm |
 | `PolicyStats` | models.go | Hits + Misses counters |
 | `ShadowStats` | models.go | Per-epoch policy performance |
 | `GlobalStats` | models.go | Aggregate statistics |
@@ -207,7 +208,7 @@ cd examples/basic && go mod tidy
 
 ### Incomplete / TODO
 
-- [ ] Data migration between policies on switch (currently starts fresh)
+- [x] Data migration between policies on switch — `MigrationStrategy` in `Settings` (`MigrationCold` default, `MigrationWarm` copies all keys from old active to new active)
 - [x] Unit tests for LFU packages (simplelfu: 100% coverage, lfu wrapper: 93.2% coverage)
 - [ ] Unit tests for root package (cache_test.go, wrapper_test.go -- still empty stubs)
 - [ ] Additional policies: Random, 2Q, ARC (mentioned in README but not implemented)
@@ -248,11 +249,16 @@ Implement the missing methods that currently return zero values:
 - `Resize(size int)`: resize all policies
 - `Stats()`: aggregate hit/miss from all wrappers
 
-### Phase 3: Policy Migration on Switch
-When bandit selects a new active policy, options:
-- Cold migration: start fresh (current behavior, simple but causes cache miss spike)
-- Warm migration: copy keys from old active to new active (needs benchmarking)
-- Gradual: hybrid approach draining old into new over next N operations
+### Phase 3: Policy Migration on Switch -- DONE
+
+`MigrationStrategy` enum added to `models.go`; `Settings.MigrationStrategy` field controls behaviour:
+
+- `MigrationCold` (default, 0): start fresh — simple, causes temporary miss spike
+- `MigrationWarm`: on switch, purge zero-value shadow entries from new active policy, then copy all key/value pairs from old active via `Keys()`+`Peek()`
+
+- `MigrationGradual`: Get-time promotion (miss in new active → peek old policy → add to new active) + Add-time drain (one key migrated per Add call). Migration window closes when all keys are drained, on `Purge()`, or at the next epoch boundary.
+
+Bug fix applied during implementation: all three strategies now purge shadow zero-value entries from the new active policy at switch time, so callers never observe a shadow zero as a real cached value.
 
 ### Phase 4: Additional Policies
 Add wrappers for:
