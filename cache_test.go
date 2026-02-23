@@ -4,6 +4,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // --- test doubles ---
@@ -154,9 +157,7 @@ func makeCache(t *testing.T, strategy MigrationStrategy) (
 			MigrationStrategy:           strategy,
 		},
 	)
-	if err != nil {
-		t.Fatalf("NewAdaptiveCache: %v", err)
-	}
+	require.NoError(t, err)
 	t.Cleanup(func() { _ = ac.Close() })
 	return ac, lru, lfu, bandit
 }
@@ -176,7 +177,6 @@ func triggerSwitch(ac *AdaptiveCache[string, int], to PolicyType) {
 	ac.clearMigrationState()
 	ac.migrateData(from, to)
 	ac.activePolicy = to
-	ac.oldPolicy = from
 }
 
 // --- MigrationCold ---
@@ -187,17 +187,14 @@ func TestMigrationCold_StartsFresh(t *testing.T) {
 	ac.Add("a", 1)
 	ac.Add("b", 2)
 
-	if lru.Len() != 2 {
-		t.Fatalf("expected 2 keys in LRU, got %d", lru.Len())
-	}
+	require.Equal(t, 2, lru.Len(), "expected 2 keys in LRU")
 
 	triggerSwitch(ac, LFU)
 
 	// LFU should be empty after a cold switch.
 	val, ok := ac.Get("a")
-	if ok || val != 0 {
-		t.Errorf("expected cold miss for 'a', got (%v, %v)", val, ok)
-	}
+	assert.False(t, ok, "expected cold miss for 'a'")
+	assert.Equal(t, 0, val)
 }
 
 // --- MigrationWarm ---
@@ -213,13 +210,8 @@ func TestMigrationWarm_CopiesAllKeys(t *testing.T) {
 
 	for key, want := range map[string]int{"a": 1, "b": 2, "c": 3} {
 		got, ok := ac.Get(key)
-		if !ok {
-			t.Errorf("warm: key %q not found after switch", key)
-			continue
-		}
-		if got != want {
-			t.Errorf("warm: key %q = %d, want %d", key, got, want)
-		}
+		assert.True(t, ok, "warm: key %q not found after switch", key)
+		assert.Equal(t, want, got, "warm: key %q value mismatch", key)
 	}
 	_ = lfu
 }
@@ -235,12 +227,8 @@ func TestMigrationWarm_PurgesZeroValues(t *testing.T) {
 	triggerSwitch(ac, LFU)
 
 	val, ok := ac.Get("x")
-	if !ok {
-		t.Fatal("warm: key 'x' not found after switch")
-	}
-	if val != 99 {
-		t.Errorf("warm: expected 99, got %d (zero value leaked)", val)
-	}
+	require.True(t, ok, "warm: key 'x' not found after switch")
+	assert.Equal(t, 99, val, "warm: zero value leaked")
 }
 
 // --- MigrationGradual ---
@@ -255,18 +243,13 @@ func TestMigrationGradual_GetPromotes(t *testing.T) {
 	// LFU was purged at switch time and has no real data yet.
 	// Get("a") should promote from old LRU policy.
 	val, ok := ac.Get("a")
-	if !ok {
-		t.Fatal("gradual: Get did not promote 'a' from old policy")
-	}
-	if val != 42 {
-		t.Errorf("gradual: promoted value = %d, want 42", val)
-	}
+	require.True(t, ok, "gradual: Get did not promote 'a' from old policy")
+	assert.Equal(t, 42, val, "gradual: promoted value mismatch")
 
 	// Second Get should find it directly in the new active policy.
 	val2, ok2 := ac.Get("a")
-	if !ok2 || val2 != 42 {
-		t.Errorf("gradual: second Get = (%v, %v), want (42, true)", val2, ok2)
-	}
+	assert.True(t, ok2, "gradual: second Get returned ok=false")
+	assert.Equal(t, 42, val2, "gradual: second Get value mismatch")
 }
 
 func TestMigrationGradual_AddDrainsOneKeyPerCall(t *testing.T) {
@@ -277,9 +260,7 @@ func TestMigrationGradual_AddDrainsOneKeyPerCall(t *testing.T) {
 		ac.Add(k, i+1)
 	}
 
-	if lru.Len() != 5 {
-		t.Fatalf("expected 5 keys in LRU before switch, got %d", lru.Len())
-	}
+	require.Equal(t, 5, lru.Len(), "expected 5 keys in LRU before switch")
 
 	triggerSwitch(ac, LFU)
 
@@ -287,9 +268,7 @@ func TestMigrationGradual_AddDrainsOneKeyPerCall(t *testing.T) {
 	lfu.mu.Lock()
 	beforeLen := len(lfu.data)
 	lfu.mu.Unlock()
-	if beforeLen != 0 {
-		t.Fatalf("expected LFU to be empty right after gradual switch, got %d", beforeLen)
-	}
+	require.Equal(t, 0, beforeLen, "expected LFU to be empty right after gradual switch")
 
 	// Add a new key — should drain one old key into LFU as a side effect.
 	ac.Add("new", 100)
@@ -299,9 +278,7 @@ func TestMigrationGradual_AddDrainsOneKeyPerCall(t *testing.T) {
 	lfu.mu.Unlock()
 
 	// LFU should contain "new" plus exactly one drained key from LRU.
-	if afterLen != 2 {
-		t.Errorf("expected 2 keys in LFU after one Add (new + 1 drained), got %d", afterLen)
-	}
+	assert.Equal(t, 2, afterLen, "expected 2 keys in LFU after one Add (new + 1 drained)")
 }
 
 func TestMigrationGradual_ZeroValueNotPromoted(t *testing.T) {
@@ -318,12 +295,8 @@ func TestMigrationGradual_ZeroValueNotPromoted(t *testing.T) {
 	ac.Add("a", 77)
 
 	val, ok := ac.Get("a")
-	if !ok {
-		t.Fatal("gradual: 'a' should be in LFU after explicit Add")
-	}
-	if val != 77 {
-		t.Errorf("gradual: expected 77 (latest Add), got %d", val)
-	}
+	require.True(t, ok, "gradual: 'a' should be in LFU after explicit Add")
+	assert.Equal(t, 77, val, "gradual: expected latest Add value")
 }
 
 func TestMigrationGradual_EpochClearsMigration(t *testing.T) {
@@ -332,21 +305,15 @@ func TestMigrationGradual_EpochClearsMigration(t *testing.T) {
 	ac.Add("a", 1)
 	triggerSwitch(ac, LFU)
 
-	if !ac.migrating {
-		t.Fatal("expected migration to be active after gradual switch")
-	}
+	require.True(t, ac.migrating, "expected migration to be active after gradual switch")
 
 	// Simulate epoch boundary (clearMigrationState is called at epoch start).
 	ac.mu.Lock()
 	ac.clearMigrationState()
 	ac.mu.Unlock()
 
-	if ac.migrating {
-		t.Error("expected migration to be cleared after epoch")
-	}
-	if ac.migrationRealKeys != nil {
-		t.Error("expected migrationRealKeys to be nil after clear")
-	}
+	assert.False(t, ac.migrating, "expected migration to be cleared after epoch")
+	assert.Nil(t, ac.migrationRealKeys, "expected migrationRealKeys to be nil after clear")
 }
 
 func TestMigrationGradual_PurgeClearsMigration(t *testing.T) {
@@ -355,9 +322,7 @@ func TestMigrationGradual_PurgeClearsMigration(t *testing.T) {
 	ac.Add("a", 1)
 	triggerSwitch(ac, LFU)
 
-	if !ac.migrating {
-		t.Fatal("expected migration to be active after gradual switch")
-	}
+	require.True(t, ac.migrating, "expected migration to be active after gradual switch")
 
 	ac.Purge()
 
@@ -365,9 +330,7 @@ func TestMigrationGradual_PurgeClearsMigration(t *testing.T) {
 	migrating := ac.migrating
 	ac.mu.RUnlock()
 
-	if migrating {
-		t.Error("Purge should have cleared gradual migration state")
-	}
+	assert.False(t, migrating, "Purge should have cleared gradual migration state")
 }
 
 func TestMigrationGradual_RemovePreventsPromotion(t *testing.T) {
@@ -380,9 +343,7 @@ func TestMigrationGradual_RemovePreventsPromotion(t *testing.T) {
 	ac.Remove("a")
 
 	val, ok := ac.Get("a")
-	if ok {
-		t.Errorf("gradual: expected miss after Remove, got (%d, true)", val)
-	}
+	assert.False(t, ok, "gradual: expected miss after Remove, got (%d, true)", val)
 }
 
 func TestMigrationGradual_DrainCompletesNaturally(t *testing.T) {
@@ -395,9 +356,7 @@ func TestMigrationGradual_DrainCompletesNaturally(t *testing.T) {
 
 	triggerSwitch(ac, LFU)
 
-	if !ac.migrating {
-		t.Fatal("expected migration to start")
-	}
+	require.True(t, ac.migrating, "expected migration to start")
 
 	// Add n new keys — each drains one old key. After n Adds, all old keys
 	// should be migrated and migrating should be false.
@@ -409,9 +368,7 @@ func TestMigrationGradual_DrainCompletesNaturally(t *testing.T) {
 	migrating := ac.migrating
 	ac.mu.RUnlock()
 
-	if migrating {
-		t.Error("expected migration to complete after draining all keys")
-	}
+	assert.False(t, migrating, "expected migration to complete after draining all keys")
 
 	// All original keys should be available (promoted or drained).
 	for i := 0; i < n; i++ {
@@ -419,13 +376,8 @@ func TestMigrationGradual_DrainCompletesNaturally(t *testing.T) {
 		if !lfu.Contains(key) {
 			// Key was drained via Add — verify via ac.Get.
 			val, ok := ac.Get(key)
-			if !ok {
-				t.Errorf("key %q lost after gradual drain", key)
-				continue
-			}
-			if val != i+1 {
-				t.Errorf("key %q = %d, want %d", key, val, i+1)
-			}
+			assert.True(t, ok, "key %q lost after gradual drain", key)
+			assert.Equal(t, i+1, val, "key %q value mismatch", key)
 		}
 	}
 }
@@ -462,4 +414,360 @@ func TestMigrationGradual_Concurrent(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+// ---------------------------------------------------------------------------
+// AdaptiveCache: Stats, Resize, Contains, Keys, Values, Len, Peek,
+// ActivePolicy
+// ---------------------------------------------------------------------------
+
+func TestAdaptiveCache_Stats(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	ac.Add("a", 1)
+	ac.Add("b", 2)
+
+	// Two hits
+	ac.Get("a")
+	ac.Get("b")
+	// One miss
+	ac.Get("missing")
+
+	gs := ac.Stats()
+	assert.Equal(t, int64(2), gs.Hits, "Stats.Hits mismatch")
+	assert.Equal(t, int64(1), gs.Misses, "Stats.Misses mismatch")
+}
+
+func TestAdaptiveCache_Resize(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	ac.Add("a", 1)
+	ac.Add("b", 2)
+
+	evicted := ac.Resize(5)
+	// mockPolicy.Resize returns 0, so total is 0. But the method was called.
+	assert.Equal(t, 0, evicted, "Resize evicted count mismatch")
+}
+
+func TestAdaptiveCache_Contains(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	ac.Add("present", 42)
+
+	assert.True(t, ac.Contains("present"), "Contains should return true for added key")
+	assert.False(t, ac.Contains("absent"), "Contains should return false for missing key")
+}
+
+func TestAdaptiveCache_Keys(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	ac.Add("a", 1)
+	ac.Add("b", 2)
+
+	keys := ac.Keys()
+	require.Len(t, keys, 2, "Keys length mismatch")
+	assert.ElementsMatch(t, []string{"a", "b"}, keys)
+}
+
+func TestAdaptiveCache_Values(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	ac.Add("a", 10)
+	ac.Add("b", 20)
+
+	vals := ac.Values()
+	require.Len(t, vals, 2, "Values length mismatch")
+	assert.ElementsMatch(t, []int{10, 20}, vals)
+}
+
+func TestAdaptiveCache_Len(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	assert.Equal(t, 0, ac.Len(), "Len should be 0 for empty cache")
+
+	ac.Add("a", 1)
+	ac.Add("b", 2)
+
+	assert.Equal(t, 2, ac.Len(), "Len mismatch")
+}
+
+func TestAdaptiveCache_Peek(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	ac.Add("a", 99)
+
+	val, ok := ac.Peek("a")
+	assert.True(t, ok)
+	assert.Equal(t, 99, val)
+
+	val, ok = ac.Peek("missing")
+	assert.False(t, ok, "Peek for missing key should return false, got val=%d", val)
+}
+
+func TestAdaptiveCache_ActivePolicy(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	assert.Equal(t, LRU, ac.ActivePolicy())
+
+	triggerSwitch(ac, LFU)
+
+	assert.Equal(t, LFU, ac.ActivePolicy())
+}
+
+// ---------------------------------------------------------------------------
+// AdaptiveCache: constructor edge cases
+// ---------------------------------------------------------------------------
+
+func TestNewAdaptiveCache_EmptyPolicies(t *testing.T) {
+	_, err := NewAdaptiveCache(
+		[]Policy[string, int]{},
+		&mockBandit{next: LRU},
+		&Settings{EpochDuration: time.Hour},
+	)
+	assert.ErrorIs(t, err, ErrEmptyPolicies)
+}
+
+func TestNewAdaptiveCache_NilPolicies(t *testing.T) {
+	_, err := NewAdaptiveCache[string, int](
+		nil,
+		&mockBandit{next: LRU},
+		&Settings{EpochDuration: time.Hour},
+	)
+	assert.ErrorIs(t, err, ErrEmptyPolicies)
+}
+
+// ---------------------------------------------------------------------------
+// AdaptiveCache: tryChangePolicy via epoch ticker
+// ---------------------------------------------------------------------------
+
+// recordingBandit records all ShadowStats passed to RecordStats and returns
+// a configurable next policy.
+type recordingBandit struct {
+	mu      sync.Mutex
+	next    PolicyType
+	records []ShadowStats
+}
+
+func (b *recordingBandit) RecordStats(stats ShadowStats) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.records = append(b.records, stats)
+}
+
+func (b *recordingBandit) SelectPolicy() PolicyType {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.next
+}
+
+func (b *recordingBandit) getRecords() []ShadowStats {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	cp := make([]ShadowStats, len(b.records))
+	copy(cp, b.records)
+	return cp
+}
+
+func TestAdaptiveCache_TryChangePolicy_SwitchesPolicy(t *testing.T) {
+	lruP := newMockPolicy[string, int](LRU, 10)
+	lfuP := newMockPolicy[string, int](LFU, 10)
+	bandit := &recordingBandit{next: LRU}
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lruP, lfuP},
+		bandit,
+		&Settings{
+			EpochDuration:               24 * time.Hour,
+			EvictPartialCapacityFilling: true,
+			MigrationStrategy:           MigrationCold,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	// Add data and generate shadow stats.
+	ac.Add("x", 1)
+	ac.Get("x")
+	ac.Get("missing")
+
+	// Now set bandit to choose LFU and trigger the switch.
+	bandit.mu.Lock()
+	bandit.next = LFU
+	bandit.mu.Unlock()
+
+	selected := ac.tryChangePolicy()
+	assert.Equal(t, LFU, selected, "expected bandit to select LFU")
+
+	// Verify bandit received shadow stats for the non-active policy.
+	records := bandit.getRecords()
+	assert.NotEmpty(t, records, "expected bandit to receive shadow stats")
+}
+
+func TestAdaptiveCache_TryChangePolicy_NoSwitchWhenSamePolicy(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+	// bandit.next is already LRU (same as active)
+
+	selected := ac.tryChangePolicy()
+	assert.Equal(t, LRU, selected, "expected bandit to select LRU (no switch)")
+}
+
+func TestAdaptiveCache_TryChangePolicy_SkipsWhenNotFull(t *testing.T) {
+	lruP := newMockPolicy[string, int](LRU, 10)
+	lfuP := newMockPolicy[string, int](LFU, 10)
+	bandit := &mockBandit{next: LFU}
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lruP, lfuP},
+		bandit,
+		&Settings{
+			EpochDuration:               24 * time.Hour,
+			EvictPartialCapacityFilling: false, // require full capacity
+			MigrationStrategy:           MigrationCold,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	// Cache is not full (0/10), so tryChangePolicy should not switch.
+	ac.Add("a", 1)
+	selected := ac.tryChangePolicy()
+	assert.Equal(t, LRU, selected, "expected no switch when cache is not full and EvictPartialCapacityFilling=false")
+}
+
+// ---------------------------------------------------------------------------
+// AdaptiveCache: epoch-based background switching
+// ---------------------------------------------------------------------------
+
+func TestAdaptiveCache_EpochBasedSwitch(t *testing.T) {
+	lruP := newMockPolicy[string, int](LRU, 10)
+	lfuP := newMockPolicy[string, int](LFU, 10)
+	bandit := &mockBandit{next: LFU}
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lruP, lfuP},
+		bandit,
+		&Settings{
+			EpochDuration:               5 * time.Millisecond,
+			EvictPartialCapacityFilling: true,
+			MigrationStrategy:           MigrationCold,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	// Add some data so the shadow has stats to report.
+	ac.Add("a", 1)
+
+	// Wait for at least one epoch tick.
+	time.Sleep(50 * time.Millisecond)
+
+	assert.Equal(t, LFU, ac.ActivePolicy(), "expected epoch-based switch to LFU")
+}
+
+// ---------------------------------------------------------------------------
+// AdaptiveCache: context cancellation stops background goroutine
+// ---------------------------------------------------------------------------
+
+func TestAdaptiveCache_Close(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	err := ac.Close()
+	require.NoError(t, err)
+
+	// After Close, the context should be cancelled.
+	select {
+	case <-ac.ctx.Done():
+		// expected
+	default:
+		assert.Fail(t, "expected context to be done after Close")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// AdaptiveCache: Remove propagates to shadow policies
+// ---------------------------------------------------------------------------
+
+func TestAdaptiveCache_Remove_PropagatesToShadows(t *testing.T) {
+	ac, lru, lfu, _ := makeCache(t, MigrationCold)
+
+	ac.Add("a", 1)
+
+	// Verify the shadow (LFU) received the key.
+	require.True(t, lfu.Contains("a"), "shadow LFU should contain 'a' after Add")
+
+	ac.Remove("a")
+
+	assert.False(t, lru.Contains("a"), "LRU should not contain 'a' after Remove")
+	assert.False(t, lfu.Contains("a"), "shadow LFU should not contain 'a' after Remove")
+}
+
+// ---------------------------------------------------------------------------
+// AdaptiveCache: Purge clears all policies
+// ---------------------------------------------------------------------------
+
+func TestAdaptiveCache_Purge_ClearsAll(t *testing.T) {
+	ac, lru, lfu, _ := makeCache(t, MigrationCold)
+
+	ac.Add("a", 1)
+	ac.Add("b", 2)
+
+	ac.Purge()
+
+	assert.Equal(t, 0, lru.Len(), "LRU should be empty after Purge")
+	assert.Equal(t, 0, lfu.Len(), "LFU should be empty after Purge")
+	assert.Equal(t, 0, ac.Len(), "ac.Len() should be 0 after Purge")
+}
+
+// ---------------------------------------------------------------------------
+// AdaptiveCache: concurrent operations on delegated methods
+// ---------------------------------------------------------------------------
+
+func TestAdaptiveCache_ConcurrentDelegatedMethods(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	for i := 0; i < 10; i++ {
+		ac.Add(string(rune('a'+i)), i)
+	}
+
+	const goroutines = 8
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	for g := 0; g < goroutines; g++ {
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 50; i++ {
+				_ = ac.Contains(string(rune('a' + i%10)))
+				_ = ac.Keys()
+				_ = ac.Values()
+				_ = ac.Len()
+				_, _ = ac.Peek(string(rune('a' + i%10)))
+				_ = ac.Stats()
+				_ = ac.ActivePolicy()
+			}
+		}()
+	}
+
+	wg.Wait()
+}
+
+// ---------------------------------------------------------------------------
+// PolicyType.String() coverage
+// ---------------------------------------------------------------------------
+
+func TestPolicyType_String(t *testing.T) {
+	tests := []struct {
+		pt   PolicyType
+		want string
+	}{
+		{Undefined, "Undefined"},
+		{LRU, "LRU"},
+		{LFU, "LFU"},
+		{PolicyType(99), "PolicyType(99)"},
+	}
+
+	for _, tt := range tests {
+		got := tt.pt.String()
+		assert.Equal(t, tt.want, got, "PolicyType(%d).String() mismatch", tt.pt)
+	}
 }

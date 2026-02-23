@@ -137,6 +137,7 @@ SelectPolicy() PolicyType
 | `stitchfix/mab` | v0.1.1 | Multi-Armed Bandit (Thompson Sampling) |
 | `gonum.org/v1/gonum` | v0.8.2 | Numerical computing (used by mab) |
 | `golang.org/x/exp` | indirect | Used by gonum |
+| `stretchr/testify` | v1.11.1 | Test assertions (root module, test-only) |
 
 ---
 
@@ -210,7 +211,7 @@ cd examples/basic && go mod tidy
 
 - [x] Data migration between policies on switch — `MigrationStrategy` in `Settings` (`MigrationCold` default, `MigrationWarm` copies all keys from old active to new active)
 - [x] Unit tests for LFU packages (simplelfu: 100% coverage, lfu wrapper: 93.2% coverage)
-- [ ] Unit tests for root package (cache_test.go, wrapper_test.go -- still empty stubs)
+- [x] Unit tests for root package (cache_test.go: 96.5% coverage -- CacheWrapper, AdaptiveCache delegated methods, tryChangePolicy, epoch-based switching, constructor edge cases, concurrent access)
 - [ ] Additional policies: Random, 2Q, ARC (mentioned in README but not implemented)
 - [ ] README Usage and Idea sections
 
@@ -234,11 +235,18 @@ Priority: fill empty test stubs before adding new features.
 - Test concurrent Add/Get under race detector
 - Concurrent tests for mixed operations, purge-while-reading, keys/values
 
-**Root package tests (`cache_test.go`, `wrapper_test.go`)**
-- `CacheWrapper`: hit/miss stats tracking, GetStats/ResetStats
-- `AdaptiveCache`: Add/Get with epoch-based switching
-- Test bandit integration with mock bandit
-- Test context cancellation stops background goroutine
+**Root package tests (`cache_test.go`)** -- DONE (96.5% coverage)
+- `CacheWrapper`: hit/miss stats tracking, GetStats/ResetStats, Cap, Name, GetType, delegated methods
+- `AdaptiveCache`: Stats, Resize, Contains, Keys, Values, Len, Peek, ActivePolicy
+- `AdaptiveCache`: Add/Get with epoch-based switching, tryChangePolicy (switch, no-switch, skip-when-not-full)
+- Test bandit integration with mock bandit (recordingBandit verifies shadow stats delivery)
+- Test context cancellation stops background goroutine (Close)
+- Constructor edge cases: empty policies, nil policies
+- Remove propagates to shadows, Purge clears all policies
+- Concurrent access to all delegated read methods under race detector
+- Migration strategy tests: Cold, Warm, Gradual (promotion, drain, zero-value safety, concurrent)
+- All assertions use `testify/require` (fatal) and `testify/assert` (non-fatal) — no bare `t.Fatal`/`t.Error`
+- Note: `tryChangePolicy()` returns `PolicyType` (the bandit's selection), not `bool`; tests compare against `LRU`/`LFU` constants
 
 ### Phase 2: Complete AdaptiveCache Methods
 Implement the missing methods that currently return zero values:
@@ -277,6 +285,10 @@ Each new policy only needs to implement the `Cacher` interface and be wrapped by
 - Use table-driven tests for cache operation coverage
 - Test epoch transitions with short durations (e.g., 1ms) in tests
 - Minimum 80% coverage target
+- Use `require.*` for assertions that must stop the test on failure (setup, preconditions)
+- Use `assert.*` for assertions where the test can continue (value checks, multiple independent conditions)
+- Do not use bare `t.Fatal`, `t.Fatalf`, `t.Error`, or `t.Errorf` — use testify instead
+- All three test packages (`ascache`, `lfu`, `simplelfu`) use `github.com/stretchr/testify`
 
 ---
 

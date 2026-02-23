@@ -9,8 +9,6 @@ import (
 
 var ErrEmptyPolicies = errors.New("must provide non zero policies size")
 
-type EvictCallback[K comparable, V any] func(key K, value V)
-
 // Settings configures the behaviour of AdaptiveCache.
 type Settings struct {
 	EpochDuration time.Duration
@@ -60,9 +58,7 @@ type AdaptiveCache[K comparable, V any] struct {
 
 	// --- Data Plane ---
 	activePolicy PolicyType
-	oldPolicy    PolicyType
 	policies     map[PolicyType]Policy[K, V]
-	onEvict      EvictCallback[K, V]
 
 	// --- Migration (gradual) ---
 	migrating         bool
@@ -89,9 +85,10 @@ func (c *AdaptiveCache[K, V]) runAdaptiveSelect() {
 			c.epochTicker.Stop()
 			return
 		case <-c.epochTicker.C:
-			changed := c.tryChangePolicy()
-			if changed {
-				// c.stats.UpdatedPolicy()
+			newPolicy := c.tryChangePolicy()
+			if c.activePolicy != newPolicy {
+				c.migrateData(c.activePolicy, newPolicy)
+				c.activePolicy = newPolicy
 			}
 
 			c.epochID++
@@ -99,18 +96,15 @@ func (c *AdaptiveCache[K, V]) runAdaptiveSelect() {
 	}
 }
 
-func (c *AdaptiveCache[K, V]) tryChangePolicy() (changed bool) {
+func (c *AdaptiveCache[K, V]) tryChangePolicy() PolicyType {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Abandon any incomplete gradual migration from the previous epoch.
-	c.clearMigrationState()
-
-	currectPolicy := c.activePolicy
+	currentPolicy := c.activePolicy
 
 	if !c.settings.EvictPartialCapacityFilling &&
-		c.policies[currectPolicy].Len() != c.policies[currectPolicy].Cap() {
-		return
+		c.policies[currentPolicy].Len() != c.policies[currentPolicy].Cap() {
+		return currentPolicy
 	}
 
 	for _, policy := range c.policies {
@@ -128,16 +122,7 @@ func (c *AdaptiveCache[K, V]) tryChangePolicy() (changed bool) {
 		})
 	}
 
-	newPolicy := c.bandit.SelectPolicy()
-
-	if newPolicy != currectPolicy {
-		c.migrateData(currectPolicy, newPolicy)
-		c.activePolicy = newPolicy
-		c.oldPolicy = currectPolicy
-		changed = true
-	}
-
-	return
+	return c.bandit.SelectPolicy()
 }
 
 // migrateData transfers key/value pairs from the old active policy to the new
@@ -149,6 +134,9 @@ func (c *AdaptiveCache[K, V]) tryChangePolicy() (changed bool) {
 // MigrationGradual: purge stale shadow entries from target, snapshot key list,
 // and set up the gradual migration window.
 func (c *AdaptiveCache[K, V]) migrateData(from, to PolicyType) {
+	// Abandon any incomplete gradual migration from the previous epoch.
+	c.clearMigrationState()
+
 	switch c.settings.MigrationStrategy {
 	case MigrationCold:
 		// Purge zero-value shadow entries so callers never observe a cached
@@ -406,7 +394,6 @@ func (c *AdaptiveCache[K, V]) ActivePolicy() PolicyType {
 
 func (c *AdaptiveCache[K, V]) Close() error {
 	c.cancel()
-	c.epochTicker.Stop()
 
 	return nil
 }

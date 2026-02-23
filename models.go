@@ -31,7 +31,7 @@ const (
 	MigrationGradual
 )
 
-// GlobalStats — структура для внешней статистики.
+// GlobalStats holds aggregate hit/miss statistics exposed to callers.
 type GlobalStats struct {
 	Hits   int64
 	Misses int64
@@ -42,7 +42,7 @@ type PolicyStats struct {
 	Misses int64
 }
 
-// ShadowStats — результат работы "сенсора" за эпоху.
+// ShadowStats holds the hit/miss result of a shadow cache sensor for one epoch.
 type ShadowStats struct {
 	Policy PolicyType
 	Hits   int64
