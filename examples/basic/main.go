@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
 	"sync"
 	"time"
 
@@ -26,7 +30,7 @@ func main() {
 	}
 
 	policiesList := []ascache.Policy[string, *UserProfile]{
-		ascache.NewCache[string, *UserProfile](lruCache, ascache.LRU, 100),
+		ascache.NewCache(lruCache, ascache.LRU, 100),
 	}
 
 	lfuCache, err := slfu.New[string, *UserProfile](100)
@@ -34,7 +38,7 @@ func main() {
 		panic(err)
 	}
 
-	policiesList = append(policiesList, ascache.NewCache[string, *UserProfile](lfuCache, ascache.LFU, 100))
+	policiesList = append(policiesList, ascache.NewCache(lfuCache, ascache.LFU, 100))
 
 	armNames := []ascache.PolicyType{ascache.LRU, ascache.LFU}
 
@@ -52,11 +56,81 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	defer cache.Close()
 
 	val, ok := cache.Get("key")
 	fmt.Println(val, ok)
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query().Get("key")
+		if key == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		val, ok := cache.Get(key)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.Write([]byte(val.Name))
+	})
+
+	mux.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query().Get("key")
+		if key == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		email := r.URL.Query().Get("email")
+		if email == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		_ = cache.Add(key, &UserProfile{})
+		w.Write([]byte("ok"))
+	})
+
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	go func() {
+		log.Println("server started on :8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Panicf("error: %v", err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	<-stop
+	log.Println("shutting down...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Panicf("shutdown error: %v", err)
+	}
+
+	log.Println("server stopped")
 }
 
 func NewThompsonBanditAdapter(armNames []ascache.PolicyType) *StitchFixBanditAdapter {
@@ -75,14 +149,13 @@ func NewThompsonBanditAdapter(armNames []ascache.PolicyType) *StitchFixBanditAda
 }
 
 type armStats struct {
-	// Для Бета-распределения: Alpha = Успехи + 1, Beta = Неудачи + 1
-	// Мы будем хранить Hits (успехи) и Misses (неудачи).
+	// Beta distribution parameters: Alpha = Hits + 1, Beta = Misses + 1.
 	Hits   float64
 	Misses float64
 }
 
-// CacheRewardSource — это наша реализация интерфейса mab.RewardSource.
-// Она будет хранить статистику, которую ей "скармливает" наш MAB-агент.
+// CacheRewardSource implements the mab.RewardSource interface.
+// It stores per-arm statistics supplied by the MAB adapter.
 type CacheRewardSource struct {
 	mu    sync.RWMutex
 	stats map[ascache.PolicyType]*armStats
@@ -98,8 +171,8 @@ func NewCacheRewardSource(armNames []ascache.PolicyType) *CacheRewardSource {
 	return crs
 }
 
-// GetRewards — это "Pull" метод. stitchfix/mab вызывает его,
-// когда ему нужно принять решение.
+// GetRewards is the "Pull" method called by stitchfix/mab when it needs to
+// make an arm-selection decision.
 func (crs *CacheRewardSource) GetRewards(ctx context.Context, banditContext interface{}) ([]mab.Dist, error) {
 	crs.mu.RLock()
 	defer crs.mu.RUnlock()
@@ -112,8 +185,8 @@ func (crs *CacheRewardSource) GetRewards(ctx context.Context, banditContext inte
 	return distributions, nil
 }
 
-// updateStats — это наш "Push" метод, который будет
-// вызываться из MAB-агента.
+// updateStats is the "Push" method called by the MAB adapter to record
+// observed hits and misses for a given policy.
 func (crs *CacheRewardSource) updateStats(policy ascache.PolicyType, hits, misses int64) {
 	crs.mu.Lock()
 	defer crs.mu.Unlock()
@@ -128,36 +201,33 @@ func (crs *CacheRewardSource) updateStats(policy ascache.PolicyType, hits, misse
 }
 
 //====================================================================
-// 2. АДАПТЕР, РЕАЛИЗУЮЩИЙ НАШ ИНТЕРФЕЙС `Bandit`
+// 2. ADAPTER IMPLEMENTING THE `Bandit` INTERFACE
 //====================================================================
 
-// StitchFixBanditAdapter оборачивает бандита из stitchfix
-// и реализует наш простой интерфейс.
+// StitchFixBanditAdapter wraps the stitchfix bandit and implements the
+// ascache.Bandit interface.
 type StitchFixBanditAdapter struct {
 	bandit      *mab.Bandit
 	rewardStore *CacheRewardSource
 	armNames    []ascache.PolicyType
-	// "unit" — это ID для детерминированного выбора.
-	// Т.к. у нас один "системный" кеш, мы можем
-	// использовать одну и ту же константу.
+	// unitID is a stable identifier for the single shared cache instance,
+	// used by stitchfix/mab for deterministic arm selection.
 	unitID string
 }
 
-// RecordStats — реализует наш интерфейс Bandit ("Push").
-// Он принимает статистику из ShadowCache и кладет ее в RewardSource.
+// RecordStats implements the ascache.Bandit "Push" interface.
+// It forwards shadow-cache statistics into the reward store.
 func (s *StitchFixBanditAdapter) RecordStats(stats ascache.ShadowStats) {
 	s.rewardStore.updateStats(stats.Policy, stats.Hits, stats.Misses)
 }
 
-// SelectPolicy — реализует наш интерфейс Bandit ("Pull").
-// Он просит бандита stitchfix выбрать лучшую руку,
-// который, в свою очередь, опрашивает наш rewardStore.
+// SelectPolicy implements the ascache.Bandit "Pull" interface.
+// It asks the stitchfix bandit to select the best arm by sampling from
+// the Beta distributions stored in the reward source.
 func (s *StitchFixBanditAdapter) SelectPolicy() ascache.PolicyType {
-	// Мы передаем контекст, ID юнита и список всех доступных "рук"
 	selectedArm, err := s.bandit.SelectArm(context.Background(), s.unitID, s.armNames)
 	if err != nil {
-		// В случае ошибки (например, rewardStore вернул ошибку),
-		// возвращаем первую руку как fallback.
+		// Fall back to the first arm on any error.
 		return s.armNames[0]
 	}
 

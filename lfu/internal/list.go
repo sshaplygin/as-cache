@@ -30,7 +30,7 @@ type Entry[K comparable, V any] struct {
 	// The expiry bucket item was put in, optional
 	ExpireBucket uint8
 
-	//
+	// The current frequency counter
 	Freq int
 }
 

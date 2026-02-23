@@ -36,11 +36,11 @@ type Policy[K comparable, V any] interface {
 }
 
 type Bandit interface {
-	// RecordStats получает отчет о производительности от одного из
-	// "сенсоров" (теневых кешей) за прошедшую эпоху.
+	// RecordStats delivers a performance report from one of the shadow caches
+	// for the previous epoch.
 	RecordStats(stats ShadowStats)
 
-	// SelectPolicy просит бандита выбрать, какая политика
-	// должна стать "основной" (active) на следующую эпоху.
+	// SelectPolicy asks the bandit to choose which policy should become the
+	// active one for the next epoch.
 	SelectPolicy() PolicyType
 }
