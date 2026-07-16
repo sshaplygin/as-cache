@@ -2,6 +2,7 @@ package ascache
 
 import (
 	"strings"
+	"sync/atomic"
 )
 
 func NewCache[K comparable, V any](
@@ -13,7 +14,6 @@ func NewCache[K comparable, V any](
 		Cacher: cache,
 		policy: policy,
 		size:   size,
-		stats:  PolicyStats{},
 	}
 }
 
@@ -21,15 +21,19 @@ type CacheWrapper[K comparable, V any] struct {
 	Cacher[K, V]
 	size   int
 	policy PolicyType
-	stats  PolicyStats
+	// hits and misses are updated from Get, which callers may invoke
+	// concurrently (AdaptiveCache.Get holds only a read lock), so they must be
+	// mutated atomically.
+	hits   atomic.Int64
+	misses atomic.Int64
 }
 
 func (c *CacheWrapper[K, V]) Get(key K) (value V, ok bool) {
 	value, ok = c.Cacher.Get(key)
 	if ok {
-		c.stats.Hits++
+		c.hits.Add(1)
 	} else {
-		c.stats.Misses++
+		c.misses.Add(1)
 	}
 	return
 }
@@ -47,9 +51,13 @@ func (c *CacheWrapper[K, V]) GetType() PolicyType {
 }
 
 func (c *CacheWrapper[K, V]) GetStats() PolicyStats {
-	return c.stats
+	return PolicyStats{
+		Hits:   c.hits.Load(),
+		Misses: c.misses.Load(),
+	}
 }
 
 func (c *CacheWrapper[K, V]) ResetStats() {
-	c.stats = PolicyStats{}
+	c.hits.Store(0)
+	c.misses.Store(0)
 }

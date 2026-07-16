@@ -85,21 +85,43 @@ func (c *AdaptiveCache[K, V]) runAdaptiveSelect() {
 			c.epochTicker.Stop()
 			return
 		case <-c.epochTicker.C:
-			newPolicy := c.tryChangePolicy()
-			if c.activePolicy != newPolicy {
-				c.migrateData(c.activePolicy, newPolicy)
-				c.activePolicy = newPolicy
-			}
-
-			c.epochID++
+			c.runEpoch()
 		}
 	}
 }
 
+// runEpoch performs one epoch tick: it selects the next policy, migrates data
+// when the policy changes, and advances the epoch counter. The entire sequence
+// runs under the write lock so concurrent cache operations never observe a
+// half-applied switch (a torn activePolicy or partially migrated state).
+func (c *AdaptiveCache[K, V]) runEpoch() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	newPolicy := c.selectPolicyLocked()
+	if c.activePolicy != newPolicy {
+		c.migrateData(c.activePolicy, newPolicy)
+		c.activePolicy = newPolicy
+	}
+
+	c.epochID++
+}
+
+// tryChangePolicy records shadow-policy stats with the bandit and returns the
+// policy selected for the next epoch. It acquires the write lock and performs
+// no migration. It exists as a lock-acquiring entry point; callers that already
+// hold the lock must use selectPolicyLocked instead.
 func (c *AdaptiveCache[K, V]) tryChangePolicy() PolicyType {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	return c.selectPolicyLocked()
+}
+
+// selectPolicyLocked records shadow-policy stats with the bandit and returns the
+// bandit's chosen policy for the next epoch. It must be called while the write
+// lock is held.
+func (c *AdaptiveCache[K, V]) selectPolicyLocked() PolicyType {
 	currentPolicy := c.activePolicy
 
 	if !c.settings.EvictPartialCapacityFilling &&
@@ -302,10 +324,7 @@ func (c *AdaptiveCache[K, V]) Stats() GlobalStats {
 	defer c.mu.RUnlock()
 
 	ps := c.policies[c.activePolicy].GetStats()
-	return GlobalStats{
-		Hits:   ps.Hits,
-		Misses: ps.Misses,
-	}
+	return GlobalStats(ps)
 }
 
 func (c *AdaptiveCache[K, V]) Remove(key K) bool {

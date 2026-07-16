@@ -1,1 +1,5 @@
 *.out
+
+# Compiled example binaries (built via `go build` / `go run` in each example dir)
+/examples/basic/basic
+/examples/migration/migration

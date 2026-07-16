@@ -398,7 +398,6 @@ func TestMigrationGradual_Concurrent(t *testing.T) {
 	wg.Add(goroutines * 2)
 
 	for g := 0; g < goroutines; g++ {
-		g := g
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 50; i++ {
@@ -770,4 +769,99 @@ func TestPolicyType_String(t *testing.T) {
 		got := tt.pt.String()
 		assert.Equal(t, tt.want, got, "PolicyType(%d).String() mismatch", tt.pt)
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Concurrency regression tests
+// ---------------------------------------------------------------------------
+
+// flipBandit alternates its selection on every call so the active policy
+// changes on every epoch tick, exercising the migrate + activePolicy swap path.
+type flipBandit struct {
+	mu sync.Mutex
+	n  int
+}
+
+func (b *flipBandit) RecordStats(_ ShadowStats) {}
+func (b *flipBandit) SelectPolicy() PolicyType {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.n++
+	if b.n%2 == 0 {
+		return LRU
+	}
+	return LFU
+}
+
+// TestAdaptiveCache_ConcurrentSwitchAndAccess_NoRace guards against the data
+// race where runEpoch mutated activePolicy / migration state outside the lock.
+// Before the fix this fails under `go test -race`.
+func TestAdaptiveCache_ConcurrentSwitchAndAccess_NoRace(t *testing.T) {
+	lruP := newMockPolicy[string, int](LRU, 100)
+	lfuP := newMockPolicy[string, int](LFU, 100)
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lruP, lfuP},
+		&flipBandit{},
+		&Settings{
+			EpochDuration:               time.Millisecond,
+			EvictPartialCapacityFilling: true,
+			MigrationStrategy:           MigrationWarm,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	var wg sync.WaitGroup
+	stop := make(chan struct{})
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					ac.Add("k", 1)
+					ac.Get("k")
+					ac.Contains("k")
+					_ = ac.Keys()
+					_ = ac.Len()
+					_ = ac.ActivePolicy()
+				}
+			}
+		}()
+	}
+
+	time.Sleep(150 * time.Millisecond)
+	close(stop)
+	wg.Wait()
+}
+
+// TestCacheWrapper_ConcurrentGet_NoRace guards against the data race where
+// CacheWrapper.Get mutated its stats counters non-atomically while callers
+// invoked it concurrently. Before the fix this fails under `go test -race`.
+func TestCacheWrapper_ConcurrentGet_NoRace(t *testing.T) {
+	underlying := newMockPolicy[string, int](LRU, 100)
+	w := NewCache[string, int](underlying, LRU, 100)
+	w.Add("k", 1)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 20000; j++ {
+				w.Get("k")
+				w.Get("missing")
+			}
+		}()
+	}
+	wg.Wait()
+
+	stats := w.GetStats()
+	// 8 goroutines * 20000 iters each of one hit + one miss.
+	assert.Equal(t, int64(8*20000), stats.Hits, "hit count must not be lost to races")
+	assert.Equal(t, int64(8*20000), stats.Misses, "miss count must not be lost to races")
 }

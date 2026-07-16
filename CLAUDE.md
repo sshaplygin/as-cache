@@ -7,7 +7,7 @@
 Instead of forcing users to choose a fixed eviction algorithm upfront, as-cache runs multiple policies in parallel (shadow caching), measures their hit/miss rates per epoch, and uses Thompson Sampling to select the best-performing policy dynamically.
 
 **Module:** `github.com/sshaplygin/as-cache`
-**Go version:** 1.21+
+**Go version:** 1.25+
 **Status:** Experimental
 
 ---
@@ -178,6 +178,11 @@ cd lfu && go test ./...
 
 # Run example
 cd examples/basic && go run main.go
+
+# Lint all modules (golangci-lint v2, config in .golangci.yml)
+make lint          # or: golangci-lint run ./...  (per module)
+make lint-fix      # apply --fix and formatters
+make install-tools # install the pinned golangci-lint version
 
 # Regenerate stringer (after modifying PolicyType in models.go)
 go generate ./...

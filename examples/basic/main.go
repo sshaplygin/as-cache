@@ -29,16 +29,15 @@ func main() {
 		panic(err)
 	}
 
-	policiesList := []ascache.Policy[string, *UserProfile]{
-		ascache.NewCache(lruCache, ascache.LRU, 100),
-	}
-
 	lfuCache, err := slfu.New[string, *UserProfile](100)
 	if err != nil {
 		panic(err)
 	}
 
-	policiesList = append(policiesList, ascache.NewCache(lfuCache, ascache.LFU, 100))
+	policiesList := []ascache.Policy[string, *UserProfile]{
+		ascache.NewCache(lruCache, ascache.LRU, 100),
+		ascache.NewCache(lfuCache, ascache.LFU, 100),
+	}
 
 	armNames := []ascache.PolicyType{ascache.LRU, ascache.LFU}
 
@@ -58,9 +57,6 @@ func main() {
 	}
 	defer cache.Close()
 
-	val, ok := cache.Get("key")
-	fmt.Println(val, ok)
-
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +72,7 @@ func main() {
 			return
 		}
 
-		w.Write([]byte(val.Name))
+		fmt.Fprint(w, val.Name)
 	})
 
 	mux.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
@@ -98,8 +94,12 @@ func main() {
 			return
 		}
 
-		_ = cache.Add(key, &UserProfile{})
-		w.Write([]byte("ok"))
+		_ = cache.Add(key, &UserProfile{
+			Name:      name,
+			Email:     email,
+			CreatedAt: time.Now(),
+		})
+		fmt.Fprint(w, "ok")
 	})
 
 	server := &http.Server{
@@ -200,9 +200,9 @@ func (crs *CacheRewardSource) updateStats(policy ascache.PolicyType, hits, misse
 	s.Misses += float64(misses)
 }
 
-//====================================================================
+// =====================================================================
 // 2. ADAPTER IMPLEMENTING THE `Bandit` INTERFACE
-//====================================================================
+// =====================================================================
 
 // StitchFixBanditAdapter wraps the stitchfix bandit and implements the
 // ascache.Bandit interface.

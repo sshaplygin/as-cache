@@ -1,0 +1,82 @@
+# golangci-lint configuration (schema v2).
+# A single root config is discovered by golangci-lint when run from any of the
+# repository's modules (root, lfu, examples/*), so all modules share these rules.
+version: "2"
+
+run:
+  # Lint test files as well as production code.
+  tests: true
+
+linters:
+  # Start from the curated "standard" set (errcheck, govet, ineffassign,
+  # staticcheck, unused) and layer additional checks on top.
+  default: standard
+  enable:
+    - revive # replacement for golint: style and exported-doc checks
+    - gosec # security analysis
+    - misspell # spelling mistakes in comments/strings
+    - unconvert # unnecessary type conversions
+    - unparam # unused function parameters/results
+    - gocritic # opinionated diagnostics, performance and style checks
+    - bodyclose # HTTP response bodies must be closed
+    - errorlint # correct error wrapping / comparison
+    - copyloopvar # obsolete loop-variable copies (Go 1.22+)
+    - prealloc # slices that could be preallocated
+    - nolintlint # keep //nolint directives well-formed and justified
+
+  settings:
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: blank-imports
+        - name: context-as-argument
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: indent-error-flow
+        - name: receiver-naming
+        - name: time-naming
+        - name: unreachable-code
+        - name: var-declaration
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+      disabled-checks:
+        - hugeParam
+        - unnamedResult
+        - rangeValCopy
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - std-error-handling
+    # Files excluded from every linter.
+    paths:
+      - policytype_string\.go # generated stringer output
+    rules:
+      # Test files: relax security/allocation/param linters that add noise there.
+      - path: _test\.go
+        linters:
+          - gosec
+          - unparam
+          - prealloc
+      # Examples are teaching material: keep them readable, don't require full
+      # godoc on every exported identifier.
+      - path: examples/
+        linters:
+          - revive
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/sshaplygin/as-cache
