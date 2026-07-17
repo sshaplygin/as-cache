@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/sshaplygin/as-cache/lfu/internal"
 )
 
 func TestNewLFU_PositiveSize(t *testing.T) {
@@ -474,4 +476,154 @@ func TestFrequencyPromotionAcrossMultipleGets(t *testing.T) {
 	// "b" and "c" should remain
 	assert.True(t, c.Contains("b"), "expected 'b' to remain")
 	assert.True(t, c.Contains("c"), "expected 'c' to remain")
+}
+
+// ---------------------------------------------------------------------------
+// Bucket-invariant regression tests
+//
+// Every bucket in evictList must hold at least one entry, and minFreq must
+// address a live bucket whenever the cache is non-empty. Each test below
+// panicked with a nil-pointer dereference before that invariant was enforced.
+// ---------------------------------------------------------------------------
+
+// assertBucketInvariant fails if any frequency bucket is empty or if minFreq
+// does not address a live bucket while entries remain.
+func assertBucketInvariant[K comparable, V any](t *testing.T, c *LFU[K, V]) {
+	t.Helper()
+
+	for freq, bucket := range c.evictList {
+		assert.NotZero(t, bucket.Length(), "bucket freq=%d must not be empty", freq)
+	}
+
+	if len(c.items) > 0 {
+		bucket, found := c.evictList[c.minFreq]
+		require.True(t, found, "minFreq=%d must address a live bucket", c.minFreq)
+		assert.NotZero(t, bucket.Length(), "minFreq bucket must not be empty")
+	}
+}
+
+// Add's eviction path must drop the minFreq bucket once it empties, otherwise a
+// later minFreq recompute selects the stale empty bucket and dereferences nil.
+func TestAdd_EvictDropsEmptiedBucket(t *testing.T) {
+	c, err := NewLFU[string, int](2, nil)
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	c.Add("b", 2)
+	c.Get("a")
+	c.Get("a")
+	c.Get("b")
+
+	c.Add("c", 3) // evicts "b" and empties its bucket
+	assertBucketInvariant(t, c)
+
+	c.Add("d", 4) // evicts "c" and empties its bucket
+	assertBucketInvariant(t, c)
+
+	k1, _, ok := c.RemoveOldest()
+	require.True(t, ok, "first RemoveOldest must succeed")
+	assert.Equal(t, "d", k1)
+	assertBucketInvariant(t, c)
+
+	k2, _, ok := c.RemoveOldest()
+	require.True(t, ok, "second RemoveOldest must succeed (previously panicked)")
+	assert.Equal(t, "a", k2)
+	assertBucketInvariant(t, c)
+
+	assert.Zero(t, c.Len(), "cache must be drained")
+}
+
+// Resize(0) drains the cache and leaves size==0; the next Add must not take the
+// eviction branch and dereference a bucket that no longer exists.
+func TestResize_ZeroThenAddDoesNotPanic(t *testing.T) {
+	c, err := NewLFU[string, int](2, nil)
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	evicted := c.Resize(0)
+	assert.Equal(t, 1, evicted, "Resize(0) must evict the single entry")
+	assert.Zero(t, c.Len())
+
+	c.Add("b", 2) // previously panicked: evictList[minFreq=0] was nil
+	assertBucketInvariant(t, c)
+
+	v, ok := c.Get("b")
+	require.True(t, ok, "'b' must be retrievable after Resize(0)")
+	assert.Equal(t, 2, v)
+
+	// The cache stays bounded rather than growing without limit.
+	c.Add("c", 3)
+	assertBucketInvariant(t, c)
+	assert.LessOrEqual(t, c.Len(), 1, "degenerate size must stay bounded")
+}
+
+// Remove must drop an emptied bucket and repair minFreq, otherwise GetOldest
+// reads the back of an empty bucket and dereferences nil.
+func TestRemove_RepairsMinFreqWhenBucketEmpties(t *testing.T) {
+	c, err := NewLFU[string, int](2, nil)
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	c.Add("b", 2)
+	c.Get("a") // "a" -> freq 2, leaving "b" alone in the freq-1 bucket
+
+	require.True(t, c.Remove("b"), "removing 'b' empties the freq-1 bucket")
+	assertBucketInvariant(t, c)
+
+	k, v, ok := c.GetOldest() // previously panicked: minFreq still pointed at freq 1
+	require.True(t, ok, "GetOldest must find 'a'")
+	assert.Equal(t, "a", k)
+	assert.Equal(t, 1, v)
+}
+
+// The bucket index is an internal invariant that the code above is responsible
+// for upholding. These white-box cases corrupt it deliberately to prove the
+// lookup helpers degrade to a miss rather than dereferencing a nil bucket,
+// keeping the package free of panics (CLAUDE.md rule 5).
+func TestCorruptedIndex_DegradesToMissInsteadOfPanic(t *testing.T) {
+	t.Run("minFreq addresses a missing bucket", func(t *testing.T) {
+		c, err := NewLFU[string, int](2, nil)
+		require.NoError(t, err)
+		c.Add("a", 1)
+		c.minFreq = 99 // no such bucket exists
+
+		_, _, ok := c.GetOldest()
+		assert.False(t, ok, "GetOldest must report a miss")
+
+		_, _, ok = c.RemoveOldest()
+		assert.False(t, ok, "RemoveOldest must report a miss")
+	})
+
+	t.Run("minFreq addresses an empty bucket", func(t *testing.T) {
+		c, err := NewLFU[string, int](2, nil)
+		require.NoError(t, err)
+		c.Add("a", 1)
+		c.evictList[7] = internal.NewList[string, int]()
+		c.minFreq = 7 // bucket exists but holds nothing
+
+		_, _, ok := c.GetOldest()
+		assert.False(t, ok, "GetOldest must report a miss")
+
+		_, _, ok = c.RemoveOldest()
+		assert.False(t, ok, "RemoveOldest must report a miss")
+	})
+
+	t.Run("Resize stops when eviction cannot progress", func(t *testing.T) {
+		c, err := NewLFU[string, int](4, nil)
+		require.NoError(t, err)
+		c.Add("a", 1)
+		c.Add("b", 2)
+		c.minFreq = 99 // eviction can no longer find an entry to drop
+
+		assert.Zero(t, c.Resize(1), "Resize must not report phantom evictions")
+	})
+
+	t.Run("detach ignores an entry whose bucket is absent", func(t *testing.T) {
+		c, err := NewLFU[string, int](2, nil)
+		require.NoError(t, err)
+		c.Add("a", 1)
+
+		c.detach(&internal.Entry[string, int]{Key: "ghost", Freq: 42})
+		assert.Equal(t, 1, c.Len(), "cache must be unchanged")
+	})
 }

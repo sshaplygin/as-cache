@@ -215,8 +215,8 @@ cd examples/basic && go mod tidy
 ### Incomplete / TODO
 
 - [x] Data migration between policies on switch — `MigrationStrategy` in `Settings` (`MigrationCold` default, `MigrationWarm` copies all keys from old active to new active)
-- [x] Unit tests for LFU packages (simplelfu: 100% coverage, lfu wrapper: 93.2% coverage)
-- [x] Unit tests for root package (cache_test.go: 96.5% coverage -- CacheWrapper, AdaptiveCache delegated methods, tryChangePolicy, epoch-based switching, constructor edge cases, concurrent access)
+- [x] Unit tests for LFU packages (simplelfu: 98.3% coverage, lfu wrapper: 100% coverage)
+- [x] Unit tests for root package (cache_test.go: 93.6% coverage -- CacheWrapper, AdaptiveCache delegated methods, tryChangePolicy, epoch-based switching, constructor edge cases, concurrent access)
 - [ ] Additional policies: Random, 2Q, ARC (mentioned in README but not implemented)
 - [ ] README Usage and Idea sections
 
@@ -227,20 +227,33 @@ cd examples/basic && go mod tidy
 ### Phase 1: Test Coverage
 Priority: fill empty test stubs before adding new features.
 
-**`lfu/simplelfu/lfu_test.go`** -- DONE (100% coverage)
+**`lfu/simplelfu/lfu_test.go`** -- DONE (98.3% coverage)
 - Test Add/Get/Contains/Peek/Remove/Purge/Keys/Values/Len
 - Test eviction behavior (least-frequently-used item removed)
 - Test frequency increment on repeated access
 - Edge cases: empty cache, single item, duplicate keys
 - Bug fixes applied: removed double Freq increment in Add, fixed Keys/Values slice init
+- Bucket-index invariant enforced: every bucket in `evictList` holds at least one
+  entry, and `minFreq` always addresses a live bucket while the cache is non-empty.
+  `Add`'s eviction path and `removeElement` previously left an emptied bucket in
+  the map, so a later `minFreq` recompute selected it and panicked on a nil
+  dereference (`GetOldest`/`RemoveOldest`/`Resize`). Entry removal now funnels
+  through `detach`/`recomputeMinFreq`, `Add` only evicts when the cache is
+  non-empty (so `Resize(0)` + `Add` cannot panic), and the lookup helpers degrade
+  to a miss instead of panicking if the index is ever corrupted.
 
-**`lfu/lfu_test.go`** -- DONE (93.2% coverage; uncovered methods are panic stubs)
+**`lfu/lfu_test.go`** -- DONE (100% coverage)
+
+- `Resize`, `ContainsOrAdd`, `PeekOrAdd`, `RemoveOldest` and `GetOldest` are
+  covered directly; they are fully implemented (there are no panic stubs) but
+  were previously untested, which is why the simplelfu bucket-index panics went
+  unnoticed -- those methods are their public entry points.
 - Test thread-safe wrapper around simplelfu
 - Test eviction callbacks (buffered channel, DefaultEvictedBufferSize=16)
 - Test concurrent Add/Get under race detector
 - Concurrent tests for mixed operations, purge-while-reading, keys/values
 
-**Root package tests (`cache_test.go`)** -- DONE (96.5% coverage)
+**Root package tests (`cache_test.go`)** -- DONE (93.6% coverage)
 - `CacheWrapper`: hit/miss stats tracking, GetStats/ResetStats, Cap, Name, GetType, delegated methods
 - `AdaptiveCache`: Stats, Resize, Contains, Keys, Values, Len, Peek, ActivePolicy
 - `AdaptiveCache`: Add/Get with epoch-based switching, tryChangePolicy (switch, no-switch, skip-when-not-full)
