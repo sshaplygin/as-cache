@@ -2,9 +2,59 @@
 
 An experimental Go library that uses a **Multi-Armed Bandit (MAB)** algorithm to automatically select the optimal cache replacement policy at runtime.
 
-## Disclaimer
+## Status
 
-Experimental. Running multiple policies in parallel multiplies memory consumption proportionally to the number of candidate policies.
+Experimental, but the claims here are measured rather than asserted -- see
+[Evidence](#evidence). Two things are worth knowing before adopting it.
+
+**No single policy wins everywhere, and that is the point.** On real traces the
+best fixed policy changes: 2Q wins on the Twitter and OLTP traces, W-TinyLFU on
+the ARC P3 and LIRS traces -- and on OLTP, W-TinyLFU is second-*worst*. Tuned
+sensibly, adaptive selection lands within about a point of the best fixed
+policy on most traces and beats it on one, without being told which to pick.
+
+**It is sensitive to configuration.** The same traces with a too-short epoch
+lose up to 7 points and cost 30x the per-operation time, because the cache
+spends its life migrating rather than serving. See
+[Configuring it](#configuring-it) before drawing conclusions from your own
+numbers.
+
+**Memory costs less than the obvious guess.** Running N policies in parallel
+does not multiply memory by N, because shadow policies hold keys and eviction
+bookkeeping but never real values. Measured with six policies over 50k entries
+of 256-byte values:
+
+| Configuration | Memory | Multiplier |
+| --- | --- | --- |
+| single LRU | 18.5 MiB | 1.00x |
+| adaptive, 6 policies | 48.9 MiB | 2.65x |
+| adaptive, 6 policies, `ShadowSampleRate: 0.05` | 24.4 MiB | 1.32x |
+
+Per-operation cost on a warm cache, same configurations (`Get`, 0 allocs/op
+throughout):
+
+| Configuration | ns/op |
+| --- | --- |
+| single LRU | 32 |
+| adaptive, 6 policies | 596 |
+| adaptive, 6 policies, sampled | 85 |
+
+### When to use it
+
+- You do not know which policy suits your traffic, and cannot easily find out.
+- Your traffic changes shape and you would rather not re-tune.
+- You want the measurement more than the switching -- see advisor mode on the
+  roadmap.
+
+### When not to use it
+
+- You have already measured your traffic and know which policy wins. Use that
+  policy directly; this library's best case is roughly to match it.
+- The hot path is latency-critical at single-digit nanoseconds. Even sampled,
+  the adaptive layer costs several times a bare LRU per operation.
+- You need a hard memory ceiling. The multiplier is modest but real.
+- You cannot give it enough traffic per epoch to measure anything. The bandit
+  needs many requests per epoch to tell arms apart.
 
 ## Problem
 
@@ -315,6 +365,55 @@ So the case for this library is not "it beats the best policy." It is:
 
 For a workload that genuinely crosses over, the picture could differ. These are
 synthetic; real traces are the next thing to run.
+
+### Real traces
+
+`./scripts/fetch-traces.sh` downloads five published traces (nothing is
+committed -- see [docs on traces](#real-traces)), then
+`AS_CACHE_TRACES=... make evidence` replays them. Adaptive here runs a 50ms
+epoch with warm migration and `ShadowSampleRate: 0.05`:
+
+| Trace | Requests | Best fixed | Adaptive | Delta |
+| --- | --- | --- | --- | --- |
+| Twitter Twemcache cluster052 | 1.0M | 2Q 59.6% | 59.0% | -0.65 pts |
+| ARC OLTP (FAST '03) | 0.9M | 2Q 68.3% | 67.1% | -1.19 pts |
+| ARC P3 (FAST '03) | 2.0M | W-TinyLFU 11.4% | **12.2%** | **+0.76 pts** |
+| LIRS 2_pools | 100k | W-TinyLFU 54.8% | 54.4% | -0.36 pts |
+| LIRS loop | 505k | W-TinyLFU 44.3% | 43.4%* | -0.91 pts |
+
+\* `loop` needs a 2ms epoch: it is short and changes character quickly, so a
+50ms epoch gives the bandit too few epochs to react and it drops to 34.3%.
+
+Note that the best fixed policy is **not the same policy across traces**. On
+OLTP, W-TinyLFU -- the strongest general-purpose baseline -- comes second to
+last at 63.3% while 2Q wins at 68.3%. That is the case for not committing to a
+policy in advance, and it does not show up on synthetic workloads, where
+W-TinyLFU wins nearly everything.
+
+### Configuring it
+
+The epoch duration is the setting that matters most, and the failure mode is
+not subtle. Measured on the ARC P3 trace with a 20k-entry cache:
+
+| Configuration | Hit rate | ns/op |
+| --- | --- | --- |
+| 50ms epoch, warm migration | 12.2% | 540 |
+| 2ms epoch, warm migration | 4.8% | 13,476 |
+| 2ms epoch, cold migration | 0.9% | 580 |
+
+An epoch short enough to trigger frequent switches makes the cache copy its
+entire contents on every switch, so it spends its time migrating rather than
+serving. Cold migration is worse: it discards the cache at each switch, which
+on the OLTP trace costs 28 points.
+
+Rules of thumb:
+
+- Make the epoch long enough that migrating the cache is a small fraction of
+  the work done in it, and short enough that the workload sees many epochs.
+- Prefer `MigrationWarm`. `MigrationCold` is only reasonable if switches are
+  rare.
+- The stability gates help on steady traffic and hurt on fast-changing traffic
+  -- they cost 37 points on `loop`, which needs to re-adapt constantly.
 
 ### Does sampling distort the comparison?
 
