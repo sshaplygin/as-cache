@@ -58,6 +58,25 @@ type AdaptiveCache[K comparable, V any] struct {
 	// allowSwitchLocked read it; it is empty on epochs that skipped reporting.
 	epochStats map[PolicyType]PolicyStats
 
+	// tenureStats accumulates a policy's measurements for as long as it stays
+	// in one role, which is what Advice draws on. Per-epoch counters are reset
+	// after each report, so an answer about the traffic has to be accumulated
+	// somewhere.
+	//
+	// It is cleared for both policies involved in a switch. Pooling a policy's
+	// active tenure with its shadow tenure would mix two different measurement
+	// regimes - full capacity over all traffic against miniature capacity over
+	// a sample - and, worse, would leave the just-demoted policy's long good
+	// history outweighing the promoted one's short history, so Advice would
+	// recommend reverting a switch the cache had just made correctly.
+	tenureStats map[PolicyType]PolicyStats
+
+	// reportingEpochs counts only the epochs that actually measured something.
+	// epochID counts ticks, including those the capacity gate skipped, and
+	// reporting that as the evidence behind a recommendation would overstate
+	// it - sometimes by thousands of epochs to none at all.
+	reportingEpochs int64
+
 	// lastSwitchEpoch is the epoch in which the active policy last changed,
 	// used by the SwitchCooldownEpochs gate.
 	lastSwitchEpoch int64

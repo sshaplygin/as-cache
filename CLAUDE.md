@@ -63,6 +63,7 @@ as-cache/
 ├── cache.go                     # AdaptiveCache struct + public cache API
 ├── epoch.go                     # Epoch loop, bandit reporting, policy selection
 ├── migration.go                 # Migration strategies (cold/warm/gradual)
+├── advice.go                    # ObserveOnly reporting: Advice, PolicyReport
 ├── shadow.go                    # Promotion/demotion, shadow duty, value dropping
 ├── sampling.go                  # keySampler + miniature capacity maths
 ├── stability.go                 # Switch gates (cool-down, min improvement)
@@ -85,12 +86,19 @@ as-cache/
 │   ├── go.mod / go.sum          # depends on maypok86/otter/v2
 │   └── tinylfu.go               # W-TinyLFU adapter (natively resizable)
 │
+├── metrics/                     # Separate module: expvar export (stdlib only)
+│   ├── go.mod / go.sum
+│   └── metrics.go               # Advisor, Snapshot, Take, Publish
+│
 ├── bench/                       # Separate module: workloads + evidence harness
 │   ├── workload.go              # deterministic zipf/uniform/loop/scan/phase-shift
 │   ├── bandit.go                # Thompson + greedy bandits (root ships none)
 │   ├── harness.go               # replay, Result, tables
 │   ├── evidence_test.go         # policy comparison + sampling-fidelity check
-│   └── timeline_test.go         # ActivePolicy() plot over a phase-shift run
+│   ├── timeline_test.go         # ActivePolicy() plot over a phase-shift run
+│   ├── trace.go                 # real-trace loaders (Twitter/LIRS/ARC formats)
+│   ├── memory_test.go           # memory multiplier + allocations
+│   └── tuning_test.go           # epoch/migration configuration sweep
 │
 ├── lfu/                         # Separate module: LFU cache
 │   ├── go.mod / go.sum
@@ -319,6 +327,51 @@ cd examples/basic && go mod tidy
     sampler (Beta posteriors via Marsaglia-Tsang gamma draws, with discounting
     so it can change its mind) and a greedy control. Worth promoting if
     advisor mode lands.
+
+- [x] Roadmap Milestone 4 (evidence), real traces. `./scripts/fetch-traces.sh`
+  downloads five published traces; none are committed (see `.gitignore`).
+  Loaders self-test against published record/distinct counts, and the ARC
+  layout's range expansion is asserted -- each record stands for `blockCount`
+  accesses, and reading it as one-key-per-line would silently produce a
+  workload incomparable with the literature.
+  - **The real traces overturned the synthetic conclusion.** The best fixed
+    policy varies by trace: 2Q wins on Twitter Twemcache and ARC OLTP,
+    W-TinyLFU on ARC P3 and the LIRS traces. On OLTP, W-TinyLFU is
+    second-*worst*. Tuned sensibly (50ms epoch, warm migration), adaptive lands
+    within ~1 point of the best fixed policy and beats it on P3 by 0.76.
+  - **Epoch duration is the setting that matters.** A 2ms epoch on a 20k cache
+    means copying the cache hundreds of times per replay: 13,476 ns/op and a
+    7-point hit-rate loss on P3. `MigrationCold` costs 28 points on OLTP. The
+    stability gates cost 37 points on `loop`, which must re-adapt constantly.
+  - Memory: six policies cost 2.65x a single LRU, not 6x (shadows hold keys,
+    never values); 1.32x with sampling. The old README claim was wrong.
+- [x] Roadmap Milestone 5 (advisor mode). `Settings.ObserveOnly` measures every
+  arm while guaranteeing the cache behaves exactly like the policy it was built
+  with; `Advice()` reports which policy wins and by how much. The bandit may be
+  nil in this mode (implementing one is the fiddliest part of using the
+  library, and nothing is ever selected), and the `EvictPartialCapacityFilling`
+  capacity gate is bypassed, since it exists to avoid switching on thin
+  evidence and would otherwise suppress the very measurement being asked for.
+  The `metrics` module publishes a `Snapshot` through expvar, evaluated on
+  scrape, with a duplicate-name check so a registration mistake returns an
+  error instead of panicking the process.
+  - **`tenureStats`, not lifetime stats.** A policy's measurements are cleared
+    when it changes role. Accumulating across a role change pooled its active
+    tenure (full capacity, all traffic) with its shadow tenure (miniature
+    capacity, a sample), and left the outgoing policy's long history
+    outweighing the incoming one's short history -- so right after a correct
+    switch, `Advice` named the policy the cache had just moved away from as
+    best, for a number of epochs linear in the history length. Do not
+    "improve" this by accumulating for longer.
+  - **`Advice.Epochs` counts reporting epochs, not ticks.** The capacity gate
+    can skip measurement indefinitely, and `epochID` would report thousands of
+    epochs of evidence behind nothing.
+  - Ties in `Advice` are broken by `PolicyType`: ranging a map and sorting
+    stably on hit rate alone made `Best` flap between equally-performing arms
+    on an unchanged cache.
+  - `metrics.Publish` needs both the mutex and the `recover`: `expvar.Get`
+    followed by `expvar.Publish` is check-then-act, and expvar panics on a
+    duplicate name.
 
 ### Incomplete / TODO
 

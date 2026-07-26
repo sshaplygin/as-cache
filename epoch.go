@@ -32,6 +32,14 @@ func (c *AdaptiveCache[K, V]) runEpoch() {
 	c.closeMigrationLocked()
 
 	newPolicy := c.selectPolicyLocked()
+	if c.settings.ObserveOnly {
+		// Measure, report, advise - but never act. The cache keeps behaving
+		// exactly like the policy it was built with.
+		c.epochID++
+
+		return
+	}
+
 	if c.activePolicy != newPolicy && c.allowSwitchLocked(newPolicy) {
 		c.switchLocked(c.activePolicy, newPolicy)
 		c.lastSwitchEpoch = c.epochID
@@ -65,7 +73,10 @@ func (c *AdaptiveCache[K, V]) tryChangePolicy() PolicyType {
 func (c *AdaptiveCache[K, V]) selectPolicyLocked() PolicyType {
 	currentPolicy := c.activePolicy
 
-	if !c.settings.EvictPartialCapacityFilling &&
+	// The capacity gate exists to avoid switching on the strength of a
+	// half-full cache. In ObserveOnly mode nothing switches, so the gate would
+	// only suppress the measurement the caller is running the cache for.
+	if !c.settings.ObserveOnly && !c.settings.EvictPartialCapacityFilling &&
 		c.policies[currentPolicy].Len() != c.policies[currentPolicy].Cap() {
 		// Nothing was measured this epoch: drop the previous epoch's numbers
 		// so the stability gates never compare against stale evidence.
@@ -76,6 +87,10 @@ func (c *AdaptiveCache[K, V]) selectPolicyLocked() PolicyType {
 	if c.epochStats == nil {
 		c.epochStats = make(map[PolicyType]PolicyStats, len(c.policies))
 	}
+	if c.tenureStats == nil {
+		c.tenureStats = make(map[PolicyType]PolicyStats, len(c.policies))
+	}
+	c.reportingEpochs++
 
 	for _, policy := range c.policies {
 		stats := policy.GetStats()
@@ -98,6 +113,11 @@ func (c *AdaptiveCache[K, V]) selectPolicyLocked() PolicyType {
 		}
 
 		c.epochStats[policy.GetType()] = reported
+
+		tenure := c.tenureStats[policy.GetType()]
+		tenure.Hits += reported.Hits
+		tenure.Misses += reported.Misses
+		c.tenureStats[policy.GetType()] = tenure
 
 		c.bandit.RecordStats(ShadowStats{
 			Policy: policy.GetType(),

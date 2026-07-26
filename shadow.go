@@ -95,6 +95,11 @@ func (c *AdaptiveCache[K, V]) switchLocked(from, to PolicyType) {
 	c.migrateData(from, to)
 	c.activePolicy = to
 
+	// Both policies just changed role, so what they measured in the previous
+	// one no longer describes them. Advice compares them from here.
+	delete(c.tenureStats, from)
+	delete(c.tenureStats, to)
+
 	if !c.migrating {
 		c.demoteLocked(from)
 	}

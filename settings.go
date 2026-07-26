@@ -55,6 +55,18 @@ type Settings struct {
 	// behaviour of earlier versions.
 	ShadowSampleRate float64
 
+	// ObserveOnly runs the cache as a measurement instrument: every policy is
+	// still measured each epoch and reported to the bandit, but the active
+	// policy never changes and no migration ever happens.
+	//
+	// This is the zero-risk way to adopt the library. The cache behaves
+	// exactly like the single policy you gave it first, while Advice() answers
+	// the question that is otherwise expensive to ask: would a different
+	// eviction policy serve this traffic better, and by how much. Once the
+	// answer is in, either switch to that policy directly or turn this off and
+	// let the bandit do it.
+	ObserveOnly bool
+
 	// MinShadowCapacity is the floor on a shadow's miniature capacity. A
 	// miniature of a handful of entries measures noise rather than a policy,
 	// so when the sample rate would shrink a shadow below this floor the
@@ -78,11 +90,18 @@ func NewAdaptiveCache[K comparable, V any](
 	if len(policies) == 0 {
 		return nil, ErrEmptyPolicies
 	}
-	if bandit == nil {
-		return nil, ErrNilBandit
-	}
 	if settings == nil {
 		return nil, ErrNilSettings
+	}
+	if bandit == nil {
+		// Observing needs no strategy: nothing is ever selected. Requiring a
+		// bandit for the zero-risk adoption path would be friction for no
+		// reason, since implementing one is the fiddliest part of using this
+		// library.
+		if !settings.ObserveOnly {
+			return nil, ErrNilBandit
+		}
+		bandit = observerBandit{}
 	}
 	if settings.EpochDuration <= 0 {
 		return nil, fmt.Errorf("%w: got %s", ErrInvalidEpochDuration, settings.EpochDuration)
