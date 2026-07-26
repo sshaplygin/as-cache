@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ascache "github.com/sshaplygin/as-cache"
+	"github.com/sshaplygin/as-cache/bandit"
 	"github.com/sshaplygin/as-cache/bench"
 )
 
@@ -116,7 +117,7 @@ func TestAdaptiveVersusFixed(t *testing.T) {
 			require.NoError(t, err)
 
 			cache, err := ascache.NewAdaptiveCache(arms,
-				bench.NewThompsonBandit(0.7, 7),
+				bandit.NewThompson(0.7, 7),
 				&ascache.Settings{
 					// Short enough that many epochs elapse during a replay, so
 					// the bandit gets the chance to react within a phase.

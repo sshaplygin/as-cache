@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ascache "github.com/sshaplygin/as-cache"
+	"github.com/sshaplygin/as-cache/bandit"
 	"github.com/sshaplygin/as-cache/bench"
 )
 
@@ -68,7 +69,7 @@ func TestAdaptiveTuning(t *testing.T) {
 					settings.SwitchCooldownEpochs = 3
 				}
 
-				cache, err := ascache.NewAdaptiveCache(arms, bench.NewThompsonBandit(0.7, 13), settings)
+				cache, err := ascache.NewAdaptiveCache(arms, bandit.NewThompson(0.7, 13), settings)
 				require.NoError(t, err)
 
 				r := bench.Replay("adaptive", cache, w)

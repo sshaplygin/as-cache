@@ -26,11 +26,11 @@ MODULE=github.com/sshaplygin/as-cache
 # Modules intended for publication. bench and examples/* are deliberately
 # excluded: they are internal, nothing imports them, and their placeholder
 # requires are harmless.
-PUBLISHABLE=(. lfu policies policies/arc policies/tinylfu metrics)
+PUBLISHABLE=(. lfu policies policies/arc policies/tinylfu metrics bandit bandit/redis)
 
 # Tagging order. A module cannot require a real version of a sibling until that
 # sibling is tagged, so releases go bottom-up through the dependency graph.
-TAG_ORDER=(. lfu policies policies/arc policies/tinylfu metrics)
+TAG_ORDER=(. lfu policies policies/arc policies/tinylfu metrics bandit bandit/redis)
 
 fail=0
 

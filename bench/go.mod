@@ -4,6 +4,7 @@ go 1.25.2
 
 require (
 	github.com/sshaplygin/as-cache v0.0.0
+	github.com/sshaplygin/as-cache/bandit v0.0.0
 	github.com/sshaplygin/as-cache/policies v0.0.0
 	github.com/sshaplygin/as-cache/policies/arc v0.0.0
 	github.com/sshaplygin/as-cache/policies/tinylfu v0.0.0
@@ -29,3 +30,5 @@ replace github.com/sshaplygin/as-cache/policies => ../policies
 replace github.com/sshaplygin/as-cache/policies/arc => ../policies/arc
 
 replace github.com/sshaplygin/as-cache/policies/tinylfu => ../policies/tinylfu
+
+replace github.com/sshaplygin/as-cache/bandit => ../bandit

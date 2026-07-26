@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ascache "github.com/sshaplygin/as-cache"
+	"github.com/sshaplygin/as-cache/bandit"
 	"github.com/sshaplygin/as-cache/bench"
 )
 
@@ -81,7 +82,7 @@ func TestActivePolicyTimeline(t *testing.T) {
 	require.NoError(t, err)
 
 	inner, err := ascache.NewAdaptiveCache(arms,
-		bench.NewThompsonBandit(0.6, 9),
+		bandit.NewThompson(0.6, 9),
 		&ascache.Settings{
 			EpochDuration:               2 * time.Millisecond,
 			EvictPartialCapacityFilling: true,

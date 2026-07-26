@@ -3,6 +3,7 @@ package ascache
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -108,6 +109,7 @@ func NewAdaptiveCache[K comparable, V any](
 	}
 
 	availablePolicies := make(map[PolicyType]Policy[K, V], len(policies))
+	policyOrder := make([]PolicyType, 0, len(policies))
 	for _, policy := range policies {
 		if policy == nil {
 			return nil, ErrNilPolicy
@@ -116,18 +118,28 @@ func NewAdaptiveCache[K comparable, V any](
 			return nil, fmt.Errorf("%w: %s", ErrDuplicatePolicy, policy.GetType())
 		}
 		availablePolicies[policy.GetType()] = policy
+		policyOrder = append(policyOrder, policy.GetType())
 	}
+	slices.Sort(policyOrder)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	ac := &AdaptiveCache[K, V]{
 		policies:     availablePolicies,
+		policyOrder:  policyOrder,
 		activePolicy: policies[0].GetType(),
 		bandit:       bandit,
 		epochTicker:  time.NewTicker(settings.EpochDuration),
 		ctx:          ctx,
 		cancel:       cancel,
 		settings:     settings,
+	}
+
+	// A bandit that wants whole epochs gets them instead of the per-arm
+	// stream, never as well as: RecordEpoch carries the same counts, so
+	// delivering both would double every arm's evidence.
+	if epochBandit, ok := bandit.(EpochBandit); ok {
+		ac.epochBandit = epochBandit
 	}
 
 	sampleRate := settings.ShadowSampleRate

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ascache "github.com/sshaplygin/as-cache"
+	"github.com/sshaplygin/as-cache/bandit"
 	"github.com/sshaplygin/as-cache/bench"
 )
 
@@ -130,7 +131,7 @@ func TestTraceEvidence(t *testing.T) {
 			require.NoError(t, err)
 
 			cache, err := ascache.NewAdaptiveCache(arms,
-				bench.NewThompsonBandit(0.7, 13),
+				bandit.NewThompson(0.7, 13),
 				&ascache.Settings{
 					EpochDuration:               2 * time.Millisecond,
 					EvictPartialCapacityFilling: true,

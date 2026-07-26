@@ -16,6 +16,11 @@ type AdaptiveCache[K comparable, V any] struct {
 	activePolicy PolicyType
 	policies     map[PolicyType]Policy[K, V]
 
+	// policyOrder lists every policy type once, sorted, so the epoch report is
+	// built in a reproducible order rather than a map's random one. It is
+	// fixed at construction: the set of arms never changes.
+	policyOrder []PolicyType
+
 	// sampler decides which keys shadow policies track. It is shared by every
 	// policy so they all measure the same substream, and is fixed for the
 	// lifetime of the cache.
@@ -52,6 +57,11 @@ type AdaptiveCache[K comparable, V any] struct {
 
 	// --- Control Plane ---
 	bandit Bandit
+	// epochBandit is bandit again when it implements the optional EpochBandit
+	// extension, and nil otherwise. The assertion is made once at construction
+	// rather than on every epoch, and its nil-ness is what selects between the
+	// two reporting shapes - a bandit never receives both.
+	epochBandit EpochBandit
 
 	// epochStats holds the per-policy stats measured in the epoch the last
 	// report covered, keyed by policy. The switch-stability gates in

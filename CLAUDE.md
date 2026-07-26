@@ -91,11 +91,34 @@ as-cache/
 │   ├── go.mod / go.sum
 │   └── metrics.go               # Advisor, Snapshot, Take, Publish
 │
+├── bandit/                      # Separate module: ready-made Bandits (stdlib only)
+│   ├── go.mod / go.sum          # depends on root only
+│   ├── thompson.go              # Thompson + Greedy, promoted out of bench
+│   ├── sample.go                # Beta/Gamma draws (Marsaglia-Tsang)
+│   ├── store.go                 # Store interface: Sync / Window / Decide
+│   ├── memstore.go              # In-process Store: tests and fleet simulation
+│   ├── config.go                # Config, Mode, EvidenceMode, defaults
+│   ├── errors.go                # Sentinel errors from NewDistributed
+│   ├── fingerprint.go           # regime: which replicas may pool with which
+│   ├── window.go                # decay weighting, evidence cap, Thompson draw
+│   ├── distributed.go           # the Bandit surface the cache calls (never blocks)
+│   ├── coordinate.go            # the sync goroutine: one round trip per epoch
+│   └── snapshot.go              # observability: fallback, leadership, fleet arms
+│
+├── docker-compose.yml           # Valkey 8 + Redis 7 for `make redis-test`
+│
+├── bandit/redis/                # Separate module: keeps go-redis out of bandit
+│   ├── go.mod / go.sum          # depends on root + bandit + redis/go-redis/v9
+│   ├── store.go                 # bandit.Store over Valkey/Redis
+│   ├── scripts.go               # Lua: server-clock buckets, SET NX leadership
+│   └── keys.go                  # key schema, hash tags, counter field encoding
+│
 ├── bench/                       # Separate module: workloads + evidence harness
 │   ├── workload.go              # deterministic zipf/uniform/loop/scan/phase-shift
-│   ├── bandit.go                # Thompson + greedy bandits (root ships none)
 │   ├── harness.go               # replay, Result, tables
+│   ├── fleet.go                 # Shard/Split, paced replay, fleet comparison
 │   ├── evidence_test.go         # policy comparison + sampling-fidelity check
+│   ├── fleet_test.go            # does pooling beat deciding alone?
 │   ├── timeline_test.go         # ActivePolicy() plot over a phase-shift run
 │   ├── trace.go                 # real-trace loaders (Twitter/LIRS/ARC formats)
 │   ├── memory_test.go           # memory multiplier + allocations
@@ -145,8 +168,13 @@ ResetStats()
 GetType() PolicyType
 ```
 
-### `Bandit` (interfaces.go)
-MAB strategy abstraction:
+### `Bandit` / `EpochBandit` (interfaces.go)
+MAB strategy abstraction. **Both methods run under the cache's write lock, so
+an implementation must not block** -- see the distributed-bandit notes below.
+`EpochBandit` is an optional extension delivering one whole reporting epoch
+per call instead of one arm at a time; a bandit implementing it receives
+`RecordEpoch` and never `RecordStats`.
+
 ```go
 RecordStats(stats ShadowStats)
 SelectPolicy() PolicyType
@@ -174,6 +202,8 @@ SelectPolicy() PolicyType
 |---|---|---|
 | `hashicorp/golang-lru/v2` | v2.0.6 | LRU/2Q/expirable (policies module). NOT v2.0.7: that release does not build |
 | `stitchfix/mab` | v0.1.1 | Multi-Armed Bandit (Thompson Sampling) |
+| `redis/go-redis/v9` | v9.21.0 | Valkey/Redis client (`bandit/redis` module only) |
+| `alicebob/miniredis/v2` | v2.38.0 | Fake Redis for `bandit/redis` tests (test-only) |
 | `gonum.org/v1/gonum` | v0.8.2 | Numerical computing (used by mab) |
 | `golang.org/x/exp` | indirect | Used by gonum |
 | `stretchr/testify` | v1.11.1 | Test assertions (root module, test-only) |
@@ -222,6 +252,15 @@ cd examples/basic && go run main.go
 make lint          # or: golangci-lint run ./...  (per module)
 make lint-fix      # apply --fix and formatters
 make install-tools # install the pinned golangci-lint version
+
+# Run the bandit/redis suite against real servers rather than miniredis.
+# docker-compose.yml brings up both Valkey 8 and Redis 7; the suite runs
+# against each, because the adapter claims to support both.
+make redis-up            # start them and wait for health
+make redis-test          # start, run against both, tear down
+make redis-down          # stop them
+# or, against a server you already have:
+AS_CACHE_REDIS_ADDR=127.0.0.1:6379 sh -c 'cd bandit/redis && go test ./...'
 
 # Regenerate stringer (after modifying PolicyType in models.go)
 go generate ./...
@@ -385,6 +424,103 @@ cd examples/basic && go mod tidy
     Zipf holds popularity stationary, which is exactly LFU's assumption; real
     traffic shifts and stale frequency counts pin dead entries. This is the
     clearest evidence in the repo that synthetic workloads mislead.
+
+- [x] Distributed bandit (`bandit`, `bandit/redis`). A fleet pools its
+  per-epoch counts through Valkey/Redis so replicas that individually see too
+  little traffic to rank their arms can still select. Five findings shaped it:
+  - **The `Bandit` interface runs under the cache's write lock.** `RecordStats`
+    and `SelectPolicy` are both called from `selectPolicyLocked`, inside
+    `runEpoch`'s `c.mu.Lock()`. Go's `RWMutex` queues new readers behind a
+    waiting writer, so a blocking call there stalls every `Get` in the process
+    for its duration -- a store timeout becomes a cache outage. `Distributed`
+    therefore buffers in `RecordEpoch` and serves `SelectPolicy` from an
+    `atomic.Int64`; all I/O is on its own goroutine. The non-blocking rule is
+    now documented on `Bandit` itself, and asserted by
+    `TestDistributed_RecordAndSelectNeverWaitOnTheStore`.
+  - **Two clocks.** The tuned single-node epoch is 50ms, which is below both a
+    round trip and any fleet-wide clock agreement. `CoordinationEpoch` is a
+    separate, seconds-scale clock. Buckets are derived from the *store's* clock
+    inside Lua (`redis.call('TIME')`), so no replica's clock is ever consulted
+    and a skewed machine cannot poison a window. Needs Redis 7 / Valkey 7.2 for
+    effects replication.
+  - **Decay cannot be applied in place by N writers.** Multiplying a shared
+    counter once per replica per epoch means a fleet of fifty forgets fifty
+    times faster than a fleet of one. The store holds plain per-bucket sums;
+    `aggregate` applies `decay^age` on read. Same arithmetic at any fleet size.
+  - **Pooling multiplies evidence by fleet size, which kills exploration.** A
+    Beta posterior narrows with the square root of its evidence, so a thousand
+    replicas produce draws that always return the same arm. `capEvidence`
+    bounds the effective sample size, preserving the rate exactly.
+    `TestCapEvidence_RestoresExploration` is the demonstration: uncapped, a
+    marginally worse arm is drawn zero times in 200.
+  - **The active/shadow role gap is why `ModeLeader` is the default.** The
+    active arm is measured at full capacity, shadows on miniatures running 1-3
+    points pessimistic. Under leader election every replica has the same arm in
+    the flattering role so the bias cancels on summing; under
+    `ModeSharedPosterior` it is asymmetric and compounds with deployment share.
+    `EvidenceShadowOnly` removes it and is rejected under `ModeLeader`, where
+    the fleet-wide active policy is nobody's shadow and would have no evidence
+    at all (`ErrShadowOnlyUnderLeader`).
+  - **Replicas only pool when they measure the same thing.** `Namespace` is
+    suffixed with a fingerprint of arms + capacity + sample rate. Pooling a
+    1000-entry cache's hit rate with a 100-entry one produces a number that
+    describes neither, and nothing in the counts would reveal it. Epoch
+    duration is deliberately *not* in the fingerprint: reporting twice as often
+    contributes twice the counts at the same rate, and rates are what is
+    compared.
+  - **The adapter suite runs against miniredis by default and against real
+    servers via `make redis-test`.** A fake can be too permissive about
+    precisely what this leans on -- `TIME` inside a script, `SET NX PX`, and
+    `HINCRBY` on a key the script names itself rather than declaring in `KEYS`
+    -- so `docker-compose.yml` brings up both Valkey 8 and Redis 7 and the
+    suite runs against each. Testing one engine while documenting two is how a
+    support claim quietly stops being true. Verified: 20 tests, 0 skips, both
+    engines.
+  - Root-module changes this needed, both additive: the optional `EpochBandit`
+    interface (a bandit that must key evidence externally needs the epoch
+    boundary, the epoch id and which arm was active -- none of which the
+    per-arm `ShadowStats` stream carries), and `EpochReport.Capacity` /
+    `SampleRate` for the fingerprint.
+
+- [x] **Bug found and fixed: an unrecognised bandit selection panicked the
+  process.** `runEpoch` switched to whatever `SelectPolicy` returned without
+  checking the cache actually had it; `migrateData` then looked the missing
+  policy up in the map and dereferenced a nil interface. `Undefined` is the
+  natural return from a bandit that has not formed an opinion -- which a
+  distributed one does for every epoch before its first sync -- so this was
+  reachable in normal operation. Now guarded by `hasPolicy`; an unrecognised
+  selection means no change, which is what the docs already implied.
+
+- [x] **Bug found and fixed: the default migration strategy stopped purging
+  shadow zeros.** When `MigrationStrategy` was renumbered to `iota + 1`, its
+  zero value -- the documented default -- stopped matching any case in
+  `migrateData`'s switch, so a switch skipped purging the incoming policy's
+  zero-value shadow entries and served them to callers as real data. Cold is
+  now the `default:` arm rather than a named case, so no strategy value can
+  fall through the one step every strategy must take.
+  `TestMigration_DefaultStrategyNeverServesAShadowZero` covers all four values.
+  The same renumbering hit `bandit.Mode`, where a zero value claimed no
+  leadership and followed no leader; `validate` now resolves it explicitly.
+
+- [x] Evidence: **pooling helps only in the regime it was built for.** Paced to
+  ~8 requests per cache epoch per replica, a pooled fleet gains 2.3-3.9 points
+  over replicas deciding alone (58-59% vs 55.5%), and the mechanism is visible
+  in the endings: starved replicas scatter across 5 policies, the pooled fleet
+  holds 1. Unstarved, pooling *loses* -- 1-2 points on uniform traffic, 5.1
+  points on a fleet whose replicas serve different workloads, where one
+  fleet-wide policy is a compromise nobody wanted.
+  - **The unpaced fleet tests measure the wrong regime.** `Replay` runs flat
+    out, so it delivers thousands of requests per epoch however small the
+    workload; a smaller workload just finishes sooner. `ReplayPaced` holds a
+    request rate, which is the only way to reproduce thin traffic, and it costs
+    wall-clock time to do so. Do not "speed up" the paced test by unpacing it.
+  - The coordination-epoch sweep (10/25/50/200ms: -0.41/-0.67/-2.21/-3.47 vs
+    local) shows most of the unstarved loss is the fleet getting fewer chances
+    to change its mind -- but it closes towards break-even, never past it, and
+    the fastest setting is the one a real round trip makes most expensive.
+    These replays use `MemStore`, so coordination is free in a way it will not
+    be in production.
+  - `bench/bandit.go` is gone; `bench` imports the `bandit` module.
 
 ### Incomplete / TODO
 
