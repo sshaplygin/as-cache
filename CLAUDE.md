@@ -109,6 +109,7 @@ as-cache/
 │
 ├── bandit/redis/                # Separate module: keeps go-redis out of bandit
 │   ├── go.mod / go.sum          # depends on root + bandit + redis/go-redis/v9
+│   ├── TESTING.md               # what the real-server runs verified, and did not
 │   ├── store.go                 # bandit.Store over Valkey/Redis
 │   ├── scripts.go               # Lua: server-clock buckets, SET NX leadership
 │   └── keys.go                  # key schema, hash tags, counter field encoding
@@ -474,8 +475,11 @@ cd examples/basic && go mod tidy
     `HINCRBY` on a key the script names itself rather than declaring in `KEYS`
     -- so `docker-compose.yml` brings up both Valkey 8 and Redis 7 and the
     suite runs against each. Testing one engine while documenting two is how a
-    support claim quietly stops being true. Verified: 20 tests, 0 skips, both
-    engines.
+    support claim quietly stops being true. Verified against Valkey 8.1.9 and
+    Redis 7.4.10: 20 tests, 0 skips, 0 failures on each. See
+    `bandit/redis/TESTING.md`, which also records what is *not* covered
+    (Redis Cluster, failover, Redis 6) and the zsh word-splitting trap that
+    makes a hand-run two-engine loop silently test the fake instead.
   - Root-module changes this needed, both additive: the optional `EpochBandit`
     interface (a bandit that must key evidence externally needs the epoch
     boundary, the epoch id and which arm was active -- none of which the
