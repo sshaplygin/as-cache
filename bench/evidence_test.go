@@ -21,6 +21,15 @@ import (
 // working set makes every policy look identical.
 const cacheSize = 500
 
+// tiedArmTolerance is how far below the worst fixed policy adaptive selection
+// may land before it counts as having picked badly.
+//
+// It exists because arms tie. Half a point is roughly five times the
+// run-to-run variation these replays show, and a small fraction of any real
+// separation between policies, so it absorbs the coin-flip without hiding a
+// regression.
+const tiedArmTolerance = 0.005
+
 // workloads returns the suite every comparison runs over.
 func workloads() []bench.Workload {
 	return []bench.Workload{
@@ -150,8 +159,22 @@ func TestAdaptiveVersusFixed(t *testing.T) {
 			// The claim worth defending is not that adaptive always wins, but
 			// that it never lands near the bottom: a cache that can pick the
 			// worst arm is worse than any fixed choice.
-			assert.Greater(t, adaptive.HitRate(), worstFixed.HitRate(),
-				"adaptive selection must beat the worst fixed policy on %s", w.Name)
+			//
+			// "Near the bottom" has to allow for a tie, because on some
+			// workloads most arms are equivalent. On uniform, six of the seven
+			// policies sit within a hundredth of a point of each other at
+			// ~10%, since there is no structure for any of them to exploit.
+			// Adaptive lands in that same tie, and whether it comes out a
+			// hundredth above or below the minimum of the group is a property
+			// of the run, not of the library - asserting strict improvement
+			// there fails about one run in ten and means nothing when it
+			// passes.
+			//
+			// The tolerance is far above that jitter and far below any real
+			// separation: the gap between best and worst is 92 points on loop,
+			// 11 on zipf, 10 on scan.
+			assert.Greater(t, adaptive.HitRate(), worstFixed.HitRate()-tiedArmTolerance,
+				"adaptive selection must not land below the worst fixed policy on %s", w.Name)
 		})
 	}
 

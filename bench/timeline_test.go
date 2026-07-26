@@ -1,7 +1,9 @@
 package bench_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -24,24 +26,66 @@ type timelineCache struct {
 
 	mu       sync.Mutex
 	samples  []ascache.PolicyType
+	frames   []timelineFrame
 	interval int
 	seen     int
+}
+
+// timelineFrame is one sample's worth of what the cache knew: which arm was
+// serving, and what every arm had measured at that moment.
+//
+// The plot alone shows that the active policy changes; it cannot show why. The
+// evidence behind each switch is the interesting part, and it is only
+// observable while the run is happening.
+type timelineFrame struct {
+	// Request is how many requests had been served when the frame was taken.
+	Request int `json:"request"`
+	// Active is the arm serving at that moment.
+	Active string `json:"active"`
+	// Epochs is how many reporting epochs had fed the advice so far.
+	Epochs int64 `json:"epochs"`
+	// Arms is each policy's measured hit rate, as the bandit could see it.
+	Arms []timelineArm `json:"arms"`
+}
+
+type timelineArm struct {
+	Policy  string  `json:"policy"`
+	Hits    int64   `json:"hits"`
+	Misses  int64   `json:"misses"`
+	HitRate float64 `json:"hit_rate"`
+	Active  bool    `json:"active"`
 }
 
 func (c *timelineCache) sample() {
 	c.mu.Lock()
 	c.seen++
 	due := c.seen%c.interval == 0
+	seen := c.seen
 	c.mu.Unlock()
 
 	if !due {
 		return
 	}
 
+	// Read outside the lock: Advice takes the cache's own read lock, and
+	// holding this one across it would order two locks for no reason.
 	active := c.inner.ActivePolicy()
+	advice := c.inner.Advice()
+
+	frame := timelineFrame{Request: seen, Active: active.String(), Epochs: advice.Epochs}
+	for _, report := range advice.Reports {
+		frame.Arms = append(frame.Arms, timelineArm{
+			Policy:  report.Policy.String(),
+			Hits:    report.Hits,
+			Misses:  report.Misses,
+			HitRate: report.HitRate(),
+			Active:  report.Active,
+		})
+	}
 
 	c.mu.Lock()
 	c.samples = append(c.samples, active)
+	c.frames = append(c.frames, frame)
 	c.mu.Unlock()
 }
 
@@ -100,9 +144,12 @@ func TestActivePolicyTimeline(t *testing.T) {
 
 	cache.mu.Lock()
 	samples := append([]ascache.PolicyType(nil), cache.samples...)
+	frames := append([]timelineFrame(nil), cache.frames...)
 	cache.mu.Unlock()
 
 	require.NotEmpty(t, samples, "expected timeline samples")
+
+	writeTimelineJSON(t, w, size, phases, result.HitRate(), frames)
 
 	t.Logf("\nphase-shift timeline (%d requests, cache %d, %d phases)\n%s\nhit rate %.2f%%",
 		w.Len(), size, phases, plotTimeline(samples, phases), result.HitRate()*100)
@@ -180,4 +227,44 @@ func plotTimeline(samples []ascache.PolicyType, phases int) string {
 	b.WriteString(strings.Join(parts, ", "))
 
 	return b.String()
+}
+
+// writeTimelineJSON dumps the run to the path in AS_CACHE_TIMELINE_JSON, for
+// building an interactive view of it. It does nothing when the variable is
+// unset, so the evidence run is unchanged by default.
+func writeTimelineJSON(
+	t *testing.T,
+	w bench.Workload,
+	size, phases int,
+	hitRate float64,
+	frames []timelineFrame,
+) {
+	t.Helper()
+
+	path := os.Getenv("AS_CACHE_TIMELINE_JSON")
+	if path == "" {
+		return
+	}
+
+	payload := struct {
+		Workload string          `json:"workload"`
+		Requests int             `json:"requests"`
+		Size     int             `json:"size"`
+		Phases   int             `json:"phases"`
+		HitRate  float64         `json:"hit_rate"`
+		Frames   []timelineFrame `json:"frames"`
+	}{
+		Workload: w.Name,
+		Requests: w.Len(),
+		Size:     size,
+		Phases:   phases,
+		HitRate:  hitRate,
+		Frames:   frames,
+	}
+
+	encoded, err := json.MarshalIndent(payload, "", "  ")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, encoded, 0o600))
+
+	t.Logf("wrote timeline trace to %s (%d frames)", path, len(frames))
 }
