@@ -1,6 +1,6 @@
 # Each of these directories is a separate Go module (own go.mod), so tooling is
 # run once per module. The root .golangci.yml is shared by all of them.
-MODULES := . lfu policies policies/arc policies/tinylfu examples/basic examples/migration
+MODULES := . lfu policies policies/arc policies/tinylfu bench examples/basic examples/migration
 
 GOLANGCI_LINT_VERSION := v2.8.0
 
@@ -39,8 +39,12 @@ vet: ## Run go vet across all modules
 test: ## Run tests with the race detector across all modules
 	@set -e; for m in $(MODULES); do \
 		echo "==> test $$m"; \
-		( cd $$m && go test -race -count=1 ./... ); \
+		( cd $$m && go test -race -short -count=1 ./... ); \
 	done
+
+.PHONY: evidence
+evidence: ## Replay the workload suite and print the policy comparison tables
+	( cd bench && go test -count=1 -timeout 20m -v ./... )
 
 .PHONY: tidy
 tidy: ## Run go mod tidy across all modules

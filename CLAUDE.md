@@ -85,6 +85,13 @@ as-cache/
 │   ├── go.mod / go.sum          # depends on maypok86/otter/v2
 │   └── tinylfu.go               # W-TinyLFU adapter (natively resizable)
 │
+├── bench/                       # Separate module: workloads + evidence harness
+│   ├── workload.go              # deterministic zipf/uniform/loop/scan/phase-shift
+│   ├── bandit.go                # Thompson + greedy bandits (root ships none)
+│   ├── harness.go               # replay, Result, tables
+│   ├── evidence_test.go         # policy comparison + sampling-fidelity check
+│   └── timeline_test.go         # ActivePolicy() plot over a phase-shift run
+│
 ├── lfu/                         # Separate module: LFU cache
 │   ├── go.mod / go.sum
 │   ├── lfu.go                   # Thread-safe LFU wrapper with eviction callbacks
@@ -292,6 +299,26 @@ cd examples/basic && go mod tidy
     are unlocked (fixing it changes the public `CacheStats` interface), and
     `MigrationGradual` cannot go lock-free since `promoteLocked` mutates from
     inside `Get`. Worth its own scoped change.
+
+- [x] Roadmap Milestone 4 (evidence), synthetic half. `make evidence` replays
+  the suite; see the README for the tables. The headline finding is negative and
+  should not be smoothed over: **adaptive selection never beats the best fixed
+  policy on these workloads**, including phase-shift, where W-TinyLFU wins by
+  3.8 points. The `ActivePolicy()` timeline shows the bandit working correctly —
+  it explores, picks W-TinyLFU, and holds it 90% of the run — but there is no
+  crossover to exploit because W-TinyLFU is best in both regimes. What the
+  library does deliver is a bound on the cost of guessing wrong (77.5% vs LRU's
+  0.0% on `loop`). That argues for Milestone 5 advisor mode as the primary
+  product rather than a stepping stone.
+  - Milestone 2's sampling was validated here: sampled shadows preserve the
+    policy ranking, running 1-3 points pessimistic uniformly across arms.
+  - Evidence tests are guarded by `testing.Short()` and excluded from
+    `make test`, which now passes `-short`. Under `-race` the epoch pacing
+    changes ~15x and the measurements become meaningless. Run `make evidence`.
+  - The root module ships no `Bandit`; `bench/bandit.go` has a Thompson
+    sampler (Beta posteriors via Marsaglia-Tsang gamma draws, with discounting
+    so it can change its mind) and a greedy control. Worth promoting if
+    advisor mode lands.
 
 ### Incomplete / TODO
 

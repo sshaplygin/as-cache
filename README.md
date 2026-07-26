@@ -248,9 +248,95 @@ Note that otter reports an approximate size, so this policy's `Len()` is
 approximate. Set `EvictPartialCapacityFilling: true` when using it, since the
 capacity gate compares `Len()` against `Cap()` for exact equality.
 
+## Evidence
+
+`make evidence` replays a suite of deterministic workloads against every policy
+and against the adaptive cache. The numbers below are from an M1 Max, cache
+capacity 500, 200k requests per workload. Reproduce with `make evidence`; the
+generators are in [bench/workload.go](bench/workload.go).
+
+Hit rate by policy and workload:
+
+| Workload | LRU | 2Q | ARC | Random | W-TinyLFU |
+| --- | --- | --- | --- | --- | --- |
+| zipf (skewed popularity) | 66.9% | 72.0% | **73.2%** | 62.5% | 73.0% |
+| uniform (no structure) | 10.0% | 10.0% | 10.0% | 10.0% | **12.2%** |
+| loop (cycle just over capacity) | 0.0% | 68.6% | 0.1% | 82.3% | **92.3%** |
+| scan (hot set + sweeps) | 30.0% | **40.0%** | **40.0%** | 32.0% | 39.8% |
+| phase-shift (alternating regimes) | 34.5% | 61.5% | 39.9% | 68.5% | **82.3%** |
+
+Two things stand out. LRU scores **exactly zero** on `loop`, where a cyclic scan
+just over capacity evicts every key immediately before it is needed again --
+that is the textbook pathology, and it is worth knowing your workload is not
+that shape. And W-TinyLFU wins or ties nearly everywhere.
+
+### Does adaptive selection beat picking one policy?
+
+On these workloads: **no, and this is the honest result.**
+
+| Workload | Adaptive | Best fixed | Worst fixed | Adaptive vs best |
+| --- | --- | --- | --- | --- |
+| zipf | 73.3% | ARC 73.2% | 62.5% | +0.2 pts |
+| uniform | 10.0% | W-TinyLFU 12.2% | 10.0% | -2.2 pts |
+| loop | 77.5% | W-TinyLFU 92.6% | 0.0% | -15.1 pts |
+| scan | 38.9% | 2Q 40.0% | 30.0% | -1.1 pts |
+| phase-shift | 78.8% | W-TinyLFU 82.6% | 34.5% | -3.8 pts |
+
+Adaptive selection reliably beats the *worst* fixed choice, sometimes hugely
+(77.5% against LRU's 0.0% on `loop`). It never meaningfully beats the *best*
+one. Even on `phase-shift` -- the workload built specifically to need adaptation
+-- a fixed W-TinyLFU wins by 3.8 points.
+
+The timeline explains why. Replaying `phase-shift` and sampling `ActivePolicy()`
+throughout:
+
+```text
+phase      Z------L------Z------L------Z------L------Z------L------   (Z = zipf, L = loop)
+LRU        ###
+TwoQueue      #######
+ARC                  ##
+TinyLFU          #########################################################
+
+share of time active: LRU 2%, TwoQueue 6%, ARC 1%, TinyLFU 90%
+```
+
+The bandit works exactly as designed: it explores, identifies W-TinyLFU, and
+holds it for 90% of the run. It does not oscillate at phase boundaries, because
+there is no crossover to exploit -- W-TinyLFU is the best arm in *both* regimes.
+The remaining gap is the price of exploring and of migrating between arms.
+
+So the case for this library is not "it beats the best policy." It is:
+
+- **You do not know which policy is best for your traffic**, and the cost of
+  guessing wrong is large (0.0% vs 92.3% on `loop`). Adaptive selection bounds
+  that downside without requiring you to know.
+- **It tells you what to use.** The most valuable output may be the measurement
+  rather than the switching -- see the roadmap's advisor mode.
+
+For a workload that genuinely crosses over, the picture could differ. These are
+synthetic; real traces are the next thing to run.
+
+### Does sampling distort the comparison?
+
+Milestone 2's sampled shadows are only sound if a 5% miniature ranks policies
+the way full-size shadows would. Measured directly:
+
+```text
+zipf   full-size: ARC=81.4% 2Q=81.2% TinyLFU=79.8% LRU=79.2% TTL=79.2% Random=28.9%
+       sampled:   ARC=78.7% 2Q=78.3% TinyLFU=77.1% LRU=76.7% TTL=76.5% Random=27.9%
+
+scan   full-size: 2Q=28.3% ARC=28.3% TinyLFU=27.0% LRU=21.4% TTL=21.4% Random=17.1%
+       sampled:   2Q=27.1% ARC=27.1% TinyLFU=25.1% TTL=20.5% LRU=20.5% Random=16.6%
+```
+
+The order is preserved. Sampled rates run uniformly 1-3 points pessimistic, but
+the bias applies to every arm alike, so comparisons hold and the bandit picks
+the same arm.
+
 ## TODO
 
-- [ ] README: detailed benchmarks comparing policies per workload type
+- [ ] Trace-driven benchmarks (ARC paper traces, `twitter/cache-trace`)
+- [ ] Advisor mode: measure without switching, and report
 
 ## References
 
