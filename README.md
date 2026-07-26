@@ -1,6 +1,12 @@
 # as-cache — Adaptive Selection Cache
 
-An experimental Go library that uses a **Multi-Armed Bandit (MAB)** algorithm to automatically select the optimal cache replacement policy at runtime.
+[![CI](https://github.com/sshaplygin/as-cache/actions/workflows/ci.yml/badge.svg)](https://github.com/sshaplygin/as-cache/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sshaplygin/as-cache.svg)](https://pkg.go.dev/github.com/sshaplygin/as-cache)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sshaplygin/as-cache)](https://goreportcard.com/report/github.com/sshaplygin/as-cache)
+
+A Go library that uses a **Multi-Armed Bandit (MAB)** algorithm to select the
+cache replacement policy at runtime, measuring candidate policies against your
+real traffic instead of asking you to guess.
 
 ## Status
 
@@ -80,7 +86,7 @@ See [examples/basic/main.go](examples/basic/main.go) for a complete runnable exa
 | Policy | Status | Notes |
 | --- | --- | --- |
 | LRU | implemented | via `hashicorp/golang-lru/v2` |
-| LFU | implemented | native O(1) implementation in `lfu/` |
+| LFU | implemented | native O(1) implementation in `lfu/`; `policies.NewLFU` |
 | 2Q | implemented | `policies.NewTwoQueue` |
 | Random | implemented | `policies.NewRandomPolicy` |
 | TTL | implemented | `policies.NewTTL` |
@@ -247,6 +253,7 @@ cache, err := ascache.NewAdaptiveCache(
 | Policy | Constructor | Notes |
 | --- | --- | --- |
 | LRU | `policies.NewLRU` | `hashicorp/golang-lru/v2` |
+| LFU | `policies.NewLFU` | this repository's O(1) LFU; strong on stationary popularity, weak when it shifts |
 | 2Q | `policies.NewTwoQueue` | scan-resistant; a scan cannot flush the working set |
 | Random | `policies.NewRandomPolicy` | no bookkeeping; the control arm worth beating |
 | TTL | `policies.NewTTL` | expiry as well as recency |
@@ -376,18 +383,18 @@ generators are in [bench/workload.go](bench/workload.go).
 
 Hit rate by policy and workload:
 
-| Workload | LRU | 2Q | ARC | Random | W-TinyLFU |
-| --- | --- | --- | --- | --- | --- |
-| zipf (skewed popularity) | 66.9% | 72.0% | **73.2%** | 62.5% | 73.0% |
-| uniform (no structure) | 10.0% | 10.0% | 10.0% | 10.0% | **12.2%** |
-| loop (cycle just over capacity) | 0.0% | 68.6% | 0.1% | 82.3% | **92.3%** |
-| scan (hot set + sweeps) | 30.0% | **40.0%** | **40.0%** | 32.0% | 39.8% |
-| phase-shift (alternating regimes) | 34.5% | 61.5% | 39.9% | 68.5% | **82.3%** |
+| Workload | LRU | LFU | 2Q | ARC | Random | W-TinyLFU |
+| --- | --- | --- | --- | --- | --- | --- |
+| zipf (skewed popularity) | 66.9% | **73.5%** | 72.0% | 73.2% | 62.6% | 73.3% |
+| uniform (no structure) | 10.0% | 10.0% | 10.0% | 10.0% | 10.1% | **12.3%** |
+| loop (cycle just over capacity) | 0.0% | 0.0% | 68.6% | 0.1% | 82.1% | **94.0%** |
+| scan (hot set + sweeps) | 30.0% | **40.0%** | **40.0%** | **40.0%** | 32.0% | 39.7% |
+| phase-shift (alternating regimes) | 34.5% | 69.7% | 61.5% | 39.9% | 68.2% | **82.1%** |
 
-Two things stand out. LRU scores **exactly zero** on `loop`, where a cyclic scan
-just over capacity evicts every key immediately before it is needed again --
-that is the textbook pathology, and it is worth knowing your workload is not
-that shape. And W-TinyLFU wins or ties nearly everywhere.
+Two things stand out. LRU and LFU both score **exactly zero** on `loop`, where a
+cyclic scan just over capacity evicts every key immediately before it is needed
+again -- that is the textbook pathology, and it is worth knowing your workload
+is not that shape. And W-TinyLFU wins or ties nearly everywhere here.
 
 ### Does adaptive selection beat picking one policy?
 
@@ -395,11 +402,11 @@ On these workloads: **no, and this is the honest result.**
 
 | Workload | Adaptive | Best fixed | Worst fixed | Adaptive vs best |
 | --- | --- | --- | --- | --- |
-| zipf | 73.3% | ARC 73.2% | 62.5% | +0.2 pts |
-| uniform | 10.0% | W-TinyLFU 12.2% | 10.0% | -2.2 pts |
-| loop | 77.5% | W-TinyLFU 92.6% | 0.0% | -15.1 pts |
-| scan | 38.9% | 2Q 40.0% | 30.0% | -1.1 pts |
-| phase-shift | 78.8% | W-TinyLFU 82.6% | 34.5% | -3.8 pts |
+| zipf | 73.3% | LFU 73.5% | 62.6% | -0.2 pts |
+| uniform | 10.0% | W-TinyLFU 12.3% | 10.0% | -2.3 pts |
+| loop | 77.5% | W-TinyLFU 94.0% | 0.0% | -16.5 pts |
+| scan | 38.9% | LFU/2Q/ARC 40.0% | 30.0% | -1.1 pts |
+| phase-shift | 78.8% | W-TinyLFU 82.1% | 34.5% | -3.3 pts |
 
 Adaptive selection reliably beats the *worst* fixed choice, sometimes hugely
 (77.5% against LRU's 0.0% on `loop`). It never meaningfully beats the *best*
@@ -442,22 +449,31 @@ committed -- see [docs on traces](#real-traces)), then
 `AS_CACHE_TRACES=... make evidence` replays them. Adaptive here runs a 50ms
 epoch with warm migration and `ShadowSampleRate: 0.05`:
 
-| Trace | Requests | Best fixed | Adaptive | Delta |
-| --- | --- | --- | --- | --- |
-| Twitter Twemcache cluster052 | 1.0M | 2Q 59.6% | 59.0% | -0.65 pts |
-| ARC OLTP (FAST '03) | 0.9M | 2Q 68.3% | 67.1% | -1.19 pts |
-| ARC P3 (FAST '03) | 2.0M | W-TinyLFU 11.4% | **12.2%** | **+0.76 pts** |
-| LIRS 2_pools | 100k | W-TinyLFU 54.8% | 54.4% | -0.36 pts |
-| LIRS loop | 505k | W-TinyLFU 44.3% | 43.4%* | -0.91 pts |
+| Trace | Requests | Best fixed | Worst fixed | Adaptive | Delta |
+| --- | --- | --- | --- | --- | --- |
+| Twitter Twemcache cluster052 | 1.0M | 2Q 59.6% | LFU 41.4% | 59.4% | -0.25 pts |
+| ARC OLTP (FAST '03) | 0.9M | 2Q 68.3% | LFU 45.4% | 67.1% | -1.19 pts |
+| ARC P3 (FAST '03) | 2.0M | W-TinyLFU 11.7% | LRU 1.9% | **12.7%** | **+0.92 pts** |
+| LIRS 2_pools | 100k | W-TinyLFU 54.8% | Random 50.1% | 54.4% | -0.36 pts |
+| LIRS loop | 505k | W-TinyLFU 45.9% | LRU/LFU 0.0% | 42.5%* | -3.43 pts |
 
 \* `loop` needs a 2ms epoch: it is short and changes character quickly, so a
-50ms epoch gives the bandit too few epochs to react and it drops to 34.3%.
+50ms epoch gives the bandit too few epochs to react and it drops to 33.3%.
 
 Note that the best fixed policy is **not the same policy across traces**. On
 OLTP, W-TinyLFU -- the strongest general-purpose baseline -- comes second to
-last at 63.3% while 2Q wins at 68.3%. That is the case for not committing to a
+last at 63.2% while 2Q wins at 68.3%. That is the case for not committing to a
 policy in advance, and it does not show up on synthetic workloads, where
 W-TinyLFU wins nearly everything.
+
+LFU is the sharpest illustration of why synthetic workloads mislead. It is the
+**best** policy on synthetic `zipf` (73.5%) and the **worst** on both large real
+traces (41.4% on Twitter, 45.4% on OLTP). Synthetic Zipf holds popularity
+*stationary*, which is exactly the assumption classic LFU makes; real traffic
+shifts, and an entry that was hot once keeps a frequency count that holds it
+resident long after it stops being useful. That is the failure W-TinyLFU's aged
+frequency sketch exists to avoid, and it is invisible until you replay real
+traffic.
 
 ### Configuring it
 

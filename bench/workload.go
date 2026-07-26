@@ -122,11 +122,11 @@ func Scan(rounds, hotSet, hotReads, scanLen int) Workload {
 	keys := make([]string, 0, rounds*(hotReads+scanLen))
 	scanID := 1000000
 
-	for r := 0; r < rounds; r++ {
-		for i := 0; i < hotReads; i++ {
+	for range rounds {
+		for i := range hotReads {
 			keys = append(keys, key(i%hotSet))
 		}
-		for i := 0; i < scanLen; i++ {
+		for range scanLen {
 			keys = append(keys, key(scanID))
 			scanID++
 		}
@@ -150,15 +150,15 @@ func PhaseShift(phases, perPhase, keyspace, workingSet int, seed uint64) Workloa
 	draw := newZipf(newRNG(seed), 1.1, keyspace)
 
 	keys := make([]string, 0, phases*perPhase)
-	for p := 0; p < phases; p++ {
+	for p := range phases {
 		if p%2 == 0 {
-			for i := 0; i < perPhase; i++ {
+			for range perPhase {
 				keys = append(keys, key(draw()))
 			}
 
 			continue
 		}
-		for i := 0; i < perPhase; i++ {
+		for i := range perPhase {
 			keys = append(keys, key(i%workingSet))
 		}
 	}

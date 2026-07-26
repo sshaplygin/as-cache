@@ -373,6 +373,18 @@ cd examples/basic && go mod tidy
     followed by `expvar.Publish` is check-then-act, and expvar panics on a
     duplicate name.
 
+- [x] LFU added to `policies` (`NewLFU`) and to the evidence suite. Putting it
+  through the shared conformance suite for the first time found a real bug:
+  it accepted entries at zero capacity, where every other policy holds nothing.
+  A pre-existing test asserted the buggy behaviour (that the entry stayed
+  retrievable) and was corrected -- its purpose was guarding a panic, and the
+  retrievability assertion was incidental.
+  - Evidence: LFU is the **best** policy on synthetic `zipf` (73.5%) and the
+    **worst** on both large real traces (41.4% Twitter, 45.4% OLTP). Synthetic
+    Zipf holds popularity stationary, which is exactly LFU's assumption; real
+    traffic shifts and stale frequency counts pin dead entries. This is the
+    clearest evidence in the repo that synthetic workloads mislead.
+
 ### Incomplete / TODO
 
 - [x] Data migration between policies on switch — `MigrationStrategy` in `Settings` (`MigrationCold` default, `MigrationWarm` copies all keys from old active to new active)
@@ -515,6 +527,32 @@ Each new policy only needs to implement the `Cacher` interface and be wrapped by
 - All three test packages (`ascache`, `lfu`, `simplelfu`) use `github.com/stretchr/testify`
 
 ---
+
+## Releasing
+
+This is a multi-module repository, which has one trap that will bite anyone who
+tags without knowing about it.
+
+Every sibling module depends on the others through a `replace` directive
+pointing at a local path. That is what makes local development work -- and
+**`replace` directives are ignored when a module is consumed as a dependency**.
+So `policies/go.mod` requiring `github.com/sshaplygin/as-cache v0.0.0` builds
+and tests perfectly here while being impossible for anyone else to use:
+
+    reading github.com/sshaplygin/as-cache/go.mod at revision v0.0.0:
+    unknown revision v0.0.0
+
+`make release-check` catches this; it is part of `make all`. Do not tag until it
+passes.
+
+Releasing therefore goes bottom-up through the dependency graph -- root, then
+`lfu`, then `policies`, then `policies/arc`, `policies/tinylfu` and `metrics` --
+updating each module's `require` to the version its dependency was just tagged
+at. `bench` and `examples/*` are internal and are never tagged.
+
+Go module versions are immutable once the module proxy has fetched them. A
+broken `v0.1.0` cannot be replaced, only superseded, so verify the whole chain
+resolves before pushing any tag.
 
 ## Rules
 

@@ -26,6 +26,13 @@ var policiesUnderTest = map[string]newPolicy{
 
 		return p
 	},
+	"lfu": func(t *testing.T, size int) ascache.Policy[string, int] {
+		t.Helper()
+		p, err := policies.NewLFU[string, int](size)
+		require.NoError(t, err)
+
+		return p
+	},
 	"2q": func(t *testing.T, size int) ascache.Policy[string, int] {
 		t.Helper()
 		p, err := policies.NewTwoQueue[string, int](size)

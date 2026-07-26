@@ -7,6 +7,7 @@ go 1.25.2
 require (
 	github.com/hashicorp/golang-lru/arc/v2 v2.0.6
 	github.com/sshaplygin/as-cache v0.0.0
+	github.com/sshaplygin/as-cache/lfu v0.0.0 // indirect
 	github.com/sshaplygin/as-cache/policies v0.0.0
 )
 
@@ -22,3 +23,5 @@ require (
 replace github.com/sshaplygin/as-cache => ../..
 
 replace github.com/sshaplygin/as-cache/policies => ..
+
+replace github.com/sshaplygin/as-cache/lfu => ../../lfu

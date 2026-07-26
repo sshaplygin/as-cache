@@ -37,6 +37,14 @@ func NewLFU[K comparable, V any](size int, onEvict EvictCallback[K, V]) (*LFU[K,
 }
 
 func (c *LFU[K, V]) Add(key K, value V) (evicted bool) {
+	if c.size <= 0 {
+		// A cache of zero capacity holds nothing. Without this an Add into a
+		// cache left at size 0 by Resize skips the eviction below (there is
+		// nothing to evict) and then stores the entry anyway, so the cache
+		// holds an entry it has no room for.
+		return false
+	}
+
 	ent, ok := c.items[key]
 	if ok {
 		ent.Value = value

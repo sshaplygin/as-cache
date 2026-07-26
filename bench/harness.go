@@ -82,6 +82,7 @@ type PolicyBuilder struct {
 func FixedPolicies() []PolicyBuilder {
 	return []PolicyBuilder{
 		{"LRU", policies.NewLRU[string, int]},
+		{"LFU", policies.NewLFU[string, int]},
 		{"2Q", policies.NewTwoQueue[string, int]},
 		{"Random", func(size int) (ascache.Policy[string, int], error) {
 			return policies.NewRandomPolicy[string, int](size), nil

@@ -5,7 +5,7 @@ MODULES := . lfu policies policies/arc policies/tinylfu metrics bench examples/b
 GOLANGCI_LINT_VERSION := v2.8.0
 
 .PHONY: all
-all: fmt vet lint test ## Format, vet, lint and test every module
+all: fmt vet lint test ## Format, vet, lint and test
 
 .PHONY: lint
 lint: ## Run golangci-lint across all modules

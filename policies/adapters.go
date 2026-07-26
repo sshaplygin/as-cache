@@ -7,6 +7,7 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	ascache "github.com/sshaplygin/as-cache"
+	"github.com/sshaplygin/as-cache/lfu"
 )
 
 // NewLRU returns an LRU policy of the given size, backed by
@@ -18,6 +19,22 @@ func NewLRU[K comparable, V any](size int) (ascache.Policy[K, V], error) {
 	}
 
 	return ascache.NewCache[K, V](cache, ascache.LRU, size), nil
+}
+
+// NewLFU returns an LFU policy of the given size, backed by this repository's
+// own O(1) LFU implementation.
+//
+// LFU evicts the least frequently used entry, which makes it strong where
+// popularity is stable and skewed, and weak where it shifts: an entry that was
+// hot once accumulates a count that keeps it resident long after the traffic
+// has moved on.
+func NewLFU[K comparable, V any](size int) (ascache.Policy[K, V], error) {
+	cache, err := lfu.New[K, V](size)
+	if err != nil {
+		return nil, fmt.Errorf("build lfu cache: %w", err)
+	}
+
+	return ascache.NewCache[K, V](cache, ascache.LFU, size), nil
 }
 
 // NewTwoQueue returns a 2Q policy of the given size, backed by

@@ -1,6 +1,7 @@
 package simplelfu
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -547,14 +548,19 @@ func TestResize_ZeroThenAddDoesNotPanic(t *testing.T) {
 	c.Add("b", 2) // previously panicked: evictList[minFreq=0] was nil
 	assertBucketInvariant(t, c)
 
-	v, ok := c.Get("b")
-	require.True(t, ok, "'b' must be retrievable after Resize(0)")
-	assert.Equal(t, 2, v)
+	// A zero-capacity cache holds nothing. This assertion used to require the
+	// opposite - that "b" was retrievable - which made LFU the only policy in
+	// the repository that kept an entry it had no room for. Since the adaptive
+	// layer resizes policies on its own, that inconsistency was a trap rather
+	// than a feature.
+	_, ok := c.Get("b")
+	assert.False(t, ok, "a zero-capacity cache must not serve an entry it had no room for")
+	assert.Zero(t, c.Len())
 
 	// The cache stays bounded rather than growing without limit.
 	c.Add("c", 3)
 	assertBucketInvariant(t, c)
-	assert.LessOrEqual(t, c.Len(), 1, "degenerate size must stay bounded")
+	assert.Zero(t, c.Len(), "degenerate size must hold nothing")
 }
 
 // Remove must drop an emptied bucket and repair minFreq, otherwise GetOldest
@@ -626,4 +632,28 @@ func TestCorruptedIndex_DegradesToMissInsteadOfPanic(t *testing.T) {
 		c.detach(&internal.Entry[string, int]{Key: "ghost", Freq: 42})
 		assert.Equal(t, 1, c.Len(), "cache must be unchanged")
 	})
+}
+
+// TestLFU_ZeroCapacityHoldsNothing guards a cache resized to zero that still
+// accepted entries: Add skipped its eviction step because there was nothing to
+// evict, then stored the entry regardless. Every other policy in this
+// repository holds nothing at zero capacity, and the adaptive layer resizes
+// policies on its own, so the odd one out is a trap.
+func TestLFU_ZeroCapacityHoldsNothing(t *testing.T) {
+	cache, err := NewLFU[string, int](4, nil)
+	require.NoError(t, err)
+
+	for i := 0; i < 4; i++ {
+		cache.Add("key-"+strconv.Itoa(i), i)
+	}
+	require.Equal(t, 4, cache.Len())
+
+	cache.Resize(0)
+	assert.Zero(t, cache.Len(), "resizing to zero must empty the cache")
+
+	assert.False(t, cache.Add("fresh", 1), "a zero-capacity cache stores nothing")
+	assert.Zero(t, cache.Len(), "a zero-capacity cache must stay empty")
+
+	_, ok := cache.Get("fresh")
+	assert.False(t, ok)
 }

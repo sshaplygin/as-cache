@@ -2,7 +2,10 @@ package ascache
 
 var _ Cacher[int, string] = (*AdaptiveCache[int, string])(nil)
 
-// cache interface comparable from hashicorp/golang-lru/v2 cache's
+// Cacher is the cache interface an eviction policy must satisfy to be used as
+// an arm. It is deliberately identical to the method set of
+// hashicorp/golang-lru/v2, so an existing cache is usually already a Cacher,
+// and so an AdaptiveCache is a drop-in replacement for one.
 type Cacher[K comparable, V any] interface {
 	Add(key K, value V) (evicted bool)
 	Contains(key K) bool
@@ -21,20 +24,33 @@ type Cacher[K comparable, V any] interface {
 	// RemoveOldest() (key K, value V, ok bool)
 }
 
+// CacheStats is the hit/miss accounting a policy exposes so its performance
+// can be compared with the other arms.
 type CacheStats interface {
 	GetStats() PolicyStats
 	ResetStats()
 }
 
+// Policy is a cache that can serve as one arm of an AdaptiveCache: a Cacher
+// that also reports its capacity, its measurements, and which policy it is.
 type Policy[K comparable, V any] interface {
 	Cacher[K, V]
-	// hashicorp/golang-lru/v2 doesn't have this method
+
+	// Cap reports the capacity. hashicorp/golang-lru/v2 has no such method,
+	// but the adaptive layer needs it: shadow policies run at a reduced
+	// capacity and are restored to their full one when promoted.
 	Cap() int
 
 	CacheStats
 	GetType() PolicyType
 }
 
+// Bandit chooses which policy should be active, given what each has measured.
+//
+// This package ships no implementation, because the choice of strategy is the
+// interesting part and depends on how quickly the traffic changes. A
+// Thompson-sampling implementation with evidence discounting is in the bench
+// module and is short enough to copy.
 type Bandit interface {
 	// RecordStats delivers one policy's performance report. On every
 	// reporting epoch each policy reports — the active policy included — so
