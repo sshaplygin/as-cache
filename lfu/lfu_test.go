@@ -452,3 +452,191 @@ func TestAdd_EvictionCallbackCorrectValues(t *testing.T) {
 	require.Contains(t, evicted, "b", "expected 'b' to be evicted")
 	assert.Equal(t, 2, evicted["b"])
 }
+
+// ---------------------------------------------------------------------------
+// Resize / ContainsOrAdd / PeekOrAdd / RemoveOldest / GetOldest
+//
+// These exported wrapper methods previously had no test coverage at all, which
+// is why the nil-pointer panics in the underlying simplelfu bucket index went
+// unnoticed: Resize, RemoveOldest and GetOldest are their public entry points.
+// ---------------------------------------------------------------------------
+
+func TestResize_ShrinkEvictsLeastFrequentlyUsed(t *testing.T) {
+	c, err := New[string, int](4)
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	c.Add("b", 2)
+	c.Add("c", 3)
+	c.Get("a") // raise "a" above the rest
+
+	evicted := c.Resize(2)
+	assert.Equal(t, 1, evicted, "shrinking 3 entries to capacity 2 evicts one")
+	assert.Equal(t, 2, c.Len())
+	assert.True(t, c.Contains("a"), "the most frequently used entry must survive")
+}
+
+func TestResize_GrowEvictsNothing(t *testing.T) {
+	c, err := New[string, int](2)
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	c.Add("b", 2)
+
+	assert.Zero(t, c.Resize(10), "growing must not evict")
+	assert.Equal(t, 2, c.Len())
+
+	c.Add("c", 3) // now fits without eviction
+	assert.Equal(t, 3, c.Len())
+}
+
+func TestResize_ToZeroThenAddStaysBounded(t *testing.T) {
+	c, err := New[string, int](2)
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	assert.Equal(t, 1, c.Resize(0), "Resize(0) drains the cache")
+	assert.Zero(t, c.Len())
+
+	c.Add("b", 2) // must not panic through the wrapper
+	c.Add("c", 3)
+	assert.LessOrEqual(t, c.Len(), 1, "a degenerate capacity must stay bounded")
+}
+
+func TestResize_EvictionCallback(t *testing.T) {
+	evicted := make(map[string]int)
+	c, err := NewWithEvict[string, int](4, func(k string, v int) { evicted[k] = v })
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	c.Add("b", 2)
+	c.Add("c", 3)
+
+	n := c.Resize(1)
+	assert.Equal(t, 2, n)
+	assert.Len(t, evicted, 2, "callback must fire for every evicted entry")
+}
+
+func TestContainsOrAdd(t *testing.T) {
+	c, err := New[string, int](2)
+	require.NoError(t, err)
+
+	ok, evicted := c.ContainsOrAdd("a", 1)
+	assert.False(t, ok, "'a' did not exist yet")
+	assert.False(t, evicted)
+
+	ok, evicted = c.ContainsOrAdd("a", 99)
+	assert.True(t, ok, "'a' now exists")
+	assert.False(t, evicted)
+
+	v, found := c.Peek("a")
+	require.True(t, found)
+	assert.Equal(t, 1, v, "ContainsOrAdd must not overwrite an existing value")
+}
+
+func TestContainsOrAdd_EvictionCallback(t *testing.T) {
+	var gotKey string
+	c, err := NewWithEvict[string, int](1, func(k string, _ int) { gotKey = k })
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	ok, evicted := c.ContainsOrAdd("b", 2)
+	assert.False(t, ok)
+	assert.True(t, evicted, "adding past capacity evicts")
+	assert.Equal(t, "a", gotKey, "callback must report the evicted key")
+}
+
+func TestPeekOrAdd(t *testing.T) {
+	c, err := New[string, int](2)
+	require.NoError(t, err)
+
+	prev, ok, evicted := c.PeekOrAdd("a", 1)
+	assert.Zero(t, prev)
+	assert.False(t, ok, "'a' did not exist yet")
+	assert.False(t, evicted)
+
+	prev, ok, evicted = c.PeekOrAdd("a", 99)
+	assert.Equal(t, 1, prev, "must return the existing value")
+	assert.True(t, ok)
+	assert.False(t, evicted)
+}
+
+func TestPeekOrAdd_EvictionCallback(t *testing.T) {
+	var gotKey string
+	c, err := NewWithEvict[string, int](1, func(k string, _ int) { gotKey = k })
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	_, ok, evicted := c.PeekOrAdd("b", 2)
+	assert.False(t, ok)
+	assert.True(t, evicted)
+	assert.Equal(t, "a", gotKey)
+}
+
+func TestRemoveOldest(t *testing.T) {
+	c, err := New[string, int](3)
+	require.NoError(t, err)
+
+	_, _, ok := c.RemoveOldest()
+	assert.False(t, ok, "an empty cache has no oldest entry")
+
+	c.Add("a", 1)
+	c.Add("b", 2)
+	c.Get("a") // "b" is now the least frequently used
+
+	k, v, ok := c.RemoveOldest()
+	require.True(t, ok)
+	assert.Equal(t, "b", k)
+	assert.Equal(t, 2, v)
+	assert.False(t, c.Contains("b"), "the oldest entry must be gone")
+	assert.Equal(t, 1, c.Len())
+}
+
+func TestRemoveOldest_EvictionCallback(t *testing.T) {
+	var gotKey string
+	var gotVal int
+	c, err := NewWithEvict[string, int](3, func(k string, v int) { gotKey, gotVal = k, v })
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	_, _, ok := c.RemoveOldest()
+	require.True(t, ok)
+	assert.Equal(t, "a", gotKey)
+	assert.Equal(t, 1, gotVal)
+}
+
+func TestGetOldest(t *testing.T) {
+	c, err := New[string, int](3)
+	require.NoError(t, err)
+
+	_, _, ok := c.GetOldest()
+	assert.False(t, ok, "an empty cache has no oldest entry")
+
+	c.Add("a", 1)
+	c.Add("b", 2)
+	c.Get("a") // "b" is now the least frequently used
+
+	k, v, ok := c.GetOldest()
+	require.True(t, ok)
+	assert.Equal(t, "b", k)
+	assert.Equal(t, 2, v)
+	assert.Equal(t, 2, c.Len(), "GetOldest must not remove the entry")
+}
+
+// Removing an entry that empties the minimum-frequency bucket previously left
+// the index pointing at an empty bucket, panicking on the next GetOldest.
+func TestGetOldest_AfterRemoveEmptiesMinBucket(t *testing.T) {
+	c, err := New[string, int](3)
+	require.NoError(t, err)
+
+	c.Add("a", 1)
+	c.Add("b", 2)
+	c.Get("a") // "a" -> freq 2, "b" alone in the freq-1 bucket
+
+	require.True(t, c.Remove("b"))
+
+	k, v, ok := c.GetOldest()
+	require.True(t, ok, "GetOldest must survive an emptied minimum bucket")
+	assert.Equal(t, "a", k)
+	assert.Equal(t, 1, v)
+}

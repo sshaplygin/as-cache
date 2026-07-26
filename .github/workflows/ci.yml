@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every module has its own go.mod and is linted independently.
+        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bench", "examples/basic", "examples/migration"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+      - name: golangci-lint
+        # v7 of the action is required for golangci-lint v2.
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.8.0
+          working-directory: ${{ matrix.module }}
+
+  test:
+    name: test (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bench", "examples/basic", "examples/migration"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+      - name: go vet
+        working-directory: ${{ matrix.module }}
+        run: go vet ./...
+      - name: go test
+        working-directory: ${{ matrix.module }}
+        run: go test -race -short -count=1 ./...

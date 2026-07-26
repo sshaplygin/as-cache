@@ -162,10 +162,8 @@ func makeCache(t *testing.T, strategy MigrationStrategy) (
 	return ac, lru, lfu, bandit
 }
 
-// forceSwitchTo triggers a policy switch by manipulating the bandit and calling
-// tryChangePolicy directly (it is unexported, so we call it via the background
-// ticker using a very-short epoch duration cache built just for that purpose).
-// For unit tests we instead call the internal method directly via a thin helper.
+// triggerSwitch applies a policy switch synchronously, taking the same path
+// runEpoch does so that promotion, migration and demotion are all exercised.
 func triggerSwitch(ac *AdaptiveCache[string, int], to PolicyType) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
@@ -174,9 +172,7 @@ func triggerSwitch(ac *AdaptiveCache[string, int], to PolicyType) {
 	if from == to {
 		return
 	}
-	ac.clearMigrationState()
-	ac.migrateData(from, to)
-	ac.activePolicy = to
+	ac.switchLocked(from, to)
 }
 
 // --- MigrationCold ---
@@ -299,6 +295,28 @@ func TestMigrationGradual_ZeroValueNotPromoted(t *testing.T) {
 	assert.Equal(t, 77, val, "gradual: expected latest Add value")
 }
 
+// TestMigrationGradual_PromotedGetCountsAsHit verifies that a Get served via
+// promotion from the migration source is recorded as a hit on the active
+// policy — not as a miss — so Stats() and the bandit report reflect a request
+// the cache actually served.
+func TestMigrationGradual_PromotedGetCountsAsHit(t *testing.T) {
+	ac, _, lfu, _ := makeCache(t, MigrationGradual)
+
+	ac.Add("a", 42)
+	triggerSwitch(ac, LFU)
+
+	val, ok := ac.Get("a")
+	require.True(t, ok, "promoted Get must serve the value")
+	require.Equal(t, 42, val)
+
+	stats := lfu.GetStats()
+	assert.Equal(t, int64(1), stats.Hits, "promoted Get must count as a hit on the active policy")
+	assert.Equal(t, int64(0), stats.Misses, "promoted Get must not leave a spurious miss")
+
+	assert.Equal(t, GlobalStats{Hits: 1, Misses: 0}, ac.Stats(),
+		"Stats must report the served request as a hit")
+}
+
 func TestMigrationGradual_EpochClearsMigration(t *testing.T) {
 	ac, _, _, _ := makeCache(t, MigrationGradual)
 
@@ -344,6 +362,38 @@ func TestMigrationGradual_RemovePreventsPromotion(t *testing.T) {
 
 	val, ok := ac.Get("a")
 	assert.False(t, ok, "gradual: expected miss after Remove, got (%d, true)", val)
+}
+
+// TestMigrationGradual_RemoveLastKeyClosesWindow guards against a phantom
+// migration window: Remove of the last pending key must close the window,
+// otherwise every subsequent Get keeps taking the write lock until some other
+// event (Add, Purge, policy switch) happens to end the migration.
+func TestMigrationGradual_RemoveLastKeyClosesWindow(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationGradual)
+
+	ac.Add("a", 1)
+	triggerSwitch(ac, LFU)
+	require.True(t, ac.migrating, "expected migration window to open")
+
+	ac.Remove("a")
+
+	ac.mu.RLock()
+	migrating := ac.migrating
+	ac.mu.RUnlock()
+	assert.False(t, migrating, "window must close when Remove empties the pending key set")
+}
+
+// TestMigrationGradual_EmptySourceOpensNoWindow verifies that switching away
+// from an empty policy does not open a migration window at all.
+func TestMigrationGradual_EmptySourceOpensNoWindow(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationGradual)
+
+	triggerSwitch(ac, LFU)
+
+	ac.mu.RLock()
+	migrating := ac.migrating
+	ac.mu.RUnlock()
+	assert.False(t, migrating, "empty source must not open a migration window")
 }
 
 func TestMigrationGradual_DrainCompletesNaturally(t *testing.T) {
@@ -398,7 +448,6 @@ func TestMigrationGradual_Concurrent(t *testing.T) {
 	wg.Add(goroutines * 2)
 
 	for g := 0; g < goroutines; g++ {
-		g := g
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 50; i++ {
@@ -536,6 +585,56 @@ func TestNewAdaptiveCache_NilPolicies(t *testing.T) {
 	assert.ErrorIs(t, err, ErrEmptyPolicies)
 }
 
+func TestNewAdaptiveCache_NilBandit(t *testing.T) {
+	_, err := NewAdaptiveCache(
+		[]Policy[string, int]{newMockPolicy[string, int](LRU, 10)},
+		nil,
+		&Settings{EpochDuration: time.Hour},
+	)
+	assert.ErrorIs(t, err, ErrNilBandit)
+}
+
+func TestNewAdaptiveCache_NilSettings(t *testing.T) {
+	_, err := NewAdaptiveCache(
+		[]Policy[string, int]{newMockPolicy[string, int](LRU, 10)},
+		&mockBandit{next: LRU},
+		nil,
+	)
+	assert.ErrorIs(t, err, ErrNilSettings)
+}
+
+func TestNewAdaptiveCache_NonPositiveEpochDuration(t *testing.T) {
+	for _, d := range []time.Duration{0, -time.Second} {
+		_, err := NewAdaptiveCache(
+			[]Policy[string, int]{newMockPolicy[string, int](LRU, 10)},
+			&mockBandit{next: LRU},
+			&Settings{EpochDuration: d},
+		)
+		assert.ErrorIs(t, err, ErrInvalidEpochDuration, "duration %s must be rejected", d)
+	}
+}
+
+func TestNewAdaptiveCache_NilPolicyEntry(t *testing.T) {
+	_, err := NewAdaptiveCache(
+		[]Policy[string, int]{newMockPolicy[string, int](LRU, 10), nil},
+		&mockBandit{next: LRU},
+		&Settings{EpochDuration: time.Hour},
+	)
+	assert.ErrorIs(t, err, ErrNilPolicy)
+}
+
+func TestNewAdaptiveCache_DuplicatePolicyType(t *testing.T) {
+	_, err := NewAdaptiveCache(
+		[]Policy[string, int]{
+			newMockPolicy[string, int](LRU, 10),
+			newMockPolicy[string, int](LRU, 10),
+		},
+		&mockBandit{next: LRU},
+		&Settings{EpochDuration: time.Hour},
+	)
+	assert.ErrorIs(t, err, ErrDuplicatePolicy)
+}
+
 // ---------------------------------------------------------------------------
 // AdaptiveCache: tryChangePolicy via epoch ticker
 // ---------------------------------------------------------------------------
@@ -635,6 +734,171 @@ func TestAdaptiveCache_TryChangePolicy_SkipsWhenNotFull(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// AdaptiveCache: switch stability (cool-down, minimum improvement, min samples)
+// ---------------------------------------------------------------------------
+
+// makeStabilityCache builds a two-policy cache whose bandit always picks LFU,
+// with a 24h epoch so only explicit runEpoch calls advance it.
+func makeStabilityCache(t *testing.T, s *Settings) (
+	*AdaptiveCache[string, int],
+	*mockPolicy[string, int],
+	*mockPolicy[string, int],
+) {
+	t.Helper()
+
+	lru := newMockPolicy[string, int](LRU, 10)
+	lfu := newMockPolicy[string, int](LFU, 10)
+
+	s.EpochDuration = 24 * time.Hour
+	s.EvictPartialCapacityFilling = true
+
+	ac, err := NewAdaptiveCache([]Policy[string, int]{lru, lfu}, &mockBandit{next: LFU}, s)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	return ac, lru, lfu
+}
+
+// primeStats gives the active policy `activeHits` hits out of `total` requests
+// and the shadow the complement, by driving Get against keys that do or do not
+// exist. Both policies see every Get, so we control the split by pre-seeding
+// only the policy we want to hit.
+func primeStats(p *mockPolicy[string, int], hits, misses int64) {
+	p.mu.Lock()
+	p.stats = PolicyStats{Hits: hits, Misses: misses}
+	p.mu.Unlock()
+}
+
+// primeActiveStats sets the evidence the active arm reports to the bandit.
+// The active policy is judged on the sampled substream rather than on its own
+// full counters, so its epoch evidence lives on the cache, not on the policy.
+func primeActiveStats(ac *AdaptiveCache[string, int], hits, misses int64) {
+	ac.activeSampledHits.Store(hits)
+	ac.activeSampledMisses.Store(misses)
+}
+
+func TestSwitchStability_ZeroSettingsSwitchesAsBefore(t *testing.T) {
+	ac, lru, lfu := makeStabilityCache(t, &Settings{})
+
+	primeActiveStats(ac, 5, 5)
+	primeStats(lfu, 5, 5)
+	_ = lru
+
+	ac.runEpoch()
+
+	assert.Equal(t, LFU, ac.ActivePolicy(),
+		"a zero-valued Settings must apply every bandit selection")
+}
+
+func TestSwitchStability_MinHitRateImprovementBlocksMarginalSwitch(t *testing.T) {
+	ac, lru, lfu := makeStabilityCache(t, &Settings{MinHitRateImprovement: 0.10})
+
+	// Candidate is better, but only by 0.02 - below the 0.10 threshold.
+	primeActiveStats(ac, 50, 50) // active hit rate 0.50
+	primeStats(lfu, 52, 48)      // candidate hit rate 0.52
+	_ = lru
+
+	ac.runEpoch()
+
+	assert.Equal(t, LRU, ac.ActivePolicy(),
+		"a marginal improvement must not trigger a switch")
+}
+
+func TestSwitchStability_MinHitRateImprovementAllowsClearWin(t *testing.T) {
+	ac, lru, lfu := makeStabilityCache(t, &Settings{MinHitRateImprovement: 0.10})
+
+	primeActiveStats(ac, 40, 60) // active hit rate 0.40
+	primeStats(lfu, 70, 30)      // candidate hit rate 0.70, +0.30
+	_ = lru
+
+	ac.runEpoch()
+
+	assert.Equal(t, LFU, ac.ActivePolicy(),
+		"an improvement above the threshold must trigger a switch")
+}
+
+func TestSwitchStability_CooldownBlocksConsecutiveSwitches(t *testing.T) {
+	ac, lru, lfu := makeStabilityCache(t, &Settings{SwitchCooldownEpochs: 3})
+
+	// Epoch 0: lastSwitchEpoch is 0 and epochID is 0, so the cool-down has
+	// not elapsed yet and the switch is held back.
+	primeStats(lru, 1, 1)
+	primeStats(lfu, 1, 1)
+	ac.runEpoch()
+	require.Equal(t, LRU, ac.ActivePolicy(), "cool-down must hold the first switch")
+
+	// Epochs 1 and 2 remain inside the window.
+	ac.runEpoch()
+	ac.runEpoch()
+	require.Equal(t, LRU, ac.ActivePolicy(), "cool-down must still hold at epoch 2")
+
+	// Epoch 3: three epochs have elapsed, the switch is allowed.
+	ac.runEpoch()
+	assert.Equal(t, LFU, ac.ActivePolicy(), "switch must be allowed once the cool-down elapses")
+}
+
+func TestSwitchStability_CooldownRearmsAfterSwitch(t *testing.T) {
+	ac, _, _ := makeStabilityCache(t, &Settings{SwitchCooldownEpochs: 2})
+
+	// Drive epochs until the first switch lands.
+	for i := 0; i < 3; i++ {
+		ac.runEpoch()
+	}
+	require.Equal(t, LFU, ac.ActivePolicy(), "expected the first switch to land")
+
+	ac.mu.RLock()
+	lastSwitch, epochID := ac.lastSwitchEpoch, ac.epochID
+	ac.mu.RUnlock()
+
+	assert.Equal(t, epochID-1, lastSwitch, "lastSwitchEpoch must record the switching epoch")
+}
+
+func TestSwitchStability_MinEpochRequestsBlocksThinEvidence(t *testing.T) {
+	ac, _, lfu := makeStabilityCache(t, &Settings{MinEpochRequests: 100})
+
+	primeActiveStats(ac, 1, 1) // 2 requests
+	primeStats(lfu, 5, 0)      // 5 requests, perfect hit rate but far too few
+	ac.runEpoch()
+	require.Equal(t, LRU, ac.ActivePolicy(), "a handful of samples must not trigger a switch")
+
+	primeActiveStats(ac, 100, 100)
+	primeStats(lfu, 200, 0)
+	ac.runEpoch()
+	assert.Equal(t, LFU, ac.ActivePolicy(), "enough samples must allow the switch")
+}
+
+func TestSwitchStability_GatedEpochClearsEvidence(t *testing.T) {
+	lru := newMockPolicy[string, int](LRU, 10)
+	lfu := newMockPolicy[string, int](LFU, 10)
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lru, lfu},
+		&mockBandit{next: LFU},
+		&Settings{
+			EpochDuration: 24 * time.Hour,
+			// Require a full cache before switching; the mocks stay empty.
+			EvictPartialCapacityFilling: false,
+			MinHitRateImprovement:       0.01,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	primeActiveStats(ac, 10, 90)
+	primeStats(lfu, 90, 10)
+	_ = lru
+
+	ac.runEpoch()
+
+	assert.Equal(t, LRU, ac.ActivePolicy(), "a gated epoch must not switch")
+
+	ac.mu.RLock()
+	stats := len(ac.epochStats)
+	ac.mu.RUnlock()
+	assert.Zero(t, stats, "a gated epoch must not leave stale evidence for the gates")
+}
+
+// ---------------------------------------------------------------------------
 // AdaptiveCache: epoch-based background switching
 // ---------------------------------------------------------------------------
 
@@ -665,6 +929,108 @@ func TestAdaptiveCache_EpochBasedSwitch(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// AdaptiveCache: bandit receives active policy stats; Stats() stays cumulative
+// ---------------------------------------------------------------------------
+
+// TestAdaptiveCache_BanditReceivesActivePolicyStats verifies that the active
+// policy's epoch stats are reported to the bandit alongside the shadows and
+// that every policy's counters are reset after reporting.
+func TestAdaptiveCache_BanditReceivesActivePolicyStats(t *testing.T) {
+	lruP := newMockPolicy[string, int](LRU, 10)
+	lfuP := newMockPolicy[string, int](LFU, 10)
+	bandit := &recordingBandit{next: LRU}
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lruP, lfuP},
+		bandit,
+		&Settings{
+			EpochDuration:               24 * time.Hour,
+			EvictPartialCapacityFilling: true,
+			MigrationStrategy:           MigrationCold,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	ac.Add("x", 1)
+	ac.Get("x")       // hit in active LRU and in shadow LFU (shadow-added key)
+	ac.Get("missing") // miss everywhere
+
+	_ = ac.tryChangePolicy()
+
+	byPolicy := map[PolicyType]ShadowStats{}
+	for _, r := range bandit.getRecords() {
+		byPolicy[r.Policy] = r
+	}
+
+	require.Contains(t, byPolicy, LRU, "active policy stats must reach the bandit")
+	require.Contains(t, byPolicy, LFU, "shadow policy stats must reach the bandit")
+	assert.Equal(t, int64(1), byPolicy[LRU].Hits, "active policy hits mismatch")
+	assert.Equal(t, int64(1), byPolicy[LRU].Misses, "active policy misses mismatch")
+	assert.Equal(t, int64(1), byPolicy[LFU].Hits, "shadow policy hits mismatch")
+	assert.Equal(t, int64(1), byPolicy[LFU].Misses, "shadow policy misses mismatch")
+
+	assert.Equal(t, PolicyStats{}, lruP.GetStats(), "active counters must reset after reporting")
+	assert.Equal(t, PolicyStats{}, lfuP.GetStats(), "shadow counters must reset after reporting")
+}
+
+// TestAdaptiveCache_StatsCumulativeAcrossEpochs verifies that Stats() keeps
+// cumulative totals even though per-policy counters are reset every epoch.
+func TestAdaptiveCache_StatsCumulativeAcrossEpochs(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	ac.Add("a", 1)
+	ac.Get("a")       // hit
+	ac.Get("missing") // miss
+
+	before := ac.Stats()
+	require.Equal(t, GlobalStats{Hits: 1, Misses: 1}, before)
+
+	// Simulate an epoch boundary: stats are reported to the bandit and the
+	// per-policy counters reset.
+	_ = ac.tryChangePolicy()
+
+	assert.Equal(t, before, ac.Stats(), "Stats must be cumulative across epoch resets")
+
+	ac.Get("a")
+	assert.Equal(t, GlobalStats{Hits: 2, Misses: 1}, ac.Stats(), "Stats must keep accumulating after the reset")
+}
+
+// TestAdaptiveCache_DemotionResetsCounters verifies that a demoted policy
+// starts its first shadow epoch with clean counters: its active-tenure stats
+// must not leak into the next epoch's shadow report.
+func TestAdaptiveCache_DemotionResetsCounters(t *testing.T) {
+	lruP := newMockPolicy[string, int](LRU, 10)
+	lfuP := newMockPolicy[string, int](LFU, 10)
+	bandit := &recordingBandit{next: LFU}
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lruP, lfuP},
+		bandit,
+		&Settings{
+			EpochDuration:               24 * time.Hour,
+			EvictPartialCapacityFilling: true,
+			MigrationStrategy:           MigrationCold,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	ac.Add("x", 1)
+	ac.Get("x") // hit while LRU is active
+
+	// Epoch boundary: the bandit picks LFU, demoting LRU to a shadow.
+	ac.runEpoch()
+	require.Equal(t, LFU, ac.ActivePolicy())
+
+	ac.Get("y") // miss in active LFU and in shadow LRU
+
+	// The demoted LRU must carry only post-demotion traffic.
+	assert.Equal(t, PolicyStats{Misses: 1}, lruP.GetStats(),
+		"active-tenure stats leaked into the first shadow epoch")
+}
+
+// ---------------------------------------------------------------------------
 // AdaptiveCache: context cancellation stops background goroutine
 // ---------------------------------------------------------------------------
 
@@ -680,6 +1046,142 @@ func TestAdaptiveCache_Close(t *testing.T) {
 		// expected
 	default:
 		assert.Fail(t, "expected context to be done after Close")
+	}
+}
+
+func TestAdaptiveCache_Close_Idempotent(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	require.NoError(t, ac.Close())
+	require.NoError(t, ac.Close())
+}
+
+func TestAdaptiveCache_Close_Concurrent(t *testing.T) {
+	ac, _, _, _ := makeCache(t, MigrationCold)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			assert.NoError(t, ac.Close())
+		}()
+	}
+	wg.Wait()
+}
+
+// TestAdaptiveCache_Close_StopsEpochGoroutine verifies Close waits for the
+// background goroutine: once Close returns, the epoch counter cannot advance.
+func TestAdaptiveCache_Close_StopsEpochGoroutine(t *testing.T) {
+	lruP := newMockPolicy[string, int](LRU, 10)
+	lfuP := newMockPolicy[string, int](LFU, 10)
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lruP, lfuP},
+		&mockBandit{next: LRU},
+		&Settings{
+			EpochDuration:               time.Millisecond,
+			EvictPartialCapacityFilling: true,
+			MigrationStrategy:           MigrationCold,
+		},
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, ac.Close())
+
+	ac.mu.RLock()
+	before := ac.epochID
+	ac.mu.RUnlock()
+
+	time.Sleep(20 * time.Millisecond)
+
+	ac.mu.RLock()
+	after := ac.epochID
+	ac.mu.RUnlock()
+
+	assert.Equal(t, before, after, "epoch goroutine kept running after Close returned")
+}
+
+// blockingBandit parks inside SelectPolicy until released, so a test can hold
+// the background epoch goroutine provably in-flight.
+type blockingBandit struct {
+	entered chan struct{} // buffered(1); signalled on first SelectPolicy entry
+	release chan struct{} // closed to let SelectPolicy return
+}
+
+func (b *blockingBandit) RecordStats(_ ShadowStats) {}
+
+func (b *blockingBandit) SelectPolicy() PolicyType {
+	select {
+	case b.entered <- struct{}{}:
+	default:
+	}
+	<-b.release
+	return LRU
+}
+
+// TestAdaptiveCache_Close_WaitsForInFlightEpoch verifies that Close blocks on
+// the WaitGroup: while the epoch goroutine is parked inside the bandit, Close
+// must not return, and it must return promptly once the goroutine can exit.
+// Without wg.Wait in Close this fails at the "Close returned while in-flight"
+// select.
+func TestAdaptiveCache_Close_WaitsForInFlightEpoch(t *testing.T) {
+	bandit := &blockingBandit{
+		entered: make(chan struct{}, 1),
+		release: make(chan struct{}),
+	}
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{
+			newMockPolicy[string, int](LRU, 10),
+			newMockPolicy[string, int](LFU, 10),
+		},
+		bandit,
+		&Settings{
+			EpochDuration: time.Millisecond,
+			// Load-bearing: with partial filling disallowed the not-yet-full
+			// cache would make selectPolicyLocked return before ever calling
+			// bandit.SelectPolicy, and the goroutine would never park.
+			EvictPartialCapacityFilling: true,
+			MigrationStrategy:           MigrationCold,
+		},
+	)
+	require.NoError(t, err)
+
+	// If an assertion below fails, unblock the bandit so the epoch goroutine
+	// (parked while holding the cache mutex) does not leak, then Close.
+	var releaseOnce sync.Once
+	t.Cleanup(func() {
+		releaseOnce.Do(func() { close(bandit.release) })
+		_ = ac.Close()
+	})
+
+	select {
+	case <-bandit.entered:
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "epoch goroutine never reached the bandit")
+	}
+
+	closed := make(chan struct{})
+	go func() {
+		_ = ac.Close()
+		close(closed)
+	}()
+
+	select {
+	case <-closed:
+		require.FailNow(t, "Close returned while the epoch goroutine was still in-flight")
+	case <-time.After(50 * time.Millisecond):
+		// expected: Close is blocked in wg.Wait
+	}
+
+	releaseOnce.Do(func() { close(bandit.release) })
+
+	select {
+	case <-closed:
+		// expected: goroutine exited, Close returned
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "Close did not return after the epoch goroutine exited")
 	}
 }
 
@@ -769,5 +1271,201 @@ func TestPolicyType_String(t *testing.T) {
 	for _, tt := range tests {
 		got := tt.pt.String()
 		assert.Equal(t, tt.want, got, "PolicyType(%d).String() mismatch", tt.pt)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Concurrency regression tests
+// ---------------------------------------------------------------------------
+
+// flipBandit alternates its selection on every call so the active policy
+// changes on every epoch tick, exercising the migrate + activePolicy swap path.
+type flipBandit struct {
+	mu sync.Mutex
+	n  int
+}
+
+func (b *flipBandit) RecordStats(_ ShadowStats) {}
+func (b *flipBandit) SelectPolicy() PolicyType {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.n++
+	if b.n%2 == 0 {
+		return LRU
+	}
+	return LFU
+}
+
+// TestAdaptiveCache_ConcurrentSwitchAndAccess_NoRace guards against the data
+// race where runEpoch mutated activePolicy / migration state outside the lock.
+// Before the fix this fails under `go test -race`.
+func TestAdaptiveCache_ConcurrentSwitchAndAccess_NoRace(t *testing.T) {
+	lruP := newMockPolicy[string, int](LRU, 100)
+	lfuP := newMockPolicy[string, int](LFU, 100)
+
+	ac, err := NewAdaptiveCache(
+		[]Policy[string, int]{lruP, lfuP},
+		&flipBandit{},
+		&Settings{
+			EpochDuration:               time.Millisecond,
+			EvictPartialCapacityFilling: true,
+			MigrationStrategy:           MigrationWarm,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ac.Close() })
+
+	var wg sync.WaitGroup
+	stop := make(chan struct{})
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					ac.Add("k", 1)
+					ac.Get("k")
+					ac.Contains("k")
+					_ = ac.Keys()
+					_ = ac.Len()
+					_ = ac.ActivePolicy()
+				}
+			}
+		}()
+	}
+
+	time.Sleep(150 * time.Millisecond)
+	close(stop)
+	wg.Wait()
+}
+
+// TestCacheWrapper_ConcurrentGet_NoRace guards against the data race where
+// CacheWrapper.Get mutated its stats counters non-atomically while callers
+// invoked it concurrently. Before the fix this fails under `go test -race`.
+func TestCacheWrapper_ConcurrentGet_NoRace(t *testing.T) {
+	underlying := newMockPolicy[string, int](LRU, 100)
+	w := NewCache[string, int](underlying, LRU, 100)
+	w.Add("k", 1)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 20000; j++ {
+				w.Get("k")
+				w.Get("missing")
+			}
+		}()
+	}
+	wg.Wait()
+
+	stats := w.GetStats()
+	// 8 goroutines * 20000 iters each of one hit + one miss.
+	assert.Equal(t, int64(8*20000), stats.Hits, "hit count must not be lost to races")
+	assert.Equal(t, int64(8*20000), stats.Misses, "miss count must not be lost to races")
+}
+
+// TestAdaptiveCache_StressAcrossEpochBoundaries hammers the full public API
+// from many goroutines while 1ms epochs force a policy switch on every tick,
+// for each migration strategy. It asserts nothing beyond survival: its job is
+// to let the race detector observe every cross-epoch interleaving.
+func TestAdaptiveCache_StressAcrossEpochBoundaries(t *testing.T) {
+	strategies := map[string]MigrationStrategy{
+		"cold":    MigrationCold,
+		"warm":    MigrationWarm,
+		"gradual": MigrationGradual,
+	}
+
+	for name, strategy := range strategies {
+		t.Run(name, func(t *testing.T) {
+			lruP := newMockPolicy[string, int](LRU, 100)
+			lfuP := newMockPolicy[string, int](LFU, 100)
+
+			ac, err := NewAdaptiveCache(
+				[]Policy[string, int]{lruP, lfuP},
+				&flipBandit{},
+				&Settings{
+					EpochDuration:               time.Millisecond,
+					EvictPartialCapacityFilling: true,
+					MigrationStrategy:           strategy,
+				},
+			)
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = ac.Close() })
+
+			const goroutines = 4
+			var wg sync.WaitGroup
+			stop := make(chan struct{})
+
+			// Writers: Add with periodic Remove.
+			for g := 0; g < goroutines; g++ {
+				wg.Add(1)
+				go func(seed int) {
+					defer wg.Done()
+					for i := 0; ; i++ {
+						select {
+						case <-stop:
+							return
+						default:
+							key := string(rune('a' + (seed+i)%26))
+							ac.Add(key, seed*1000+i)
+							if i%7 == 0 {
+								ac.Remove(key)
+							}
+						}
+					}
+				}(g)
+			}
+
+			// Readers: every read-path method.
+			for g := 0; g < goroutines; g++ {
+				wg.Add(1)
+				go func(seed int) {
+					defer wg.Done()
+					for i := 0; ; i++ {
+						select {
+						case <-stop:
+							return
+						default:
+							key := string(rune('a' + (seed+i)%26))
+							ac.Get(key)
+							ac.Peek(key)
+							ac.Contains(key)
+							_ = ac.Keys()
+							_ = ac.Len()
+							_ = ac.Stats()
+							_ = ac.ActivePolicy()
+						}
+					}
+				}(g)
+			}
+
+			// Maintenance: occasional Purge and Resize.
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for i := 0; ; i++ {
+					select {
+					case <-stop:
+						return
+					default:
+						time.Sleep(10 * time.Millisecond)
+						if i%2 == 0 {
+							ac.Purge()
+						} else {
+							ac.Resize(100)
+						}
+					}
+				}
+			}()
+
+			time.Sleep(200 * time.Millisecond)
+			close(stop)
+			wg.Wait()
+		})
 	}
 }

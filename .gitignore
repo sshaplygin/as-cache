@@ -1,1 +1,12 @@
 *.out
+
+# Compiled example binaries (built via `go build` / `go run` in each example dir)
+/examples/basic/basic
+/examples/migration/migration
+
+# cache replay traces: downloaded at test time, never committed
+traces/
+*.trace
+*.trace.gz
+*.spc.bz2
+cluster0*

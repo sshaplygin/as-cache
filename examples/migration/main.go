@@ -28,10 +28,11 @@ import (
 	"sync"
 	"time"
 
-	ascache "github.com/sshaplygin/as-cache"
-	slfu "github.com/sshaplygin/as-cache/lfu"
 	hlru "github.com/hashicorp/golang-lru/v2"
 	"github.com/stitchfix/mab"
+
+	ascache "github.com/sshaplygin/as-cache"
+	slfu "github.com/sshaplygin/as-cache/lfu"
 )
 
 // ─── Thompson Sampling reward source ─────────────────────────────────────────
@@ -437,8 +438,8 @@ func main() {
 	bandit := &controllableBandit{inner: inner}
 
 	policies := []ascache.Policy[string, string]{
-		ascache.NewCache[string, string](lruCache, ascache.LRU, 100),
-		ascache.NewCache[string, string](lfuCache, ascache.LFU, 100),
+		ascache.NewCache(lruCache, ascache.LRU, 100),
+		ascache.NewCache(lfuCache, ascache.LFU, 100),
 	}
 
 	cache, err := ascache.NewAdaptiveCache(

@@ -37,6 +37,14 @@ func NewLFU[K comparable, V any](size int, onEvict EvictCallback[K, V]) (*LFU[K,
 }
 
 func (c *LFU[K, V]) Add(key K, value V) (evicted bool) {
+	if c.size <= 0 {
+		// A cache of zero capacity holds nothing. Without this an Add into a
+		// cache left at size 0 by Resize skips the eviction below (there is
+		// nothing to evict) and then stores the entry anyway, so the cache
+		// holds an entry it has no room for.
+		return false
+	}
+
 	ent, ok := c.items[key]
 	if ok {
 		ent.Value = value
@@ -44,16 +52,11 @@ func (c *LFU[K, V]) Add(key K, value V) (evicted bool) {
 		return
 	}
 
-	evicted = len(c.items) == c.size
-	if evicted {
-		ent := c.evictList[c.minFreq].Back()
-		c.evictList[c.minFreq].Remove(ent)
-
-		delete(c.items, ent.Key)
-
-		if c.onEvict != nil {
-			c.onEvict(ent.Key, ent.Value)
-		}
+	// Evict only when the cache actually holds an entry. Gating on the item
+	// count as well as the capacity keeps a degenerate size - such as the one
+	// left behind by Resize(0) - from addressing a bucket that does not exist.
+	if len(c.items) > 0 && len(c.items) >= c.size {
+		_, _, evicted = c.evictOldest()
 	}
 
 	newFreq := 1
@@ -165,11 +168,27 @@ func (c *LFU[K, V]) Resize(size int) (evicted int) {
 
 // GetOldest returns the least-frequently-used item without removing it.
 func (c *LFU[K, V]) GetOldest() (key K, value V, ok bool) {
-	if len(c.items) == 0 {
+	ent := c.oldest()
+	if ent == nil {
 		return
 	}
-	ent := c.evictList[c.minFreq].Back()
 	return ent.Key, ent.Value, true
+}
+
+// oldest returns the least-frequently-used entry, or nil when the cache holds
+// nothing. It never assumes minFreq addresses a live bucket, so a corrupted
+// index degrades to a miss instead of a panic.
+func (c *LFU[K, V]) oldest() *internal.Entry[K, V] {
+	if len(c.items) == 0 {
+		return nil
+	}
+
+	bucket, found := c.evictList[c.minFreq]
+	if !found {
+		return nil
+	}
+
+	return bucket.Back()
 }
 
 // RemoveOldest removes the least-frequently-used item and returns it.
@@ -179,25 +198,20 @@ func (c *LFU[K, V]) RemoveOldest() (key K, value V, ok bool) {
 
 // evictOldest removes the back entry of the minFreq bucket and returns it.
 func (c *LFU[K, V]) evictOldest() (key K, value V, ok bool) {
-	if len(c.items) == 0 {
+	ent := c.oldest()
+	if ent == nil {
 		return
 	}
-	ent := c.evictList[c.minFreq].Back()
+
 	key, value, ok = ent.Key, ent.Value, true
-	c.evictList[c.minFreq].Remove(ent)
-	if c.evictList[c.minFreq].Length() == 0 {
-		delete(c.evictList, c.minFreq)
-		c.minFreq = 0
-		for freq := range c.evictList {
-			if c.minFreq == 0 || freq < c.minFreq {
-				c.minFreq = freq
-			}
-		}
-	}
+
+	c.detach(ent)
 	delete(c.items, ent.Key)
+
 	if c.onEvict != nil {
 		c.onEvict(ent.Key, ent.Value)
 	}
+
 	return
 }
 
@@ -236,9 +250,41 @@ func (c *LFU[K, V]) updateFreq(ent *internal.Entry[K, V]) {
 
 // removeElement is used to remove a given list element from the cache
 func (c *LFU[K, V]) removeElement(e *internal.Entry[K, V]) {
-	c.evictList[e.Freq].Remove(e)
+	c.detach(e)
 	delete(c.items, e.Key)
 	if c.onEvict != nil {
 		c.onEvict(e.Key, e.Value)
+	}
+}
+
+// detach unlinks ent from its frequency bucket, dropping the bucket once it is
+// empty and repairing minFreq when the minimum bucket disappears. It maintains
+// the invariant that every bucket in evictList holds at least one entry and
+// that minFreq addresses a live bucket whenever the cache is non-empty.
+func (c *LFU[K, V]) detach(ent *internal.Entry[K, V]) {
+	bucket, found := c.evictList[ent.Freq]
+	if !found {
+		return
+	}
+
+	bucket.Remove(ent)
+	if bucket.Length() > 0 {
+		return
+	}
+
+	delete(c.evictList, ent.Freq)
+	if c.minFreq == ent.Freq {
+		c.recomputeMinFreq()
+	}
+}
+
+// recomputeMinFreq points minFreq at the smallest surviving bucket, or resets it
+// to 0 when the cache holds no buckets at all.
+func (c *LFU[K, V]) recomputeMinFreq() {
+	c.minFreq = 0
+	for freq := range c.evictList {
+		if c.minFreq == 0 || freq < c.minFreq {
+			c.minFreq = freq
+		}
 	}
 }
