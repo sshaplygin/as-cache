@@ -34,16 +34,22 @@ TAG_ORDER=(. lfu policies policies/arc policies/tinylfu metrics)
 
 fail=0
 
-echo "Checking for a licence"
-if ls LICENSE* >/dev/null 2>&1; then
-	echo "  ok   LICENSE present"
-else
-	echo "  FAIL no LICENSE file"
-	echo "       Without one the default is all rights reserved: nobody may"
-	echo "       legally use, copy or distribute this code, so publishing it"
-	echo "       invites something the reader is not permitted to do."
-	fail=1
-fi
+echo "Checking every publishable module carries a licence"
+# A Go module zip contains only its own directory, so a LICENSE at the repo
+# root never reaches someone who fetches a submodule. Each published module
+# needs its own copy, which is what upstream hashicorp/golang-lru does for its
+# arc submodule.
+for m in "${PUBLISHABLE[@]}"; do
+	if ls "$m"/LICENSE* >/dev/null 2>&1; then
+		echo "  ok   $m"
+	else
+		echo "  FAIL $m has no LICENSE"
+		echo "       Its module zip would ship without one, and the default is"
+		echo "       all rights reserved: nobody may legally use, copy or"
+		echo "       distribute it."
+		fail=1
+	fi
+done
 
 echo
 echo "Checking publishable modules for unresolvable requires"

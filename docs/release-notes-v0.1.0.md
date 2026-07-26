@@ -1,25 +1,4 @@
-<!--
-EDITORIAL NOTE - delete this block before publishing.
-
-Two things must be true before these notes are accurate:
-
- 1. NO LICENSE FILE EXISTS in this repository. Without one the default is "all
-    rights reserved": nobody may legally use, copy or distribute this code, so
-    every `go get` below invites something the reader is not permitted to do.
-    Add a licence before publishing. Worth a thought: Apache-2.0 carries an
-    express patent grant and retaliation clause, which is not nothing for a
-    project that ships an ARC adapter.
-
- 2. THE MODULES CANNOT BE CONSUMED YET. Every sibling module requires
-    `github.com/sshaplygin/as-cache v0.0.0` and resolves it through a local
-    `replace`, which consumers ignore. Run `make release-check` and follow the
-    tagging order it prints. Until then the `go get` lines below fail with
-    "unknown revision v0.0.0".
-
-Also replace the trailing "Full changelog" link if the compare range differs.
--->
-
-## as-cache v0.1.0
+## as-cache v0.1.1
 
 A cache that measures eviction policies against your real traffic instead of
 asking you to guess which one to use.
@@ -167,6 +146,11 @@ These are real and stated plainly rather than discovered later.
 | `as-cache/policies/arc` | ARC (patented — see above) | `hashicorp/golang-lru/arc/v2` |
 | `as-cache/policies/tinylfu` | W-TinyLFU | `maypok86/otter/v2` |
 | `as-cache/metrics` | expvar export | none |
+
+### Licence
+
+[Mozilla Public License 2.0](../LICENSE). File-level copyleft: use it in closed
+source freely; modifications to these files, if distributed, are shared back.
 
 ### Acknowledgements
 

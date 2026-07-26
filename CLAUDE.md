@@ -545,6 +545,12 @@ and tests perfectly here while being impossible for anyone else to use:
 `make release-check` catches this; it is part of `make all`. Do not tag until it
 passes.
 
+The licence is MPL 2.0, and **every publishable module carries its own copy**.
+A Go module zip contains only its own directory, so a root-only LICENSE never
+reaches someone fetching `policies/arc` or any other submodule. Upstream
+`hashicorp/golang-lru` ships a LICENSE inside its `arc` submodule for the same
+reason. `release-check` verifies this per module.
+
 Releasing therefore goes bottom-up through the dependency graph -- root, then
 `lfu`, then `policies`, then `policies/arc`, `policies/tinylfu` and `metrics` --
 updating each module's `require` to the version its dependency was just tagged

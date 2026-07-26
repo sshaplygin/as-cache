@@ -45,9 +45,12 @@ seven policies, and - for the first time - measured against published traces.
 - Constructor validation with sentinel errors: `ErrNilSettings`,
   `ErrInvalidEpochDuration`, `ErrNilBandit`, `ErrNilPolicy`,
   `ErrDuplicatePolicy`.
+- **Licensed under MPL 2.0**, with a copy in every publishable module. A Go
+  module zip contains only its own directory, so a root-only LICENSE would not
+  reach anyone fetching a submodule.
 - `make release-check`, which catches the two things that block a release and
-  show up in no other check: a missing licence, and sibling modules whose
-  `replace` directives hide requires that no consumer can resolve.
+  show up in no other check: a module missing its licence, and sibling modules
+  whose `replace` directives hide requires that no consumer can resolve.
 
 ### Fixed
 

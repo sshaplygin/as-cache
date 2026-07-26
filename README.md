@@ -3,6 +3,7 @@
 [![CI](https://github.com/sshaplygin/as-cache/actions/workflows/ci.yml/badge.svg)](https://github.com/sshaplygin/as-cache/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/sshaplygin/as-cache.svg)](https://pkg.go.dev/github.com/sshaplygin/as-cache)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sshaplygin/as-cache)](https://goreportcard.com/report/github.com/sshaplygin/as-cache)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](LICENSE)
 
 A Go library that uses a **Multi-Armed Bandit (MAB)** algorithm to select the
 cache replacement policy at runtime, measuring candidate policies against your
@@ -566,3 +567,13 @@ effective rate rather than letting a miniature shrink into noise.
 - [Ristretto (dgraph-io)](https://github.com/dgraph-io/ristretto) — inspiration for adaptive selection
 - [hashicorp/golang-lru](https://github.com/hashicorp/golang-lru) — LRU/2Q/ARC implementations
 - [stitchfix/mab](https://github.com/stitchfix/mab) — Multi-Armed Bandit (Thompson Sampling)
+
+## License
+
+[Mozilla Public License 2.0](LICENSE).
+
+MPL 2.0 is file-level copyleft. You may use this library in a closed-source
+application without opening your own code; if you modify one of *these* files
+and distribute the result, that file's source must be made available under the
+same licence. Each publishable module carries its own copy of the licence,
+because a Go module zip contains only its own directory.
