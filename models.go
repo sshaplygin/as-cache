@@ -4,9 +4,30 @@ package ascache
 type PolicyType uint
 
 const (
+	// Undefined is the zero value and names no policy.
 	Undefined PolicyType = iota
+	// LRU evicts the least recently used entry.
 	LRU
+	// LFU evicts the least frequently used entry.
 	LFU
+	// TwoQueue evicts using the 2Q algorithm, which keeps a small recent-access
+	// queue in front of a frequently-accessed queue so a scan cannot flush the
+	// working set.
+	TwoQueue
+	// ARC evicts using Adaptive Replacement Cache, which balances recency
+	// against frequency on its own. The algorithm is patented by IBM, so its
+	// adapter lives in a separate module that nothing else depends on.
+	ARC
+	// Random evicts an arbitrary entry. It is a useful control arm: a policy
+	// that cannot beat random on a workload is not earning its bookkeeping.
+	Random
+	// TTL evicts by expiry as well as by recency.
+	TTL
+	// TinyLFU evicts using the W-TinyLFU family, which gates admission on a
+	// frequency sketch so a new key must earn its place against the entry it
+	// would displace. It is the strongest general-purpose baseline in wide
+	// use, and the one an adaptive cache has to beat to justify itself.
+	TinyLFU
 )
 
 // MigrationStrategy controls how key/value pairs are transferred when the

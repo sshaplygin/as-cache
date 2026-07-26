@@ -69,6 +69,22 @@ as-cache/
 ├── wrapper.go                   # CacheWrapper (wraps any Cacher, adds stats)
 ├── policytype_string.go         # Generated: PolicyType.String() via stringer
 │
+├── policies/                    # Separate module: ready-made policy adapters
+│   ├── go.mod / go.sum          # depends on root + hashicorp/golang-lru v2.0.6
+│   ├── adapters.go              # NewLRU / NewTwoQueue / NewTTL / NewRandomPolicy
+│   ├── adapt.go                 # PartialCacher + AdaptedCache (Resize-by-rebuild)
+│   ├── random.go                # RandomCache, implemented from scratch
+│   ├── ttl.go                   # TTLCache: own expiry over plain LRU (see below)
+│   └── conformance_test.go      # shared Cacher/Policy contract suite
+│
+├── policies/arc/                # Separate module, SOLELY for patent isolation
+│   ├── go.mod / go.sum          # depends on hashicorp/golang-lru/arc/v2
+│   └── arc.go                   # ARC adapter via policies.Adapt
+│
+├── policies/tinylfu/            # Separate module: keeps otter's deps isolated
+│   ├── go.mod / go.sum          # depends on maypok86/otter/v2
+│   └── tinylfu.go               # W-TinyLFU adapter (natively resizable)
+│
 ├── lfu/                         # Separate module: LFU cache
 │   ├── go.mod / go.sum
 │   ├── lfu.go                   # Thread-safe LFU wrapper with eviction callbacks
@@ -128,8 +144,8 @@ SelectPolicy() PolicyType
 |---|---|---|
 | `AdaptiveCache[K,V]` | cache.go | Main adaptive cache orchestrator |
 | `CacheWrapper[K,V]` | wrapper.go | Wraps any Cacher, adds hit/miss tracking |
-| `PolicyType` | models.go | Enum: Undefined, LRU, LFU |
-| `MigrationStrategy` | models.go | Enum: MigrationCold, MigrationWarm |
+| `PolicyType` | models.go | Enum: Undefined, LRU, LFU, TwoQueue, ARC, Random, TTL, TinyLFU |
+| `MigrationStrategy` | models.go | Enum: MigrationCold, MigrationWarm, MigrationGradual |
 | `PolicyStats` | models.go | Hits + Misses counters |
 | `ShadowStats` | models.go | Per-epoch policy performance |
 | `GlobalStats` | models.go | Aggregate statistics |
@@ -140,7 +156,7 @@ SelectPolicy() PolicyType
 
 | Package | Version | Role |
 |---|---|---|
-| `hashicorp/golang-lru/v2` | v2.0.7 | LRU reference implementation |
+| `hashicorp/golang-lru/v2` | v2.0.6 | LRU/2Q/expirable (policies module). NOT v2.0.7: that release does not build |
 | `stitchfix/mab` | v0.1.1 | Multi-Armed Bandit (Thompson Sampling) |
 | `gonum.org/v1/gonum` | v0.8.2 | Numerical computing (used by mab) |
 | `golang.org/x/exp` | indirect | Used by gonum |
@@ -282,8 +298,53 @@ cd examples/basic && go mod tidy
 - [x] Data migration between policies on switch — `MigrationStrategy` in `Settings` (`MigrationCold` default, `MigrationWarm` copies all keys from old active to new active)
 - [x] Unit tests for LFU packages (simplelfu: 98.3% coverage, lfu wrapper: 100% coverage)
 - [x] Unit tests for root package (cache_test.go: 93.6% coverage -- CacheWrapper, AdaptiveCache delegated methods, tryChangePolicy, epoch-based switching, constructor edge cases, concurrent access)
-- [ ] Additional policies: Random, 2Q, ARC (mentioned in README but not implemented)
-- [ ] README Usage and Idea sections
+- [x] Roadmap Milestone 3 (policy coverage), two of three items — LRU, 2Q,
+  Random, TTL and ARC adapters. Four findings shaped the design:
+  - **ARC is patented by IBM** (US 6,996,676). Upstream `hashicorp/golang-lru`
+    split it into its own module in v2 for that reason; `policies/arc` keeps
+    that split so importing `policies` never pulls a patented implementation
+    into a build. Do not merge it into `policies` for convenience.
+  - **Neither 2Q nor ARC satisfies `Cacher`**: their `Add`/`Remove` return
+    nothing and neither has `Resize`, which the miniature-shadow mechanism
+    depends on. One shared `policies.Adapt` covers both. Its `Resize` rebuilds
+    the cache, discarding the algorithm's learned adaptation state — so an
+    adapted policy resized every epoch would stay permanently unadapted and
+    under-report its own hit rate.
+  - **`TTLCache` deliberately does NOT use `expirable.LRU`.** Three defects
+    made that untenable, all found in review: its `Get`/`Peek` return
+    `(zeroValue, true)` for an expired-but-unreaped entry (a bare `return` over
+    an already-true named result) -- a zero-value leak, the one invariant this
+    library is built on; its `Values` returns a full-length slice padded with
+    trailing zeros that no longer line up with `Keys`; and `NewLRU` starts a
+    reaper goroutine per cache with no way to stop it, leaking the goroutine
+    and the whole cache forever. `TTLCache` instead stores a `ttlEntry{value,
+    expiresAt}` in a plain `lru.Cache` and expires lazily on read. It also
+    makes size 0 mean *empty*, where `expirable` documents 0 as *unlimited* --
+    which, since shadows are resized automatically, would have turned a
+    bounded shadow into an unbounded one.
+  - **`Keys()` order is not portable.** 2Q returns frequent-then-recent, ARC
+    returns recent-then-frequent; neither is a global recency order. So
+    `AdaptedCache.Resize` replays every entry and lets the rebuilt cache pick
+    its own victims -- which entries survive a shrink is explicitly not
+    meaningful. Any "keep the tail" rule is right for one cache and exactly
+    backwards for the other.
+  - **`RandomCache.Add` must evict before inserting.** Inserting first puts the
+    caller's own write into the victim draw, losing it with probability
+    1/(size+1) -- a write accepted and gone before the next read. No other
+    policy here does that, and no conformance test caught it until one was
+    added that fills a cache and then reads the fresh key back.
+  - **golang-lru v2.0.7 does not build**: its published `simplelru` imports
+    `.../simplelru/internal`, which the module does not contain (verified
+    against the checksum database, so it is upstream, not a local cache
+    problem). Everything is pinned to v2.0.6. Do not bump without checking.
+- [x] W-TinyLFU arm (`policies/tinylfu`, over `maypok86/otter` v2) — the
+  baseline that actually needs beating. otter is natively resizable, so unlike
+  2Q and ARC this arm never rebuilds and keeps its frequency sketch. Caveat:
+  otter reports an *approximate* size, so `Len()` is approximate and the
+  `EvictPartialCapacityFilling=false` capacity gate (which compares `Len()` to
+  `Cap()` for exact equality) may not fire — set it to true when this arm is in
+  play.
+- [ ] README Idea section
 
 ---
 

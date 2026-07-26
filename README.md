@@ -31,9 +31,11 @@ See [examples/basic/main.go](examples/basic/main.go) for a complete runnable exa
 | --- | --- | --- |
 | LRU | implemented | via `hashicorp/golang-lru/v2` |
 | LFU | implemented | native O(1) implementation in `lfu/` |
-| 2Q | planned | — |
-| ARC | planned | — |
-| Random | planned | — |
+| 2Q | implemented | `policies.NewTwoQueue` |
+| Random | implemented | `policies.NewRandomPolicy` |
+| TTL | implemented | `policies.NewTTL` |
+| ARC | implemented | `policies/arc` — separate module, patented |
+| W-TinyLFU | implemented | `policies/tinylfu` — separate module |
 
 ## AdaptiveCache API
 
@@ -69,6 +71,17 @@ type Settings struct {
     // MigrationStrategy controls data transfer on policy switch.
     // Default: MigrationCold.
     MigrationStrategy MigrationStrategy
+
+    // ShadowSampleRate has shadows track a fraction of the keyspace.
+    // Zero means 1 (no sampling). See "Reducing shadow overhead".
+    ShadowSampleRate  float64
+    MinShadowCapacity int
+
+    // Switch stability gates; all inactive at zero.
+    // See "Keeping switches stable".
+    MinHitRateImprovement float64
+    SwitchCooldownEpochs  int64
+    MinEpochRequests      int64
 }
 ```
 
@@ -78,7 +91,7 @@ type Settings struct {
 | --- | --- | --- |
 | `MigrationCold` (default) | New active policy starts empty | Simple; causes a temporary miss spike |
 | `MigrationWarm` | All key/value pairs copied at switch time | No miss spike; O(n) work at switch |
-| `MigrationGradual` | Keys lazily promoted on Get-miss; one key drained per Add | Spreads migration cost; window closes at next epoch |
+| `MigrationGradual` | Keys promoted on Get; one key drained per Add | Spreads migration cost; window closes at the next epoch at the latest |
 
 ## Architecture
 
@@ -156,12 +169,87 @@ migration. Three settings damp that, all inactive at their zero value:
 }
 ```
 
+## Ready-made policies
+
+The core module has no dependencies. Ready-made arms live in a companion
+module, so you pull in a cache library only if you use one:
+
+```bash
+go get github.com/sshaplygin/as-cache/policies
+```
+
+```go
+lru, _ := policies.NewLRU[string, int](10000)
+twoQ, _ := policies.NewTwoQueue[string, int](10000)
+
+cache, err := ascache.NewAdaptiveCache(
+    []ascache.Policy[string, int]{
+        lru,
+        twoQ,
+        policies.NewRandomPolicy[string, int](10000),
+        policies.NewTTL[string, int](10000, 5*time.Minute),
+    },
+    myBandit,
+    &ascache.Settings{EpochDuration: time.Minute, ShadowSampleRate: 0.05},
+)
+```
+
+| Policy | Constructor | Notes |
+| --- | --- | --- |
+| LRU | `policies.NewLRU` | `hashicorp/golang-lru/v2` |
+| 2Q | `policies.NewTwoQueue` | scan-resistant; a scan cannot flush the working set |
+| Random | `policies.NewRandomPolicy` | no bookkeeping; the control arm worth beating |
+| TTL | `policies.NewTTL` | expiry as well as recency |
+| ARC | `policies/arc.NewPolicy` | separate module — see below |
+| W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; the strongest baseline |
+
+`Random` is worth keeping in the mix precisely because it assumes nothing: a
+policy that cannot beat random on your traffic is not earning its bookkeeping.
+
+### ARC is a separate module
+
+```bash
+go get github.com/sshaplygin/as-cache/policies/arc
+```
+
+ARC is patented by IBM (US 6,996,676), which is why upstream `hashicorp/golang-lru`
+moved it to its own module in v2. This repository keeps that split, so importing
+`policies` never pulls a patented implementation into your build and the choice
+to use ARC is always explicit. Whether the patent still restricts anything is a
+question for you and your counsel.
+
+### Adapting your own cache
+
+Any type satisfying `Cacher[K, V]` can be an arm. If your cache does not report
+evictions or cannot be resized — as `2Q` and `ARC` do not — wrap it:
+
+```go
+cache, err := policies.Adapt[string, int](size, func(size int) (policies.PartialCacher[string, int], error) {
+    return mylib.New[string, int](size)
+})
+```
+
+Note that `Resize` on an adapted cache rebuilds it, discarding whatever
+adaptation the algorithm had learned. `AdaptiveCache` resizes shadow policies
+when its own capacity changes, so adapted policies are heavier arms to carry
+than natively resizable ones.
+
+### W-TinyLFU
+
+```bash
+go get github.com/sshaplygin/as-cache/policies/tinylfu
+```
+
+Carried in its own module so otter and its dependencies stay out of builds that
+do not use it. This is the arm worth including if the question is whether an
+adaptive cache beats the state of the art rather than whether it beats LRU.
+
+Note that otter reports an approximate size, so this policy's `Len()` is
+approximate. Set `EvictPartialCapacityFilling: true` when using it, since the
+capacity gate compares `Len()` against `Cap()` for exact equality.
+
 ## TODO
 
-- [ ] 2Q policy wrapper (`hashicorp/golang-lru/v2` 2Q variant)
-- [ ] ARC policy wrapper (`hashicorp/golang-lru/v2` ARC variant)
-- [ ] Random eviction policy
-- [ ] TTL-based policy (`hashicorp/golang-lru/v2/expirable`)
 - [ ] README: detailed benchmarks comparing policies per workload type
 
 ## References

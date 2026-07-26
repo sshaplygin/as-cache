@@ -1,6 +1,6 @@
 # Each of these directories is a separate Go module (own go.mod), so tooling is
 # run once per module. The root .golangci.yml is shared by all of them.
-MODULES := . lfu examples/basic examples/migration
+MODULES := . lfu policies policies/arc policies/tinylfu examples/basic examples/migration
 
 GOLANGCI_LINT_VERSION := v2.8.0
 
