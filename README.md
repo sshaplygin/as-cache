@@ -14,7 +14,7 @@ Choosing the right cache replacement algorithm for a workload is a separate rese
 
 Every epoch the background goroutine:
 
-1. Collects hit/miss statistics from each shadow policy.
+1. Collects hit/miss statistics from every policy — shadows and the active one alike.
 2. Feeds them as Beta-distribution parameters into the MAB bandit.
 3. Samples from the distributions and switches the active policy to the winner.
 4. Shadow caches continue tracking access patterns with zero-value dummy entries so no real data leaks.
@@ -85,7 +85,8 @@ type Settings struct {
 ```text
 AdaptiveCache
   |-- active policy  (CacheWrapper -> real Cacher impl)
-  |-- shadow policy  (CacheWrapper -> real Cacher impl, zero-value adds only)
+  |-- shadow policy  (CacheWrapper -> real Cacher impl, zero-value adds only,
+  |                   optionally a sampled miniature -- see ShadowSampleRate)
   |-- Bandit         (Thompson Sampling via stitchfix/mab)
   |-- background goroutine (epoch ticker -> tryChangePolicy -> migrateData)
 ```
@@ -94,7 +95,8 @@ AdaptiveCache
 
 ```go
 type Bandit interface {
-    // RecordStats delivers shadow-cache hit/miss stats for one epoch.
+    // RecordStats delivers one policy's hit/miss stats since its last
+    // report; every policy reports, the active one included.
     RecordStats(stats ShadowStats)
 
     // SelectPolicy returns the policy that should become active next epoch.
@@ -103,6 +105,56 @@ type Bandit interface {
 ```
 
 A full Thompson Sampling adapter using `stitchfix/mab` is provided in [examples/basic/main.go](examples/basic/main.go).
+
+## Reducing shadow overhead
+
+Running policies in parallel costs something on every operation: each shadow is
+another lookup and another lock. Since a shadow exists only to estimate a hit
+rate, and a hit rate can be estimated from a sample, `ShadowSampleRate` lets
+shadows track a deterministic fraction of the keyspace instead of mirroring
+everything.
+
+```go
+&ascache.Settings{
+    EpochDuration:    time.Minute,
+    ShadowSampleRate: 0.05, // shadows track 5% of keys
+}
+```
+
+Shadows shrink along with the rate, so each remains a faithful miniature of a
+full-size cache rather than an undersized one, and every shadow samples the same
+keys so their hit rates stay comparable. The active policy still serves every
+key -- only the measurement is sampled, and it is sampled for the active policy
+too, so no arm is judged on more evidence than another. `Stats()` continues to
+report real, unsampled traffic.
+
+The effect is that per-operation cost stops scaling with the number of policies
+(measured with mutex-backed stub policies on an M1 Max, `-benchtime=200ms`):
+
+| Benchmark | shadows | sampling off | rate 0.05 |
+| --- | --- | --- | --- |
+| `Get` | 1 | 100 ns/op | 36 ns/op |
+| `Get` | 3 | 145 ns/op | 38 ns/op |
+| `Add` | 1 | 109 ns/op | 52 ns/op |
+| `Add` | 3 | 189 ns/op | 57 ns/op |
+| `MixedParallel` | 1 | 184 ns/op | 85 ns/op |
+
+Sampling is off by default. Very small caches disable it automatically, since a
+miniature of a handful of entries measures noise rather than a policy.
+
+## Keeping switches stable
+
+By default every bandit selection is applied. On noisy traffic two policies that
+perform almost identically can trade places every epoch, and each switch costs a
+migration. Three settings damp that, all inactive at their zero value:
+
+```go
+&ascache.Settings{
+    MinHitRateImprovement: 0.02, // require a 2-point hit-rate win to switch
+    SwitchCooldownEpochs:  3,    // and at most one switch every 3 epochs
+    MinEpochRequests:      500,  // and ignore epochs with thin evidence
+}
+```
 
 ## TODO
 

@@ -58,7 +58,14 @@ as-cache/
 │
 ├── interfaces.go                # Core interface definitions
 ├── models.go                    # PolicyType, PolicyStats, ShadowStats, GlobalStats
-├── cache.go                     # AdaptiveCache implementation
+├── errors.go                    # Sentinel errors returned by NewAdaptiveCache
+├── settings.go                  # Settings + NewAdaptiveCache validation
+├── cache.go                     # AdaptiveCache struct + public cache API
+├── epoch.go                     # Epoch loop, bandit reporting, policy selection
+├── migration.go                 # Migration strategies (cold/warm/gradual)
+├── shadow.go                    # Promotion/demotion, shadow duty, value dropping
+├── sampling.go                  # keySampler + miniature capacity maths
+├── stability.go                 # Switch gates (cool-down, min improvement)
 ├── wrapper.go                   # CacheWrapper (wraps any Cacher, adds stats)
 ├── policytype_string.go         # Generated: PolicyType.String() via stringer
 │
@@ -204,13 +211,71 @@ cd examples/basic && go mod tidy
 - [x] `AdaptiveCache.Resize()` - resizes all policies, returns total eviction count
 - [x] `AdaptiveCache.Contains()` - delegates to active policy
 - [x] `AdaptiveCache.Keys()` / `Values()` / `Len()` / `Peek()` - delegate to active policy
-- [x] `AdaptiveCache.Stats()` - returns cumulative hit/miss from active policy
+- [x] `AdaptiveCache.Stats()` - cumulative: completed epochs (`globalStats`) plus the active policy's in-progress epoch
 - [x] Background epoch goroutine with bandit-based policy selection
 - [x] `CacheWrapper` with hit/miss statistics
 - [x] LFU implementation (simplelfu + thread-safe wrapper) — all methods implemented
 - [x] `lfu.Cache`: `Resize`, `ContainsOrAdd`, `PeekOrAdd`, `RemoveOldest`, `GetOldest`
 - [x] `simplelfu.LFU`: `Resize`, `GetOldest`, `RemoveOldest`
 - [x] Basic example with HTTP server
+- [x] Roadmap Milestone 1 (correctness): locked epoch switch in `runEpoch`; atomic
+  `CacheWrapper` counters; active policy's per-epoch stats reported to the bandit
+  alongside shadows with all counters reset each epoch (active counts folded into
+  `AdaptiveCache.globalStats` so `Stats()` stays cumulative and demotion never
+  leaks active-tenure stats into a shadow epoch); constructor validation with
+  sentinel errors in `errors.go` (`ErrNilSettings`, `ErrInvalidEpochDuration`,
+  `ErrNilBandit`, `ErrNilPolicy`, `ErrDuplicatePolicy`); idempotent `Close()`
+  (`sync.Once`) that waits for the epoch goroutine (`sync.WaitGroup`); explicit
+  `go vet` CI step and `TestAdaptiveCache_StressAcrossEpochBoundaries` (1ms
+  epochs, all three migration strategies, full public API under `-race`).
+  Migration strategies moved verbatim from `cache.go` to `migration.go` to keep
+  files under the 400-line rule.
+
+- [x] Roadmap Milestone 2 (overhead reduction), three of four items:
+  - **Sampled shadow caching** (`sampling.go`, `shadow.go`): `Settings.ShadowSampleRate`
+    gates the shadow fan-out on `maphash.Comparable(seed, key) < threshold`. One
+    sampler is shared by every policy so all arms measure the same substream --
+    per-policy seeds would make their hit rates incomparable. Shadows resize to
+    `ceil(rate*Cap)` so each stays a faithful miniature; `MinShadowCapacity`
+    (default 256) floors that, raising the *effective rate* rather than only the
+    capacity, and disabling sampling when a cache is too small to host a useful
+    miniature.
+  - **Stats deviate from the roadmap wording deliberately**: sampled counts are
+    NOT scaled up by `1/rate`. That would restore magnitude while inventing
+    confidence, handing a Beta posterior 20x the evidence collected. Instead the
+    *active* arm is measured over the same sampled substream
+    (`activeSampledHits`/`activeSampledMisses`, reported by `selectPolicyLocked`),
+    so every arm carries equal, honest evidence. `Stats()` still reports real
+    unsampled traffic; only the bandit sees the sample.
+  - **Value dropping on demotion** (`demoteLocked`): a demoted policy keeps its
+    keys (that is its eviction bookkeeping) but its entries are rewritten to the
+    zero value, unsampled keys removed, then it shrinks to miniature capacity.
+    Rewriting in `Keys()` order preserves LRU recency and leaves LFU relative
+    order untouched. Deferred while a gradual window is open, since that window
+    promotes out of the source's real values.
+  - **Switch stability** (`stability.go`): `MinHitRateImprovement`,
+    `SwitchCooldownEpochs`, `MinEpochRequests`, all off at their zero values.
+  - **Ordering invariant** (documented on `switchLocked`): *every mutation of a
+    policy must happen while that policy is not the active one.* Mutate the
+    incoming policy before promoting it, the outgoing one after demoting it.
+    This is what keeps a caller from ever reading a policy mid-rewrite.
+  - **Test policies**: `mockPolicy` does not enforce capacity (its `Resize` only
+    records the new size). That blind spot hid three capacity bugs found in
+    review. `evictingPolicy` in `evicting_test.go` does enforce it -- use it for
+    anything whose subject is capacity, resizing, or eviction.
+  - Measured on an M1 Max with mutex-backed stub policies: `Get` 100 -> 36 ns/op
+    with one shadow, 145 -> 38 ns/op with three; `Add` 109 -> 52 and 189 -> 57;
+    mixed parallel 184 -> 85. The structural win is that cost becomes flat in the
+    number of shadows, so adding policies is nearly free.
+  - **Deferred: lock-free reads** (`atomic.Pointer` to the active policy). An
+    adversarial safety analysis found the usual seqlock-retry framing unsound and
+    surfaced five further hazards -- retry must wrap all six read delegations
+    (`Values()` on a stale post-drop state returns N zeros at the right length),
+    retries are not side-effect-free (double-counted stats, double-bumped
+    recency), the `GetStats`/`ResetStats` split silently discards hits once reads
+    are unlocked (fixing it changes the public `CacheStats` interface), and
+    `MigrationGradual` cannot go lock-free since `promoteLocked` mutates from
+    inside `Get`. Worth its own scoped change.
 
 ### Incomplete / TODO
 
@@ -282,7 +347,7 @@ Implement the missing methods that currently return zero values:
 - `MigrationCold` (default, 0): start fresh — simple, causes temporary miss spike
 - `MigrationWarm`: on switch, purge zero-value shadow entries from new active policy, then copy all key/value pairs from old active via `Keys()`+`Peek()`
 
-- `MigrationGradual`: Get-time promotion (miss in new active → peek old policy → add to new active) + Add-time drain (one key migrated per Add call). Migration window closes when all keys are drained, on `Purge()`, or at the next epoch boundary.
+- `MigrationGradual`: Get-time promotion (during the window, `Get` takes the write lock and promotes the eligible key from the old policy into the new active BEFORE the counted lookup, so promoted requests register as active-policy hits — not misses) + Add-time drain (one key migrated per Add call). Migration window closes when no eligible keys remain (drained, promoted, or removed), on `Purge()`, on the next policy switch, and unconditionally at the next epoch boundary (`runEpoch` calls `closeMigrationLocked` first, so a workload that stops touching pending keys cannot leave the source pinned at full capacity holding real values). Switching away from an empty policy never opens a window.
 
 Bug fix applied during implementation: all three strategies now purge shadow zero-value entries from the new active policy at switch time, so callers never observe a shadow zero as a real cached value.
 

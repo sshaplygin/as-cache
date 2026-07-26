@@ -25,9 +25,17 @@ const (
 	MigrationWarm
 
 	// MigrationGradual lazily drains the old active policy into the new one.
-	// Each Get() miss attempts to promote the key from the old policy; each
-	// Add() call migrates one additional key. The migration window closes at
-	// the next epoch boundary, on Purge(), or when all keys have been drained.
+	// During the window each Get() promotes the requested key from the old
+	// policy into the new active — when it is still eligible (not overwritten
+	// by a shadow Add, already promoted, or evicted from the source) — before
+	// the lookup is counted, so served requests register as hits; each Add()
+	// call migrates at most one additional key. While the window is open,
+	// Get() takes the write lock, serializing reads.
+	//
+	// The window closes when no eligible keys remain, on Purge(), on the next
+	// policy switch, and in any case at the next epoch boundary - a workload
+	// that simply stops touching the pending keys must not leave it open
+	// forever, holding the source at full capacity with its values retained.
 	MigrationGradual
 )
 
@@ -42,7 +50,12 @@ type PolicyStats struct {
 	Misses int64
 }
 
-// ShadowStats holds the hit/miss result of a shadow cache sensor for one epoch.
+// ShadowStats holds one policy's hit/miss counts since its last report —
+// normally one epoch, or several when reporting was skipped because the cache
+// was not yet full (EvictPartialCapacityFilling=false). Every policy reports
+// through this channel on each reporting epoch, the active policy included,
+// so the bandit's posterior for the active arm does not go stale while
+// reports flow.
 type ShadowStats struct {
 	Policy PolicyType
 	Hits   int64

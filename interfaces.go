@@ -36,8 +36,13 @@ type Policy[K comparable, V any] interface {
 }
 
 type Bandit interface {
-	// RecordStats delivers a performance report from one of the shadow caches
-	// for the previous epoch.
+	// RecordStats delivers one policy's performance report. On every
+	// reporting epoch each policy reports — the active policy included — so
+	// implementations receive a full set of arms and must not synthesize
+	// stats for the active arm themselves. When
+	// Settings.EvictPartialCapacityFilling is false, epochs where the active
+	// policy is not yet full skip reporting entirely; counters then
+	// accumulate and the next report spans the skipped epochs.
 	RecordStats(stats ShadowStats)
 
 	// SelectPolicy asks the bandit to choose which policy should become the
