@@ -42,6 +42,10 @@ test: ## Run tests with the race detector across all modules
 		( cd $$m && go test -race -short -count=1 ./... ); \
 	done
 
+.PHONY: release-check
+release-check: ## Check the repository could actually be released today
+	@./scripts/release-check.sh
+
 .PHONY: evidence
 evidence: ## Replay the workload suite and print the policy comparison tables
 	( cd bench && go test -count=1 -timeout 20m -v ./... )

@@ -34,16 +34,16 @@ of 256-byte values:
 | --- | --- | --- |
 | single LRU | 18.5 MiB | 1.00x |
 | adaptive, 6 policies | 48.9 MiB | 2.65x |
-| adaptive, 6 policies, `ShadowSampleRate: 0.05` | 24.4 MiB | 1.32x |
+| adaptive, 6 policies, `ShadowSampleRate: 0.05` | 24.5 MiB | 1.32x |
 
 Per-operation cost on a warm cache, same configurations (`Get`, 0 allocs/op
 throughout):
 
-| Configuration | ns/op |
-| --- | --- |
-| single LRU | 32 |
-| adaptive, 6 policies | 596 |
-| adaptive, 6 policies, sampled | 85 |
+| Configuration | ns/op | allocs/op |
+| --- | --- | --- |
+| single LRU | 32 | 0 |
+| adaptive, 6 policies | 618 | 0 |
+| adaptive, 6 policies, sampled | 82 | 0 |
 
 ### When to use it
 
@@ -197,16 +197,28 @@ key -- only the measurement is sampled, and it is sampled for the active policy
 too, so no arm is judged on more evidence than another. `Stats()` continues to
 report real, unsampled traffic.
 
-The effect is that per-operation cost stops scaling with the number of policies
-(measured with mutex-backed stub policies on an M1 Max, `-benchtime=200ms`):
+The effect is that per-operation cost stops scaling with the number of policies.
+Measured with mutex-backed stub policies on an Apple M1 Max at
+`-benchtime=300ms`, so the numbers isolate what the adaptive layer adds rather
+than what any particular policy costs:
 
 | Benchmark | shadows | sampling off | rate 0.05 |
 | --- | --- | --- | --- |
-| `Get` | 1 | 100 ns/op | 36 ns/op |
-| `Get` | 3 | 145 ns/op | 38 ns/op |
-| `Add` | 1 | 109 ns/op | 52 ns/op |
-| `Add` | 3 | 189 ns/op | 57 ns/op |
-| `MixedParallel` | 1 | 184 ns/op | 85 ns/op |
+| `Get` | 1 | 97 ns/op | 35 ns/op |
+| `Get` | 3 | 148 ns/op | 38 ns/op |
+| `GetParallel` | 1 | 271 ns/op | 181 ns/op |
+| `GetParallel` | 3 | 405 ns/op | 185 ns/op |
+| `Add` | 1 | 110 ns/op | 52 ns/op |
+| `Add` | 3 | 193 ns/op | 59 ns/op |
+| `MixedParallel` | 1 | 183 ns/op | 87 ns/op |
+
+Read the `Get` rows down the shadow count. Unsampled, a third shadow costs
+another 50ns, because every operation visits every policy. Sampled, going from
+one shadow to three costs 3ns -- the fan-out happens on 5% of operations, so
+adding a policy is close to free. That is what makes carrying seven arms
+practical.
+
+Reproduce with `go test -run '^$' -bench . -benchtime=300ms .`
 
 Sampling is off by default. Very small caches disable it automatically, since a
 miniature of a handful of entries measures noise rather than a policy.
@@ -434,7 +446,7 @@ The remaining gap is the price of exploring and of migrating between arms.
 So the case for this library is not "it beats the best policy." It is:
 
 - **You do not know which policy is best for your traffic**, and the cost of
-  guessing wrong is large (0.0% vs 92.3% on `loop`). Adaptive selection bounds
+  guessing wrong is large (0.0% vs 94.0% on `loop`). Adaptive selection bounds
   that downside without requiring you to know.
 - **It tells you what to use.** The most valuable output may be the measurement
   rather than the switching -- see the roadmap's advisor mode.
@@ -502,20 +514,45 @@ Rules of thumb:
 
 ### Does sampling distort the comparison?
 
-Milestone 2's sampled shadows are only sound if a 5% miniature ranks policies
-the way full-size shadows would. Measured directly:
+Sampled shadows are only sound if a miniature ranks policies the way full-size
+shadows would. Measured directly across four sample rates, against full-size
+shadows as ground truth:
 
 ```text
-zipf   full-size: ARC=81.4% 2Q=81.2% TinyLFU=79.8% LRU=79.2% TTL=79.2% Random=28.9%
-       sampled:   ARC=78.7% 2Q=78.3% TinyLFU=77.1% LRU=76.7% TTL=76.5% Random=27.9%
+zipf   full-size  ARC=81.4% 2Q=81.2% LFU=81.0% TTL=79.2% LRU=79.2% W-TinyLFU=79.1% Random=22.5%
+       rate 0.05  ARC=66.1% 2Q=66.0% LFU=65.6% W-TinyLFU=64.4% LRU=62.5% TTL=61.6% Random=22.2%
+       rate 0.10  ARC=85.4% 2Q=85.4% LFU=85.2% W-TinyLFU=84.1% TTL=83.8% LRU=83.7% Random=38.1%
+       rate 0.30  ARC=77.7% 2Q=77.5% LFU=77.4% W-TinyLFU=76.5% LRU=75.3% TTL=75.0% Random=20.8%
+       rate 0.50  ARC=84.7% 2Q=84.6% LFU=84.4% W-TinyLFU=82.9% LRU=82.9% TTL=82.9% Random=22.3%
 
-scan   full-size: 2Q=28.3% ARC=28.3% TinyLFU=27.0% LRU=21.4% TTL=21.4% Random=17.1%
-       sampled:   2Q=27.1% ARC=27.1% TinyLFU=25.1% TTL=20.5% LRU=20.5% Random=16.6%
+scan   full-size  2Q=28.3% ARC=28.3% LFU=28.3% W-TinyLFU=27.2% TTL=21.4% LRU=21.4% Random=17.0%
+       rate 0.05  2Q=26.4% ARC=26.4% LFU=26.4% W-TinyLFU=24.0% TTL=19.9% LRU=19.9% Random=16.2%
+       rate 0.10  2Q=29.6% ARC=29.6% LFU=29.6% W-TinyLFU=28.9% LRU=22.4% TTL=22.4% Random=17.7%
+       rate 0.30  2Q=28.9% ARC=28.9% LFU=28.9% W-TinyLFU=27.8% LRU=21.8% TTL=21.8% Random=17.3%
+       rate 0.50  2Q=28.2% ARC=28.2% LFU=28.2% W-TinyLFU=25.8% TTL=21.4% LRU=21.4% Random=17.0%
 ```
 
-The order is preserved. Sampled rates run uniformly 1-3 points pessimistic, but
-the bias applies to every arm alike, so comparisons hold and the bandit picks
-the same arm.
+**Sampling picks the same best policy at every rate**, on both workloads --
+zero regret, including at the aggressive 5%. Every clearly separated pair of
+arms is ranked the same way sampled as full-size: 0 inversions out of 3 pairs
+on zipf and 6 on scan, at all four rates.
+
+What sampling does *not* give you is an estimate of the absolute hit rate. Read
+the zipf rows down the rate column: ARC measures 66% at rate 0.05 and 85% at
+rate 0.10, against 81% full-size. The estimate depends on which slice of the
+keyspace the seed happened to select, and a different slice has different
+reuse, so a sampled rate can land either side of the true one. Do not read a
+shadow's absolute number as a prediction of what that policy would achieve.
+
+That is fine for the purpose, because the bandit only ever needs to know which
+arm is better, never by how much in absolute terms. It is not fine if you were
+planning to quote a shadow's hit rate as a forecast -- for that, run the policy
+for real, or set `ShadowSampleRate` to 0 and pay for full-size shadows.
+
+Higher rates cost more and buy no better ranking here, so 0.05 is a reasonable
+default. Raise it if your keyspace is small enough that 5% of it is only a
+handful of keys -- `MinShadowCapacity` guards the degenerate end by raising the
+effective rate rather than letting a miniature shrink into noise.
 
 ## TODO
 

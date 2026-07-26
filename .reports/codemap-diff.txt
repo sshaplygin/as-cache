@@ -1,0 +1,52 @@
+codemap update report
+generated: 2026-07-26
+
+METHOD
+  The command template specifies TypeScript/Node.js analysis and a
+  frontend/backend/data file set. This repository is a Go multi-module library
+  with no frontend and no data schemas. Analysis therefore uses `go doc`,
+  authoritative for a Go module's API, rather than a JS parser; and no
+  frontend codemap was generated because there is nothing to describe.
+  Symbol matching uses word boundaries: a substring test wrongly counts
+  generic names such as Get/New/Add as documented wherever they appear.
+
+BEFORE  (codemaps dated 2026-02-23, predating milestones 1-6)
+  exported symbols  106 total,  27 unnamed -> 25.5%
+  root source files  15 total,   9 unnamed -> 60.0%
+  modules             9 total,   4 unnamed -> 44.4%
+  worst dimension 60.0%, above the 30% threshold -> approval requested
+  user approved: rewrite architecture.md, backend.md, data.md
+
+AFTER
+  exported symbols  106 total,  19 unnamed -> 17.9%
+      .                      43 /   6
+      lfu                    18 /   7
+      policies               23 /   2
+      policies/arc            2 /   0
+      policies/tinylfu       14 /   2
+      metrics                 6 /   2
+  root source files  15 total,   1 unnamed -> 6.7%
+      generate.go
+  modules             9 total,   2 unnamed -> 22.2%
+      examples/basic
+      examples/migration
+
+REMAINING UNNAMED SYMBOLS - deliberate
+  All are methods on types the codemaps already describe (Close, Contains,
+  Peek, GetType, String, ContainsOrAdd, GetOldest, PeekOrAdd, RemoveOldest)
+  plus two low-level identifiers. The command asks for high-level structure,
+  not implementation details, and `go doc` is authoritative and always current
+  for method sets. Entry-point constructors and sentinel errors WERE added,
+  because those are API surface a reader needs to get started.
+  Unnamed: Close, Contains, ContainsOrAdd, DefaultEvictedBufferSize, GetOldest, GetType, Name, Peek, PeekOrAdd, PolicySnapshot, RemoveOldest, String
+
+  generate.go is a go:generate directive only; examples/* are internal demos.
+
+FILES WRITTEN
+  codemaps/architecture.md   module graph, request path, epoch lifecycle,
+                             ordering invariant, concurrency model
+  codemaps/backend.md        file-by-file, call graphs, entry points,
+                             'looks wrong but is deliberate' notes
+  codemaps/data.md           enums, Settings, errors, stats scopes, Advice,
+                             core invariant, capacity model
+  (no frontend.md - not applicable to this project)

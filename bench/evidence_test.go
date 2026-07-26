@@ -194,11 +194,76 @@ func TestSamplingPreservesPolicyRanking(t *testing.T) {
 		t.Skip("evidence run; use make evidence")
 	}
 
-	// Large enough that a 5% miniature clears the MinShadowCapacity floor and
-	// is still a real cache, small enough that the arms genuinely differ: if
-	// every arm holds the whole working set they all score the same and there
-	// is no ranking to preserve.
+	// Large enough that even a 5% miniature clears the MinShadowCapacity floor
+	// and is still a real cache, small enough that the arms genuinely differ:
+	// if every arm holds the whole working set they all score the same and
+	// there is no ranking to preserve.
 	const size = 8000
+
+	// The rates a user would plausibly choose. 0.05 is the aggressive end this
+	// library recommends; the rest exist so the cost of the choice is visible
+	// rather than assumed.
+	rates := []float64{0.05, 0.10, 0.30, 0.50}
+
+	for _, w := range []bench.Workload{
+		bench.Zipf(300000, 200000, 1.1, 11),
+		bench.Scan(30, 4000, 16000, 40000),
+	} {
+		t.Run(w.Name, func(t *testing.T) {
+			// The ground truth every sampled run is judged against.
+			full := ratesUnderSampling(t, w, size, 0)
+			bestFull := argmax(full)
+
+			t.Logf("\n%s\n  full-size shadows  %s\n  -> picks %s",
+				w.Name, formatRates(full), bestFull)
+
+			for _, rate := range rates {
+				sampled := ratesUnderSampling(t, w, size, rate)
+				bestSampled := argmax(sampled)
+
+				// Regret is the property that matters, not the argmax: arms
+				// within noise of each other reorder run to run even with no
+				// sampling at all, because epoch boundaries fall differently.
+				// What counts is whether the arm sampling picks is actually
+				// worse, judged by the full-size rates.
+				regret := full[bestFull] - full[bestSampled]
+
+				t.Logf("  rate %.2f          %s\n  -> picks %s, regret %.2f pts",
+					rate, formatRates(sampled), bestSampled, regret*100)
+
+				assert.Less(t, regret, 0.03,
+					"at rate %.2f sampling picked %s (true rate %.2f%%) over %s (%.2f%%): %.2f points of regret on %s",
+					rate, bestSampled, full[bestSampled]*100, bestFull, full[bestFull]*100,
+					regret*100, w.Name)
+			}
+		})
+	}
+}
+
+// TestSamplingPreservesClearOrderings checks the property that actually makes
+// a sampled comparison trustworthy.
+//
+// It is tempting to assume sampling costs every arm the same few points, so
+// that the shortfall cancels in the comparison. That is not what happens.
+// Measured across rates, an arm's absolute rate can land either side of its
+// full-size figure - at rate 0.10 on zipf the sampled rates come out several
+// points HIGHER - because the estimate depends on which slice of the keyspace
+// the seed selected, and a different slice has different reuse.
+//
+// So absolute sampled rates are not a prediction of the full-size rate, and
+// nothing here should claim they are. What survives is the ORDERING: when two
+// arms are genuinely separated, sampling ranks them the same way. That is
+// sufficient, because the bandit only ever needs to know which arm is better.
+func TestSamplingPreservesClearOrderings(t *testing.T) {
+	if testing.Short() {
+		t.Skip("evidence run; use make evidence")
+	}
+
+	const size = 8000
+
+	// Pairs closer than this are within measurement noise and reorder run to
+	// run even with no sampling at all, so they carry no ordering to preserve.
+	const separated = 0.05
 
 	for _, w := range []bench.Workload{
 		bench.Zipf(300000, 200000, 1.1, 11),
@@ -206,26 +271,31 @@ func TestSamplingPreservesPolicyRanking(t *testing.T) {
 	} {
 		t.Run(w.Name, func(t *testing.T) {
 			full := ratesUnderSampling(t, w, size, 0)
-			sampled := ratesUnderSampling(t, w, size, 0.05)
 
-			bestFull := argmax(full)
-			bestSampled := argmax(sampled)
+			for _, rate := range []float64{0.05, 0.10, 0.30, 0.50} {
+				sampled := ratesUnderSampling(t, w, size, rate)
 
-			t.Logf("\n%s\nfull-size: %s\nsampled:   %s\nfull picks %s, sampled picks %s",
-				w.Name, formatRates(full), formatRates(sampled), bestFull, bestSampled)
+				compared, inverted := 0, 0
+				for a, rateA := range full {
+					for b, rateB := range full {
+						if a >= b || rateA-rateB < separated {
+							continue
+						}
+						// a is clearly better than b at full size.
+						compared++
+						if sampled[a] < sampled[b] {
+							inverted++
+							t.Errorf("rate %.2f inverted a clear ordering on %s: "+
+								"%s beats %s by %.2f points at full size, but sampling ranks %s higher",
+								rate, w.Name, a, b, (rateA-rateB)*100, b)
+						}
+					}
+				}
 
-			// The argmax itself is not the property worth asserting: arms that
-			// are within noise of each other reorder run to run even with no
-			// sampling at all, because epoch boundaries fall differently.
-			//
-			// What matters is regret - whether the arm sampling picks is
-			// actually worse than the one full-size measurement would have
-			// picked, judged by their true full-size rates.
-			regret := full[bestFull] - full[bestSampled]
-
-			assert.Less(t, regret, 0.03,
-				"sampling picked %s (true rate %.2f%%) over %s (%.2f%%): %.2f points of regret on %s",
-				bestSampled, full[bestSampled]*100, bestFull, full[bestFull]*100, regret*100, w.Name)
+				t.Logf("rate %.2f: %d clearly separated pairs, %d inverted", rate, compared, inverted)
+				assert.Positive(t, compared,
+					"the workload must separate some arms or this proves nothing")
+			}
 		})
 	}
 }
