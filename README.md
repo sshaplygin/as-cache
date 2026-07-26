@@ -11,8 +11,15 @@ real traffic instead of asking you to guess.
 
 ## Status
 
-Experimental, but the claims here are measured rather than asserted -- see
-[Evidence](#evidence). Two things are worth knowing before adopting it.
+Pre-1.0: the API may still change, and nothing here has been run in production
+that I know of. What has been done is measurement -- every claim below comes
+from a reproducible run against published traces, not from intuition, and the
+concurrency has been exercised under the race detector and adversarially
+reviewed. Read [Evidence](#evidence) and decide for yourself; the numbers are
+there so you do not have to take "experimental" or "production-ready" on
+trust.
+
+Three things are worth knowing before adopting it.
 
 **No single policy wins everywhere, and that is the point.** On real traces the
 best fixed policy changes: 2Q wins on the Twitter and OLTP traces, W-TinyLFU on
@@ -50,8 +57,8 @@ throughout):
 
 - You do not know which policy suits your traffic, and cannot easily find out.
 - Your traffic changes shape and you would rather not re-tune.
-- You want the measurement more than the switching -- see advisor mode on the
-  roadmap.
+- You want the measurement more than the switching. `ObserveOnly` mode gives
+  you that at zero risk -- see [Advisor mode](#advisor-mode).
 
 ### When not to use it
 
@@ -60,8 +67,13 @@ throughout):
 - The hot path is latency-critical at single-digit nanoseconds. Even sampled,
   the adaptive layer costs several times a bare LRU per operation.
 - You need a hard memory ceiling. The multiplier is modest but real.
-- You cannot give it enough traffic per epoch to measure anything. The bandit
-  needs many requests per epoch to tell arms apart.
+- You cannot give it enough traffic per epoch to measure anything. Arms that
+  are within noise of each other reorder run to run, so a cache seeing a
+  handful of requests per epoch will pick essentially at random. `Advice()`
+  reports `Epochs` so you can tell whether it has seen enough.
+- Your keyspace is small enough to fit in the cache. Every policy scores the
+  same when nothing is ever evicted, and you are paying for shadows that can
+  never tell you anything.
 
 ## Problem
 

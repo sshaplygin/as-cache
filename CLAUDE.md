@@ -2,13 +2,14 @@
 
 ## Project Overview
 
-**as-cache** (Adaptive Selection Cache) is an experimental Go library that uses a Multi-Armed Bandit (MAB) statistical approach to automatically select the optimal cache replacement policy at runtime.
+**as-cache** (Adaptive Selection Cache) is a Go library that uses a Multi-Armed Bandit (MAB) statistical approach to select the cache replacement policy at runtime, measuring candidates against real traffic rather than asking the caller to guess.
 
 Instead of forcing users to choose a fixed eviction algorithm upfront, as-cache runs multiple policies in parallel (shadow caching), measures their hit/miss rates per epoch, and uses Thompson Sampling to select the best-performing policy dynamically.
 
 **Module:** `github.com/sshaplygin/as-cache`
 **Go version:** 1.25+
-**Status:** Experimental
+**Status:** Pre-1.0. API may change; measured against published traces (see
+README "Evidence"); not yet tagged or published -- `make release-check`.
 
 ---
 
