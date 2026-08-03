@@ -1,17 +1,51 @@
 package ascache
 
+import "time"
+
 func (c *AdaptiveCache[K, V]) runAdaptiveSelect() {
 	defer c.wg.Done()
-	defer c.epochTicker.Stop()
+
+	// A cache driven only by Settings.EpochRequests has no ticker. Receiving
+	// from a nil channel blocks forever, so the select then waits on ctx
+	// alone and this goroutine exists purely to be stopped by Close.
+	var ticks <-chan time.Time
+	if c.epochTicker != nil {
+		defer c.epochTicker.Stop()
+		ticks = c.epochTicker.C
+	}
 
 	for {
 		select {
 		case <-c.ctx.Done():
 			return
-		case <-c.epochTicker.C:
+		case <-ticks:
 			c.runEpoch()
 		}
 	}
+}
+
+// countRequest advances the request-driven epoch clock and runs the epoch on
+// the call that completes it.
+//
+// It must be called with no lock held: runEpoch takes the write lock.
+//
+// Exactly one caller per epoch observes the count equal to the limit, so
+// exactly one epoch runs however many goroutines are in Get at once. The limit
+// is then subtracted rather than the counter reset, so requests that arrived
+// during the crossing are still counted towards the next epoch instead of
+// being dropped.
+func (c *AdaptiveCache[K, V]) countRequest() {
+	limit := c.settings.EpochRequests
+	if limit <= 0 {
+		return
+	}
+
+	if c.epochRequests.Add(1) != limit {
+		return
+	}
+	c.epochRequests.Add(-limit)
+
+	c.runEpoch()
 }
 
 // runEpoch performs one epoch tick: it selects the next policy, migrates data

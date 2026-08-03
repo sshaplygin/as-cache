@@ -2,6 +2,7 @@ package bandit
 
 import (
 	"math/rand/v2"
+	"slices"
 	"sync"
 
 	ascache "github.com/sshaplygin/as-cache"
@@ -26,6 +27,15 @@ type Thompson struct {
 	// hits and misses hold the discounted evidence per arm.
 	hits   map[ascache.PolicyType]float64
 	misses map[ascache.PolicyType]float64
+	// order lists every arm seen, sorted, and is what SelectPolicy iterates.
+	//
+	// Ranging the map instead would draw from rng in Go's randomised map
+	// order, so a given arm receives a different draw on every call and a
+	// seeded bandit still produces a different answer each run. The seed fixes
+	// the sequence of numbers, not who gets them; only a stable arm order
+	// fixes that. Replaying one trace twice has to give one answer, or nothing
+	// measured through this bandit can be compared with anything.
+	order []ascache.PolicyType
 	// discount multiplies existing evidence at each update, in (0,1]. A value
 	// of 1 never forgets.
 	discount float64
@@ -59,6 +69,11 @@ func (b *Thompson) RecordStats(stats ascache.ShadowStats) {
 }
 
 func (b *Thompson) recordLocked(stats ascache.ShadowStats) {
+	if _, seen := b.hits[stats.Policy]; !seen {
+		b.order = append(b.order, stats.Policy)
+		slices.Sort(b.order)
+	}
+
 	b.hits[stats.Policy] = b.hits[stats.Policy]*b.discount + float64(stats.Hits)
 	b.misses[stats.Policy] = b.misses[stats.Policy]*b.discount + float64(stats.Misses)
 }
@@ -73,11 +88,13 @@ func (b *Thompson) SelectPolicy() ascache.PolicyType {
 	best := ascache.Undefined
 	bestSample := -1.0
 
-	for policy, hits := range b.hits {
+	// b.order, not b.hits: draws must be handed to the arms in the same
+	// sequence on every run for a seeded bandit to be reproducible.
+	for _, policy := range b.order {
 		// Beta(1+hits, 1+misses): the +1s are a uniform prior, so an arm with
 		// no evidence yet is sampled across the whole range rather than being
 		// pinned at zero and never tried.
-		sample := betaSample(b.rng, 1+hits, 1+b.misses[policy])
+		sample := betaSample(b.rng, 1+b.hits[policy], 1+b.misses[policy])
 		if sample > bestSample || (sample == bestSample && policy < best) {
 			best, bestSample = policy, sample
 		}

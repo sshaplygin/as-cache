@@ -9,7 +9,31 @@ import (
 
 // Settings configures the behaviour of AdaptiveCache.
 type Settings struct {
+	// EpochDuration is how often the cache re-evaluates its policies on a
+	// wall clock. Either this or EpochRequests must be set; setting both
+	// applies both, and whichever comes first ends the epoch.
 	EpochDuration time.Duration
+
+	// EpochRequests ends an epoch every N Get calls instead of on a clock.
+	//
+	// Wall-clock epochs make a cache's behaviour depend on how fast the
+	// machine runs it: replaying one trace twice re-evaluates a different
+	// number of times, so the hit rate moves between runs and cannot be
+	// compared with anything. Counting requests removes the clock from the
+	// measurement entirely - the same trace produces the same epochs, the
+	// same switches and the same hit rate on any machine, which is what a
+	// benchmark or a regression test needs.
+	//
+	// Get is the unit because Get is what produces evidence: hits and misses
+	// are recorded there and nowhere else, so this counts exactly the
+	// requests the bandit is shown. A workload that only writes never ends an
+	// epoch, which is correct - there is nothing to compare policies on.
+	//
+	// The epoch runs on the goroutine that happens to make the Nth Get, so
+	// that one call pays for the switch and any migration it triggers. In
+	// production prefer EpochDuration, which keeps that work on the
+	// background goroutine. Zero (the default) disables request counting.
+	EpochRequests int64
 	// EvictPartialCapacityFilling allows policy switching even when the cache
 	// is not yet full.
 	EvictPartialCapacityFilling bool
@@ -104,7 +128,13 @@ func NewAdaptiveCache[K comparable, V any](
 		}
 		bandit = observerBandit{}
 	}
-	if settings.EpochDuration <= 0 {
+	if settings.EpochRequests < 0 {
+		return nil, fmt.Errorf("%w: got %d", ErrInvalidEpochRequests, settings.EpochRequests)
+	}
+	// An epoch has to be ended by something. Either clock is acceptable and
+	// both together are fine; neither leaves a cache that measures every
+	// policy forever and never acts on any of it.
+	if settings.EpochDuration <= 0 && settings.EpochRequests == 0 {
 		return nil, fmt.Errorf("%w: got %s", ErrInvalidEpochDuration, settings.EpochDuration)
 	}
 
@@ -129,10 +159,16 @@ func NewAdaptiveCache[K comparable, V any](
 		policyOrder:  policyOrder,
 		activePolicy: policies[0].GetType(),
 		bandit:       bandit,
-		epochTicker:  time.NewTicker(settings.EpochDuration),
 		ctx:          ctx,
 		cancel:       cancel,
 		settings:     settings,
+	}
+
+	// No ticker when the cache is driven purely by request count:
+	// time.NewTicker panics on a non-positive duration, and a cache that ends
+	// its epochs on Get has nothing for a background clock to do.
+	if settings.EpochDuration > 0 {
+		ac.epochTicker = time.NewTicker(settings.EpochDuration)
 	}
 
 	// A bandit that wants whole epochs gets them instead of the per-arm

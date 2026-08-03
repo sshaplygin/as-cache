@@ -201,7 +201,7 @@ SelectPolicy() PolicyType
 
 | Package | Version | Role |
 |---|---|---|
-| `hashicorp/golang-lru/v2` | v2.0.6 | LRU/2Q/expirable (policies module). NOT v2.0.7: that release does not build |
+| `hashicorp/golang-lru/v2` | v2.0.6 | LRU/2Q/expirable (policies module). v2.0.7 also builds; the pin is inertia, not a defect |
 | `stitchfix/mab` | v0.1.1 | Multi-Armed Bandit (Thompson Sampling) |
 | `redis/go-redis/v9` | v9.21.0 | Valkey/Redis client (`bandit/redis` module only) |
 | `alicebob/miniredis/v2` | v2.38.0 | Fake Redis for `bandit/redis` tests (test-only) |
@@ -566,10 +566,21 @@ cd examples/basic && go mod tidy
     1/(size+1) -- a write accepted and gone before the next read. No other
     policy here does that, and no conformance test caught it until one was
     added that fills a cache and then reads the fresh key back.
-  - **golang-lru v2.0.7 does not build**: its published `simplelru` imports
-    `.../simplelru/internal`, which the module does not contain (verified
-    against the checksum database, so it is upstream, not a local cache
-    problem). Everything is pinned to v2.0.6. Do not bump without checking.
+  - **golang-lru v2.0.7 builds fine; an earlier note here said otherwise and
+    was wrong.** The claim was that its published `simplelru` imports
+    `.../simplelru/internal`, which the module does not contain. What actually
+    happened is that one machine's module cache held a corrupted extraction of
+    v2.0.7 whose `simplelru/lru.go` line 9 read
+    `github.com/hashicorp/golang-lru/v2/simplelru/internal`, where the
+    published file reads `github.com/hashicorp/golang-lru/v2/internal`. The
+    v2.0.6 and v2.0.7 zips have identical file lists and both contain
+    `internal/list.go`; a build against v2.0.7 with an empty `GOMODCACHE`
+    succeeds. The pin at v2.0.6 is therefore only inertia, not a defence.
+    - The lesson is about the evidence, not the version: "verified against the
+      checksum database" was asserted but never actually run. When a
+      dependency looks broken, compare the module zip from `proxy.golang.org`
+      against the extracted copy in `GOMODCACHE` before concluding anything is
+      upstream -- `go mod verify` does not re-hash an already-extracted tree.
 - [x] W-TinyLFU arm (`policies/tinylfu`, over `maypok86/otter` v2) — the
   baseline that actually needs beating. otter is natively resizable, so unlike
   2Q and ARC this arm never rebuilds and keeps its frequency sketch. Caveat:
@@ -602,6 +613,36 @@ cd examples/basic && go mod tidy
   test`, so the one gate that catches an unreleasable module was purely
   opt-in, and the failure it guards against is invisible until a stranger's
   `go get` fails. Both are now wired up, and the claim is true.
+
+- [x] **Request-counted epochs and the `benchclient` module**, so the cache can
+  enter a benchmark suite (`maypok86/benchmarks`) and produce a number worth
+  quoting. Four findings, in the order they surfaced:
+  - **`Settings.EpochRequests` ends an epoch every N `Get` calls.** A
+    wall-clock epoch makes adaptation a function of machine speed: replaying
+    one trace on a loaded machine re-evaluates fewer times and lands on a
+    different hit rate. `Get` is the unit because hits and misses are recorded
+    there and nowhere else. The counter subtracts the limit rather than
+    resetting to zero, so requests arriving mid-crossing are still counted, and
+    the trigger compares `== limit` so exactly one goroutine runs each epoch.
+    It runs on the caller's goroutine, outside every lock the `Get` took --
+    `runEpoch` needs the write lock.
+  - **The Thompson bandit was not reproducible even when seeded.**
+    `SelectPolicy` drew one sample per arm while ranging a map, so map
+    iteration order decided which arm got which draw. The seed fixes the
+    sequence of numbers, not the recipients. This is the same defect as the
+    epoch-report ordering fixed in 0.2.0, in the module written to fix it.
+    Anything that consumes randomness while iterating a map has this bug.
+  - **Determinism is a property of the whole stack, and one arm breaks it.**
+    With the bandit fixed, LRU/LFU/2Q/Random replay identically; W-TinyLFU does
+    not. Measured with no cache above it, one trace gave three hit counts and
+    left 527, 504 and 545 entries at capacity 500 -- otter evicts
+    asynchronously and reports an approximate size. Hence `DefaultArms`
+    excludes it and `ArmsWithWindowTinyLFU` exists to make that trade
+    explicitly. Do not "improve" the default by adding the best arm to it.
+  - **`benchclient` imports nothing from any benchmark suite.** The contract is
+    five methods and Go interfaces are structural, so a local `contract`
+    interface plus a `var _` assertion pins it without a dependency, and breaks
+    the build rather than the registration if it ever drifts.
 
 ### Releasing 0.2.0
 

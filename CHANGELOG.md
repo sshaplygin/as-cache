@@ -4,6 +4,48 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and from v0.1.0 the
 project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`Settings.EpochRequests`.** Ends an epoch every N `Get` calls instead of on
+  a wall clock, so a replay produces the same result on any machine. Wall-clock
+  epochs make adaptation depend on how fast the run happens to be: the same
+  trace re-evaluates a different number of times when the machine is loaded,
+  and the hit rate moves with it. `Get` is the unit because hits and misses are
+  recorded there and nowhere else, so this counts exactly the requests the
+  bandit is shown. Either clock may be set, or both.
+- **`benchclient` module.** Adapts the cache to the `Init`/`Get`/`Set`/`Name`/
+  `Close` client contract used by Go cache benchmark suites, in particular
+  `maypok86/benchmarks`. It imports nothing from any suite - the contract is
+  five methods and Go interfaces are structural - and is configured for
+  reproducibility: request-counted epochs, a seeded bandit, no sampling.
+
+### Fixed
+
+- **The Thompson bandit was not reproducible even when seeded.**
+  `SelectPolicy` drew one sample per arm while ranging a map, so Go's
+  randomised iteration order handed each arm a different draw on every call.
+  The seed fixed the sequence of numbers, not who received them. Two replays of
+  one trace through an otherwise fully deterministic cache disagreed by
+  hundreds of hits. Draws are now made in a stable sorted arm order. This is
+  the same defect the cache fixed in its own epoch reporting in 0.2.0; the
+  bandit was missed.
+
+### Known limitations
+
+- **W-TinyLFU is not reproducible**, so `benchclient.DefaultArms` leaves it
+  out. Measured directly, with no cache or bandit above it, one trace replayed
+  three times gave three different hit counts and left 527, 504 and 545 entries
+  against a capacity of 500: otter evicts asynchronously and reports an
+  approximate size. `ArmsWithWindowTinyLFU` includes it for comparisons where
+  the strongest arm matters more than repeatability.
+- **An earlier note claiming `hashicorp/golang-lru` v2.0.7 does not build was
+  wrong.** That was a corrupted local module cache, not an upstream defect: the
+  v2.0.6 and v2.0.7 zips contain the same files, and v2.0.7 builds against an
+  empty `GOMODCACHE`. `policies` stays on v2.0.6 out of inertia, and a consumer
+  whose build resolves v2.0.7 through MVS is fine.
+
 ## [0.2.0]
 
 Adds a distributed bandit. A single replica that sees little traffic cannot

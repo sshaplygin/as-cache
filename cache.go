@@ -92,9 +92,14 @@ type AdaptiveCache[K comparable, V any] struct {
 	lastSwitchEpoch int64
 
 	// --- Settings ---
-	epochID     int64
+	epochID int64
+	// epochTicker is nil when the cache ends its epochs on request count
+	// alone, since time.NewTicker rejects a non-positive duration.
 	epochTicker *time.Ticker
-	settings    *Settings
+	// epochRequests counts Get calls since the last request-driven epoch. It
+	// is mutated on the read path, so it must be atomic.
+	epochRequests atomic.Int64
+	settings      *Settings
 
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -117,7 +122,21 @@ func (c *AdaptiveCache[K, V]) recordActiveSample(sampled, hit bool) {
 	}
 }
 
+// Get returns the value stored for key by the active policy, feeding the same
+// lookup to every shadow policy that samples the key.
+//
+// When Settings.EpochRequests is set, the call that completes an epoch runs it
+// here, after every lock this method took has been released - runEpoch needs
+// the write lock, and a Get still holding the read lock would deadlock against
+// it.
 func (c *AdaptiveCache[K, V]) Get(key K) (V, bool) {
+	value, found := c.get(key)
+	c.countRequest()
+
+	return value, found
+}
+
+func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 	sampled := c.sampler.sampled(key)
 
 	c.mu.RLock()

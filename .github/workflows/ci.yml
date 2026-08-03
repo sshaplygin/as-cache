@@ -17,7 +17,7 @@ jobs:
       matrix:
         # Every module has its own go.mod and is linted independently. Keep
         # this in step with MODULES in the Makefile.
-        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bandit", "bandit/redis", "bench", "examples/basic", "examples/migration"]
+        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bandit", "bandit/redis", "benchclient", "bench", "examples/basic", "examples/migration"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bandit", "bandit/redis", "bench", "examples/basic", "examples/migration"]
+        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bandit", "bandit/redis", "benchclient", "bench", "examples/basic", "examples/migration"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

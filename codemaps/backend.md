@@ -83,8 +83,8 @@ capacity.
 
 ## `policies` -- ready-made arms
 
-Depends on the root module, `lfu`, and `hashicorp/golang-lru/v2` (pinned to
-**v2.0.6**: v2.0.7 does not build, see `CLAUDE.md`).
+Depends on the root module, `lfu`, and `hashicorp/golang-lru/v2` (held at
+**v2.0.6**; v2.0.7 builds too, see `CLAUDE.md`).
 
 | File | Provides |
 | --- | --- |
