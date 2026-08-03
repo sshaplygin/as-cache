@@ -645,6 +645,51 @@ cyclic scan just over capacity evicts every key immediately before it is needed
 again -- that is the textbook pathology, and it is worth knowing your workload
 is not that shape. And W-TinyLFU wins or ties nearly everywhere here.
 
+### How does it compare with other Go cache libraries?
+
+The tables elsewhere in this section compare this repository's policies with
+each other, which is the wrong comparison for anyone choosing a package. Here
+is the other one: the same workloads replayed through the caches a Go user
+would actually reach for, at capacity 500, `make evidence`.
+
+| Workload | otter v2 | theine | ristretto | sturdyc | as-cache |
+| --- | --- | --- | --- | --- | --- |
+| zipf | **73.19%** | 72.38% | 69.54% | 62.00% | 71.92% |
+| uniform | 9.99% | **10.48%** | 9.97% | 9.52% | 10.23% |
+| loop | 87.06% | 88.48% | **88.62%** | 45.42% | 68.78% |
+| scan | **39.88%** | **39.88%** | 39.45% | 30.01% | 39.24% |
+| phase-shift | 78.34% | **78.46%** | 72.53% | 53.19% | 75.06% |
+
+**Adaptive selection does not win here.** It is within a point of the best
+library on three of five workloads, loses phase-shift by 3.4 points, and loses
+`loop` by nearly 20. It is also 4 to 15 times slower per operation, which the
+[cost tables](#status) already describe. If you are choosing a cache library
+and have no particular reason to expect your traffic to change shape, otter or
+theine is the better answer, and this README is the wrong place to pretend
+otherwise.
+
+What the comparison does not show is any workload where a fixed library is
+catastrophic, because these five are kind: `loop` is the one designed to defeat
+LRU, and W-TinyLFU-derived caches handle it well. The case for measuring your
+own traffic rests on real traces, where [the best policy changes by
+trace](#real-traces).
+
+**Two methodology notes**, because both would otherwise flatter someone.
+
+otter admits on the caller's goroutine and evicts on a maintenance pass, so a
+replay writing flat out leaves it far over capacity: 5000 keys written into a
+cache built for 500 left 1916 retrievable. Uncorrected, that made otter look
+like it served 44% on uniform traffic where every other cache served 10% - a
+decisive-looking win that was purely the extra capacity. The harness calls
+`CleanUp` so the comparison happens at the stated size, at some cost to otter's
+timing column, and a test fails if any cache drifts far over its capacity
+again.
+
+ristretto's `Set` is asynchronous and admission-gated: it can return having
+queued nothing, so keys written into an almost-empty cache are not all there
+afterwards. Its hit rate is what a caller experiences, which is the honest
+thing to measure, but it is not purely an eviction-policy comparison.
+
 ### Does adaptive selection beat picking one policy?
 
 On these workloads: **no, and this is the honest result.**
