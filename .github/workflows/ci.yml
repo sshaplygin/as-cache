@@ -15,8 +15,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Every module has its own go.mod and is linted independently.
-        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bench", "examples/basic", "examples/migration"]
+        # Every module has its own go.mod and is linted independently. Keep
+        # this in step with MODULES in the Makefile.
+        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bandit", "bandit/redis", "bench", "examples/basic", "examples/migration"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -36,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bench", "examples/basic", "examples/migration"]
+        module: [".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bandit", "bandit/redis", "bench", "examples/basic", "examples/migration"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -49,3 +50,52 @@ jobs:
       - name: go test
         working-directory: ${{ matrix.module }}
         run: go test -race -short -count=1 ./...
+
+  # The test job above runs bandit/redis against miniredis, which is a fake.
+  # This one runs the same suite against real servers, because the adapter
+  # leans on three things a fake can be too permissive about: TIME called
+  # inside a Lua script, SET with NX and PX, and HINCRBY on a key the script
+  # names itself rather than declaring in KEYS.
+  #
+  # Both engines run, because both are documented as supported. Testing one
+  # while documenting two is how that claim quietly stops being true. This is
+  # the CI equivalent of `make redis-test`; docker-compose.yml is the local one.
+  redis:
+    name: test bandit/redis (${{ matrix.engine.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine:
+          # Deriving the bucket from the server's clock inside a script needs
+          # effects replication, so the floor is Redis 7 / Valkey 7.2.
+          - name: valkey 8
+            image: valkey/valkey:8-alpine
+            ping: valkey-cli ping
+          - name: redis 7
+            image: redis:7-alpine
+            ping: redis-cli ping
+    services:
+      server:
+        image: ${{ matrix.engine.image }}
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "${{ matrix.engine.ping }}"
+          --health-interval 1s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: bandit/redis/go.sum
+      - name: go test
+        working-directory: bandit/redis
+        # Set, so the suite uses the service container rather than miniredis.
+        # The suite fails rather than skips if this address is unreachable, so
+        # a broken service container cannot pass as a green fake run.
+        env:
+          AS_CACHE_REDIS_ADDR: 127.0.0.1:6379
+        run: go test -race -count=1 ./...
