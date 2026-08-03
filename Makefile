@@ -5,7 +5,7 @@ MODULES := . lfu policies policies/arc policies/tinylfu metrics bandit bandit/re
 GOLANGCI_LINT_VERSION := v2.8.0
 
 .PHONY: all
-all: fmt vet lint test ## Format, vet, lint and test
+all: fmt vet lint test release-check ## Format, vet, lint, test and check releasability
 
 .PHONY: lint
 lint: ## Run golangci-lint across all modules

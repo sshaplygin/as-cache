@@ -597,13 +597,38 @@ cd examples/basic && go mod tidy
   the fake while reporting that it tested a server. Verified green on the merge
   commit: 24 jobs, both engines included.
 
-### Releasing 0.2.0 (in progress)
+- [x] `release-check` runs in CI and in `make all`. It ran in neither: this
+  file claimed it was "part of `make all`" while the target was `fmt vet lint
+  test`, so the one gate that catches an unreleasable module was purely
+  opt-in, and the failure it guards against is invisible until a stranger's
+  `go get` fails. Both are now wired up, and the claim is true.
 
-Root is tagged `v0.1.0` and `v0.1.1`; **no submodule has ever been tagged**, so
-`policies`, `metrics`, `bandit` and the rest are unconsumable at any version --
-`release-check` fails all six on placeholder `v0.0.0` requires. 0.2.0 is the
-first release to tag the whole graph, uniformly, including modules that did not
-change (each sibling's `require` has to move to the root's new version anyway).
+### Releasing 0.2.0
+
+Root was tagged `v0.1.0` and `v0.1.1`; **no submodule had ever been tagged**, so
+`policies`, `metrics` and the rest were unconsumable at any version. 0.2.0 is
+the first release to tag the whole graph, uniformly, including modules that did
+not change -- each sibling's `require` has to move to the root's new version
+anyway. All eight are published and were verified by resolving them from
+proxy.golang.org into a module with no `replace` directives.
+
+Three things learned doing it, none of which are obvious from the outside.
+
+- **`release-check` passed a module it should have failed.** Its grep was
+  anchored to requires written inside a `require (` block, so `policies`'
+  standalone `require github.com/sshaplygin/as-cache/lfu v0.0.0-000101...`
+  line was never examined. It reads `go mod edit -json` now, which is the
+  parse the go command itself uses, so no layout can hide an entry.
+- **Verify the chain before pushing a tag, not after.** A bare clone plus
+  `GOPROXY=direct` and a `GIT_CONFIG_*` url rewrite resolves the require lines
+  exactly as a stranger would, with no global git config touched and nothing
+  published. Module versions are immutable once the proxy fetches them.
+- **A message-only amend is safe after tagging; a tree change is not.** The
+  module zip is built from the file tree, so rewriting a commit message and
+  moving the tags leaves every `h1:` hash identical (checked against the
+  checksum database before and after). Adding so much as a file under `docs/`
+  would not -- that is inside the root module, and its hash is already
+  recorded. Anything landing after a tag has to be a commit after the tag.
 
 The CHANGELOG now also carries a `[0.1.1]` section. The MPL licence work was
 filed under `[0.1.0]`, which shipped before the LICENSE files existed.

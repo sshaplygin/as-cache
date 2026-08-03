@@ -51,6 +51,24 @@ jobs:
         working-directory: ${{ matrix.module }}
         run: go test -race -short -count=1 ./...
 
+  # Two things block a release and show up in no other check: a module missing
+  # its licence, and a sibling required at a placeholder version. The second is
+  # invisible locally, because a replace directive resolves it - and replace
+  # directives are ignored by anyone consuming the module, so the first person
+  # to find out is a stranger whose `go get` fails. Neither build, test nor
+  # lint can see either one.
+  release-check:
+    name: release-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: go.sum
+      # Reads each go.mod through `go mod edit -json`, so no network is needed.
+      - run: ./scripts/release-check.sh
+
   # The test job above runs bandit/redis against miniredis, which is a fake.
   # This one runs the same suite against real servers, because the adapter
   # leans on three things a fake can be too permissive about: TIME called
