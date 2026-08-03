@@ -6,9 +6,9 @@ go 1.25.2
 // ../go.mod. The v2.0.7 release of the base module does not build.
 require (
 	github.com/hashicorp/golang-lru/arc/v2 v2.0.6
-	github.com/sshaplygin/as-cache v0.0.0
-	github.com/sshaplygin/as-cache/lfu v0.0.0 // indirect
-	github.com/sshaplygin/as-cache/policies v0.0.0
+	github.com/sshaplygin/as-cache v0.2.0
+	github.com/sshaplygin/as-cache/lfu v0.2.0 // indirect
+	github.com/sshaplygin/as-cache/policies v0.2.0
 )
 
 require github.com/stretchr/testify v1.11.1

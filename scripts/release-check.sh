@@ -23,6 +23,13 @@ set -euo pipefail
 
 MODULE=github.com/sshaplygin/as-cache
 
+# The version the suggested commands are printed with. Passed as the first
+# argument; the placeholder is deliberate, so the instructions cannot go stale
+# by naming a version that was released long ago.
+#
+#   ./scripts/release-check.sh v0.2.0
+VERSION="${1:-vX.Y.Z}"
+
 # Modules intended for publication. bench and examples/* are deliberately
 # excluded: they are internal, nothing imports them, and their placeholder
 # requires are harmless.
@@ -55,7 +62,27 @@ echo
 echo "Checking publishable modules for unresolvable requires"
 
 for m in "${PUBLISHABLE[@]}"; do
-	bad=$(grep -E "^[[:space:]]*${MODULE}(/[a-z/]+)? v0\.0\.0" "$m/go.mod" 2>/dev/null || true)
+	# Read the requires through `go mod edit -json` rather than by grepping
+	# go.mod. A require can be written inside a block or as a standalone
+	# `require path version` line, and a pattern anchored for one form silently
+	# passes the other: that is how policies' require of lfu at
+	# v0.0.0-00010101000000-000000000000 sat here unreported. The JSON is the
+	# same parse the go command uses, so no layout can hide an entry.
+	#
+	# Only the Require array is scanned. Replace directives carry paths and
+	# versions too, and a local-path replace is exactly what is supposed to be
+	# there.
+	bad=$( (cd "$m" && go mod edit -json) | awk -F'"' -v mod="$MODULE" '
+		/"Require": \[/ { inreq = 1; next }
+		inreq && /^\t\],?$/ { inreq = 0 }
+		!inreq { next }
+		$2 == "Path" { path = $4 }
+		# v0.0.0 and the v0.0.0-00010101000000-000000000000 pseudo-version both
+		# name a revision that does not exist, so both fail for a consumer.
+		$2 == "Version" && index(path, mod) == 1 && $4 ~ /^v0\.0\.0/ {
+			printf "%s %s\n", path, $4
+		}
+	')
 	if [ -n "$bad" ]; then
 		echo
 		echo "  FAIL $m/go.mod requires a sibling at a placeholder version:"
@@ -87,14 +114,14 @@ EOF
 
 for m in "${TAG_ORDER[@]}"; do
 	if [ "$m" = "." ]; then
-		echo "    git tag v0.1.0"
+		echo "    git tag ${VERSION}"
 		continue
 	fi
 
-	if grep -qE "^[[:space:]]*${MODULE}(/[a-z/]+)? v" "$m/go.mod" 2>/dev/null; then
-		echo "    (cd $m && go mod edit -require=${MODULE}@v0.1.0 ...) && go mod tidy"
+	if grep -qE "${MODULE}(/[a-z/]+)? v" "$m/go.mod" 2>/dev/null; then
+		echo "    (cd $m && go mod edit -require=${MODULE}@${VERSION} ...) && go mod tidy"
 	fi
-	echo "    git tag $m/v0.1.0"
+	echo "    git tag $m/${VERSION}"
 done
 
 cat <<EOF

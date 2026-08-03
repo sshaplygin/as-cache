@@ -577,7 +577,36 @@ cd examples/basic && go mod tidy
   `EvictPartialCapacityFilling=false` capacity gate (which compares `Len()` to
   `Cap()` for exact equality) may not fire — set it to true when this arm is in
   play.
-- [ ] README Idea section
+- [x] README Idea section, rewritten to describe the mechanism as built:
+  per-request (active serves, sampler gates, shadows take keys only) and
+  per-epoch (equal evidence per arm, bandit names an arm, stability gates and
+  migration). The stale `## TODO` section, whose two items both shipped in
+  0.1.0, is replaced by `## What is not done` -- lock-free reads, unsteppable
+  wall-clock epochs, no adaptive sizing, no production use.
+
+- [x] CI covers every module. `bandit` and `bandit/redis` were absent from both
+  matrices in `.github/workflows/ci.yml`, so the newest and most
+  concurrency-sensitive module in the repo was checked by nothing but a local
+  `make test`. Both matrices now mirror the Makefile's `MODULES` (keep them in
+  step). A separate `redis` job runs the `bandit/redis` suite against Valkey 8
+  and Redis 7 service containers -- the CI equivalent of `make redis-test` --
+  because miniredis is exactly the kind of fake that is too permissive about
+  what this adapter leans on. `AS_CACHE_REDIS_ADDR` is set as a step `env`
+  rather than exported inline, which is the same word-splitting trap
+  `bandit/redis/TESTING.md` documents: get it wrong and the job silently tests
+  the fake while reporting that it tested a server. Verified green on the merge
+  commit: 24 jobs, both engines included.
+
+### Releasing 0.2.0 (in progress)
+
+Root is tagged `v0.1.0` and `v0.1.1`; **no submodule has ever been tagged**, so
+`policies`, `metrics`, `bandit` and the rest are unconsumable at any version --
+`release-check` fails all six on placeholder `v0.0.0` requires. 0.2.0 is the
+first release to tag the whole graph, uniformly, including modules that did not
+change (each sibling's `require` has to move to the root's new version anyway).
+
+The CHANGELOG now also carries a `[0.1.1]` section. The MPL licence work was
+filed under `[0.1.0]`, which shipped before the LICENSE files existed.
 
 ---
 
