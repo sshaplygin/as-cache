@@ -4,7 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and from v0.1.0 the
 project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0]
+
+Makes a replay reproducible and then uses that to answer a question the
+previous releases dodged: not which of this repository's policies is best, but
+whether reaching for this library beats reaching for otter or theine. It does
+not. That measurement, and the two traps that nearly published a false version
+of it, are the substance of this release.
 
 ### Added
 
@@ -20,6 +26,30 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   `maypok86/benchmarks`. It imports nothing from any suite - the contract is
   five methods and Go interfaces are structural - and is configured for
   reproducibility: request-counted epochs, a seeded bandit, no sampling.
+- **A comparison against other Go cache libraries** in the `bench` module:
+  otter v2, theine, ristretto and sturdyc, replayed through the same workloads
+  at the same capacity. Adapters implement only `Get` and `Add`, deliberately
+  not `Policy` - ristretto never exposes its keys and sturdyc is keyed by
+  string only, so neither can satisfy that contract, and pretending otherwise
+  would be the first step towards shipping an adapter that cannot work.
+- **A capacity-honesty test** asserting that a cache asked to hold N entries
+  holds roughly N. Its threshold comes from five runs of measured spread rather
+  than a guess, because approximate accounting is normal here: theine ranged
+  500-604 across runs, ristretto 518-540, sturdyc 476.
+- **Documentation split out of the README** into `docs/`: design, configuration,
+  policies, advisor mode, evidence, benchmarking and fleet. The README had
+  grown to the point where the pitch, the quick start and seven chapters of
+  measurement were competing for the same first screen.
+
+### Changed
+
+- **`release-check` now runs in CI and in `make all`.** It ran in neither,
+  while this repository's own notes claimed it was part of `make all`. It is
+  the only gate that catches a module nobody outside the repo can install, and
+  what it guards against is invisible locally - the `replace` directive that
+  hides an unresolvable require is exactly what makes local builds work.
+- **`EpochDuration` may now be zero** when `EpochRequests` is set. The ticker
+  is only created when a wall-clock epoch is actually configured.
 
 ### Fixed
 
@@ -32,8 +62,33 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   the same defect the cache fixed in its own epoch reporting in 0.2.0; the
   bandit was missed.
 
+### Measured
+
+- **Adaptive selection does not beat the well-known Go cache libraries.** At
+  capacity 500 over the five synthetic workloads it lands within a point of the
+  best library on three, 3.4 points down on phase-shift and nearly 20 down on
+  `loop`, and costs 4-15x the time per operation. If you are choosing a cache
+  and have no reason to expect your traffic to change shape, otter or theine is
+  the better answer. The case for this library rests on real traces, where the
+  best fixed policy changes from trace to trace, and on `ObserveOnly` telling
+  you which one yours wants.
+- **otter admits past its capacity when writes outrun its maintenance pass.**
+  5000 keys written into a cache built with `MaximumSize: 500` left 1916
+  retrievable. Uncorrected, that made otter appear to serve 44.31% on uniform
+  traffic where every other cache served 10% - a decisive-looking result that
+  was entirely the extra capacity, and 9.99% once `CleanUp` is called. The
+  comparison harness calls it; the capacity-honesty test keeps it honest.
+
 ### Known limitations
 
+- **The W-TinyLFU arm runs over its nominal capacity**, for the same reason.
+  Measured at a nominal 500 under read-through replay: 514 entries on `zipf`,
+  533 on `loop`, 611 on `uniform` - the overshoot tracks the write rate. On
+  `uniform` it accounts for the arm's entire advantage over the other policies:
+  it held 611 keys of a 5000-key keyspace and served 12.18%, and 611/5000 is
+  12.2%. The evidence tables elsewhere are read-heavy enough that the effect is
+  a few percent and their rankings stand, but a write-heavy win by this arm is
+  partly capacity rather than eviction.
 - **W-TinyLFU is not reproducible**, so `benchclient.DefaultArms` leaves it
   out. Measured directly, with no cache or bandit above it, one trace replayed
   three times gave three different hit counts and left 527, 504 and 545 entries
@@ -236,6 +291,7 @@ seven policies, and - for the first time - measured against published traces.
   sampling at every rate measured, but the absolute figure depends on which
   slice of the keyspace the seed selected.
 
+[0.3.0]: https://github.com/sshaplygin/as-cache/releases/tag/v0.3.0
 [0.2.0]: https://github.com/sshaplygin/as-cache/releases/tag/v0.2.0
 [0.1.1]: https://github.com/sshaplygin/as-cache/releases/tag/v0.1.1
 [0.1.0]: https://github.com/sshaplygin/as-cache/releases/tag/v0.1.0

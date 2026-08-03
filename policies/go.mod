@@ -10,11 +10,11 @@ go 1.25.2
 // MVS - maypok86/benchmarks requires it, for instance - is fine.
 require (
 	github.com/hashicorp/golang-lru/v2 v2.0.6
-	github.com/sshaplygin/as-cache v0.2.0
+	github.com/sshaplygin/as-cache v0.3.0
 	github.com/stretchr/testify v1.11.1
 )
 
-require github.com/sshaplygin/as-cache/lfu v0.2.0
+require github.com/sshaplygin/as-cache/lfu v0.3.0
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
