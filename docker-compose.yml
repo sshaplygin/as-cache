@@ -1,0 +1,45 @@
+# Local servers for the bandit/redis test suite.
+#
+# The suite runs against miniredis by default, which is a fake. The adapter
+# leans on three things a fake can be too permissive about - TIME called inside
+# a Lua script, SET with NX and PX, and HINCRBY on a key the script names
+# itself rather than declaring in KEYS - so the same tests run against a real
+# server here.
+#
+# Both engines are here on purpose. The adapter is documented as needing Redis
+# 7.0 or Valkey 7.2 and above, because deriving the bucket from the server's
+# clock inside a script requires effects replication. Claiming support for two
+# engines and testing one is how that claim quietly stops being true.
+#
+#   make redis-up      start both
+#   make redis-test    start both, run the suite against each, stop them
+#   make redis-down    stop both and remove their data
+#
+# Ports are deliberately off the defaults so this cannot collide with a Redis
+# you are already running for something else.
+
+services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: as-cache-valkey
+    ports:
+      - "63799:6379"
+    # No persistence: every run starts empty, and nothing here is worth keeping.
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: as-cache-redis
+    ports:
+      - "63798:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 20

@@ -11,8 +11,15 @@ real traffic instead of asking you to guess.
 
 ## Status
 
-Experimental, but the claims here are measured rather than asserted -- see
-[Evidence](#evidence). Two things are worth knowing before adopting it.
+Pre-1.0: the API may still change, and nothing here has been run in production
+that I know of. What has been done is measurement -- every claim below comes
+from a reproducible run against published traces, not from intuition, and the
+concurrency has been exercised under the race detector and adversarially
+reviewed. Read [Evidence](#evidence) and decide for yourself; the numbers are
+there so you do not have to take "experimental" or "production-ready" on
+trust.
+
+Three things are worth knowing before adopting it.
 
 **No single policy wins everywhere, and that is the point.** On real traces the
 best fixed policy changes: 2Q wins on the Twitter and OLTP traces, W-TinyLFU on
@@ -50,8 +57,8 @@ throughout):
 
 - You do not know which policy suits your traffic, and cannot easily find out.
 - Your traffic changes shape and you would rather not re-tune.
-- You want the measurement more than the switching -- see advisor mode on the
-  roadmap.
+- You want the measurement more than the switching. `ObserveOnly` mode gives
+  you that at zero risk -- see [Advisor mode](#advisor-mode).
 
 ### When not to use it
 
@@ -60,8 +67,15 @@ throughout):
 - The hot path is latency-critical at single-digit nanoseconds. Even sampled,
   the adaptive layer costs several times a bare LRU per operation.
 - You need a hard memory ceiling. The multiplier is modest but real.
-- You cannot give it enough traffic per epoch to measure anything. The bandit
-  needs many requests per epoch to tell arms apart.
+- You cannot give it enough traffic per epoch to measure anything. Arms that
+  are within noise of each other reorder run to run, so a cache seeing a
+  handful of requests per epoch will pick essentially at random. `Advice()`
+  reports `Epochs` so you can tell whether it has seen enough. If the reason
+  is that your traffic is spread across many replicas rather than genuinely
+  thin, see [Running a fleet](#running-a-fleet).
+- Your keyspace is small enough to fit in the cache. Every policy scores the
+  same when nothing is ever evicted, and you are paying for shadows that can
+  never tell you anything.
 
 ## Problem
 
@@ -387,6 +401,130 @@ For Prometheus, wrap `metrics.Take` in a collector -- how metrics are named and
 labelled belongs to your application, not to a cache library, so this package
 does not impose a dependency on it.
 
+## Running a fleet
+
+One replica of a service sees one replica's traffic. If you run fifty of them
+behind a load balancer, each cache sees a fiftieth of the requests, and the
+"you cannot give it enough traffic per epoch to measure anything" caveat above
+stops being about your traffic and starts being about how it was divided.
+
+The `bandit` module pools that evidence back together through Valkey or Redis.
+Each replica publishes its per-epoch counts; one replica per coordination epoch
+reads the fleet's aggregate, chooses, and publishes the choice for the others
+to apply.
+
+```go
+client := goredis.NewClient(&goredis.Options{Addr: "valkey:6379"})
+store, err := redisstore.New(redisstore.Options{Client: client})
+if err != nil {
+    return err
+}
+defer store.Close()
+
+b, err := bandit.NewDistributed(bandit.Config{
+    Store:             store,
+    Namespace:         "sessions",
+    CoordinationEpoch: time.Second,
+})
+if err != nil {
+    return err
+}
+defer b.Close()
+
+cache, err := ascache.NewAdaptiveCache(arms, b, &ascache.Settings{
+    EpochDuration: 50 * time.Millisecond,
+})
+```
+
+Read the fleet evidence below before reaching for it. The answer is yes in one
+specific regime -- replicas individually too starved of traffic to rank their
+own arms -- and no everywhere else, and which case you are in is measurable in
+advance.
+
+**Two clocks, not one.** `EpochDuration` is how often each cache measures;
+`CoordinationEpoch` is how often the fleet decides. They are deliberately
+different scales. Cache epochs are tuned in tens of milliseconds, which is
+below both a round trip to the store and any clock agreement a fleet can be
+assumed to have. Measure on the fast clock, coordinate on the slow one; a
+second is a sensible starting point.
+
+**No replica's clock is ever consulted.** Buckets are derived from the store's
+clock inside a Lua script, so a fleet needs no clock synchronisation at all and
+a machine with a skewed clock cannot write its counts into a window nobody
+reads.
+
+**Nothing touches the network on the cache's path.** The cache calls its bandit
+while holding its write lock, so a round trip there would stall every `Get` in
+the process — and Go's `RWMutex` queues readers behind a waiting writer, so a
+store that hangs would hang the cache. `RecordEpoch` folds numbers into a
+buffer and `SelectPolicy` is an atomic load; all I/O happens on the bandit's
+own goroutine, once per coordination epoch.
+
+**When the store is unreachable**, each replica falls back to a local Thompson
+bandit fed by its own reports, which is exactly the behaviour of a cache that
+was never distributed. Nothing fails and nothing blocks. Counts measured during
+the outage are discarded rather than replayed on recovery — evidence that
+arrives in the wrong window is worse than no evidence. `Snapshot().Fallback` is
+the field to alert on: the cache looks entirely healthy either way.
+
+**Only integers cross the wire.** Per-policy hit and miss counts, a node id and
+a policy name. No cache keys and no cache values ever leave the process.
+Everything written carries a TTL, so a fleet that stops running leaves nothing
+behind.
+
+Requires Redis 7.0 or Valkey 7.2 and above. `docker-compose.yml` brings up both
+for local testing; `make redis-test` runs the store suite against each.
+
+### Which replicas pool with which
+
+Pooling is only meaningful between caches measuring the same thing. A hit rate
+from a 1000-entry cache says nothing about a 100-entry one, and averaging them
+describes neither — with nothing in the numbers to show it happened.
+
+So `Namespace` is not the whole key. A fingerprint of each cache's measurement
+regime — its arms, its capacity and its sample rate — is appended to it, and
+replicas that share a name without sharing a regime pool separately rather than
+pooling wrongly. `Snapshot().Namespace` and `Snapshot().Regime` are where to
+look when a fleet has unexpectedly split in two. Epoch duration deliberately is
+not part of it: a replica reporting twice as often contributes twice the
+counts at the same rate, and rates are what the comparison is made on.
+
+### The two modes
+
+`ModeLeader` (the default) elects one replica per coordination epoch to decide
+for everyone, so the fleet runs one policy at a time. `ModeSharedPosterior`
+has every replica draw its own selection from the pooled evidence, so no
+election happens and replicas may run different policies indefinitely.
+
+Leader election is the default for a reason that is not obvious. The active
+arm on a replica is measured at full capacity while every shadow runs on a
+miniature, and shadows measure a point or two pessimistic. Under leader
+election every replica has the *same* arm in the flattering role, so the bias
+applies uniformly and largely cancels when the counts are summed. Under
+shared-posterior selection it does not: an arm active on most of the fleet is
+mostly measured in the flattering role, so it accumulates an advantage in
+proportion to how widely it is already deployed. `EvidenceShadowOnly` removes
+that feedback by discarding active-role counts, which is why it is available
+under shared-posterior selection and rejected under leader election — where
+the fleet-wide active policy is nobody's shadow and would have no evidence at
+all.
+
+### Pooling changes how much evidence a posterior sees
+
+A Beta posterior narrows with the square root of what it has seen, and a fleet
+supplies evidence in proportion to its size. A thousand replicas produce
+posteriors sharp enough that every Thompson draw returns the same arm — the
+bandit stops exploring precisely at the scale where missing a workload change
+is most expensive. `MaxEvidence` caps the effective sample size, keeping the
+measured rate and discarding the surplus certainty. The default puts an arm's
+posterior standard deviation at about a sixth of a percentage point.
+
+Decay works the same way for the same reason: a shared counter cannot be
+decayed in place, because every replica applying the multiplication would
+compound it once per replica and a fleet of fifty would forget fifty times
+faster than a fleet of one. The store holds plain per-bucket sums and the
+weighting happens on read, so the arithmetic is identical at any fleet size.
+
 ## Evidence
 
 `make evidence` replays a suite of deterministic workloads against every policy
@@ -555,6 +693,71 @@ default. Raise it if your keyspace is small enough that 5% of it is only a
 handful of keys -- `MinShadowCapacity` guards the degenerate end by raising the
 effective rate rather than letting a miniature shrink into noise.
 
+### Does pooling across a fleet help?
+
+**Only in the regime it was built for, and it is worth checking you are in that
+regime before turning it on.** All figures are 8 replicas, cache capacity 300
+to 500, `make evidence`.
+
+The case it exists for is a replica that sees too little traffic per epoch to
+rank its own arms. Reproducing that requires holding each replica to a request
+rate — an unpaced replay delivers thousands of requests per epoch however small
+the workload is, it just finishes sooner. Paced to roughly 8 requests per cache
+epoch per replica:
+
+| Setup | Hit rate | Policies in use at the end |
+| --- | --- | --- |
+| best fixed (ARC) | 62.8% | 1 |
+| pooled, leader-elected | 58.3-59.5% | 1-2 |
+| each replica deciding alone | 55.5-55.9% | 5 |
+
+**Pooling gains 2.3 to 3.9 points** over independent replicas, across four
+runs. The last column is the mechanism: a replica with eight requests an epoch
+cannot tell its arms apart, so the fleet scatters across five different
+policies, several of them poor. Pooled, the fleet has 64 requests an epoch of
+evidence and stays on one.
+
+Now the same comparison where replicas are *not* starved — the unpaced replays
+every other measurement here uses:
+
+| Workload | Pooled | Deciding alone | Best fixed |
+| --- | --- | --- | --- |
+| zipf, split evenly | 68.2% | 70.4% | 73.0% |
+| zipf, sharded by key | 86.2% | 87.4% | LFU 88.2% |
+| phase-shift | 82.0% | 82.0% | 2Q 83.0% |
+| mixed fleet (half loop, half zipf) | 36.6% | 41.7% | — |
+
+**Pooling loses whenever the replicas could already measure for themselves**,
+by 1 to 2 points on uniform traffic and by 5.1 points on a fleet whose replicas
+serve different workloads. The mixed-fleet row is the clearest: a fleet-wide
+decision is a compromise, and when half your replicas want the policy the other
+half are worst served by, forcing agreement costs more than the disagreement
+did.
+
+Most of the loss on uniform traffic is the fleet simply getting fewer chances
+to change its mind:
+
+```text
+local (no coordination):     70.42%
+coordination epoch 10ms:     70.01%  (-0.41)
+coordination epoch 25ms:     69.75%  (-0.67)
+coordination epoch 50ms:     68.20%  (-2.21)
+coordination epoch 200ms:    66.95%  (-3.47)
+```
+
+The gap closes monotonically as coordination speeds up — but it closes towards
+break-even, never past it, and a 10ms coordination epoch is where a real round
+trip stops being negligible. Note that these replays coordinate through an
+in-process store, so coordination is free in a way it will not be for you: the
+setting that looks best here is the one that costs most to run.
+
+**So the rule is:** pool when your replicas are individually starved of
+traffic, run the same workload shape as each other, and are numerous enough
+that the pooled evidence is meaningfully thicker. Otherwise let each replica
+decide alone — it is simpler, it needs no store, and on this evidence it is
+also better. `Advice()` in observe-only mode will tell you which case you are
+in before you deploy anything.
+
 ## TODO
 
 - [ ] Trace-driven benchmarks (ARC paper traces, `twitter/cache-trace`)
@@ -567,6 +770,8 @@ effective rate rather than letting a miniature shrink into noise.
 - [Ristretto (dgraph-io)](https://github.com/dgraph-io/ristretto) — inspiration for adaptive selection
 - [hashicorp/golang-lru](https://github.com/hashicorp/golang-lru) — LRU/2Q/ARC implementations
 - [stitchfix/mab](https://github.com/stitchfix/mab) — Multi-Armed Bandit (Thompson Sampling)
+- [redis/go-redis](https://github.com/redis/go-redis) — the client behind the Valkey/Redis store
+- [Valkey](https://valkey.io/) — the store the distributed bandit was built against
 
 ## License
 

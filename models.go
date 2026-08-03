@@ -38,7 +38,7 @@ const (
 	// MigrationCold starts the new active policy from an empty state. This is
 	// the simplest strategy but causes a temporary cache-miss spike after every
 	// policy switch.
-	MigrationCold MigrationStrategy = iota
+	MigrationCold MigrationStrategy = iota + 1
 
 	// MigrationWarm copies all key/value pairs from the old active policy into
 	// the new active policy at switch time. Shadow zero-value entries in the
@@ -81,4 +81,49 @@ type ShadowStats struct {
 	Policy PolicyType
 	Hits   int64
 	Misses int64
+}
+
+// EpochReport is one reporting epoch's complete set of measurements, delivered
+// to a bandit that implements EpochBandit.
+//
+// It exists because the per-arm ShadowStats stream loses three things a bandit
+// coordinating with anything outside the process needs: which epoch the
+// numbers belong to, where the epoch ends, and which arm was active.
+type EpochReport struct {
+	// EpochID is the cache's epoch counter at the time of the report. It
+	// counts ticks, including those the EvictPartialCapacityFilling gate
+	// skipped, so consecutive reports are not necessarily consecutive IDs.
+	// It is process-local: two caches in two processes share no origin, so it
+	// orders one cache's reports and nothing more.
+	EpochID int64
+
+	// Active is the policy that was serving traffic during the epoch. Its
+	// counts were measured at full capacity over the sampled substream; every
+	// other arm's were measured on a miniature of that capacity. The rates are
+	// comparable by construction, but not identically measured, and pooling
+	// one arm's active-role numbers with another's shadow-role numbers gives
+	// the active one a systematic advantage.
+	Active PolicyType
+
+	// Stats holds one entry per arm, ordered by PolicyType so the report is
+	// reproducible, and carries the same counts RecordStats would have
+	// delivered individually.
+	Stats []ShadowStats
+
+	// Capacity is the nominal capacity of the active policy: the size the
+	// cache actually serves at.
+	//
+	// It is reported because a hit rate only means something alongside the
+	// capacity it was measured at. A bandit pooling evidence from several
+	// caches has to refuse to pool measurements taken at different sizes -
+	// otherwise it averages a 1000-entry cache's hit rate with a 100-entry
+	// cache's and acts on a number that describes neither.
+	Capacity int
+
+	// SampleRate is the fraction of the keyspace the measurements cover, 1
+	// when Settings.ShadowSampleRate is off. Like Capacity, it is part of what
+	// makes two caches' numbers comparable: shadows run as miniatures scaled
+	// to this rate, so two caches sampling differently are simulating
+	// different things.
+	SampleRate float64
 }

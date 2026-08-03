@@ -40,12 +40,26 @@ func (c *AdaptiveCache[K, V]) runEpoch() {
 		return
 	}
 
-	if c.activePolicy != newPolicy && c.allowSwitchLocked(newPolicy) {
+	// A Bandit is caller-supplied code, and nothing constrains what it returns.
+	// A selection naming a policy this cache does not hold - Undefined most
+	// often, from a bandit that has not yet formed an opinion - would reach
+	// switchLocked, look the missing policy up in the map, and dereference a
+	// nil interface, panicking the epoch goroutine and taking the process with
+	// it. An unrecognised selection means no change.
+	if c.activePolicy != newPolicy && c.hasPolicy(newPolicy) && c.allowSwitchLocked(newPolicy) {
 		c.switchLocked(c.activePolicy, newPolicy)
 		c.lastSwitchEpoch = c.epochID
 	}
 
 	c.epochID++
+}
+
+// hasPolicy reports whether the cache holds the named policy as one of its
+// arms. It must be called while at least the read lock is held.
+func (c *AdaptiveCache[K, V]) hasPolicy(policyType PolicyType) bool {
+	_, ok := c.policies[policyType]
+
+	return ok
 }
 
 // tryChangePolicy records every policy's stats with the bandit (nothing on a
@@ -92,7 +106,20 @@ func (c *AdaptiveCache[K, V]) selectPolicyLocked() PolicyType {
 	}
 	c.reportingEpochs++
 
-	for _, policy := range c.policies {
+	// An EpochBandit is handed the whole epoch in one call, so its report is
+	// collected here rather than delivered arm by arm. The slice is allocated
+	// per epoch and never reused, so the bandit may retain it.
+	var report []ShadowStats
+	if c.epochBandit != nil {
+		report = make([]ShadowStats, 0, len(c.policyOrder))
+	}
+
+	// policyOrder rather than ranging the map: a map's order is random, and an
+	// epoch's evidence should be reproducible for anything that hashes,
+	// serialises or logs it.
+	for _, policyType := range c.policyOrder {
+		policy := c.policies[policyType]
+
 		stats := policy.GetStats()
 		policy.ResetStats()
 
@@ -119,10 +146,26 @@ func (c *AdaptiveCache[K, V]) selectPolicyLocked() PolicyType {
 		tenure.Misses += reported.Misses
 		c.tenureStats[policy.GetType()] = tenure
 
-		c.bandit.RecordStats(ShadowStats{
+		armStats := ShadowStats{
 			Policy: policy.GetType(),
 			Hits:   reported.Hits,
 			Misses: reported.Misses,
+		}
+
+		if c.epochBandit != nil {
+			report = append(report, armStats)
+			continue
+		}
+		c.bandit.RecordStats(armStats)
+	}
+
+	if c.epochBandit != nil {
+		c.epochBandit.RecordEpoch(EpochReport{
+			EpochID:    c.epochID,
+			Active:     currentPolicy,
+			Stats:      report,
+			Capacity:   c.nominalCap[currentPolicy],
+			SampleRate: c.sampler.rate,
 		})
 	}
 

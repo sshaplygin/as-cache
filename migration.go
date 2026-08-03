@@ -14,9 +14,13 @@ func (c *AdaptiveCache[K, V]) migrateData(from, to PolicyType) {
 	c.clearMigrationState()
 
 	switch c.settings.MigrationStrategy {
-	case MigrationCold:
-		// Purge zero-value shadow entries so callers never observe a cached
-		// zero as if it were a real value.
+	// Cold is the default, so it is the default arm rather than a named case.
+	// Every strategy has to purge the target's zero-value shadow entries, and
+	// a strategy value this switch did not recognise would otherwise fall
+	// straight through and skip that - leaving the new active policy holding
+	// shadow zeros and serving them to callers as real data, which is the one
+	// invariant this library is built on.
+	default:
 		c.policies[to].Purge()
 		return
 

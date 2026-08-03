@@ -1,6 +1,6 @@
 # Each of these directories is a separate Go module (own go.mod), so tooling is
 # run once per module. The root .golangci.yml is shared by all of them.
-MODULES := . lfu policies policies/arc policies/tinylfu metrics bench examples/basic examples/migration
+MODULES := . lfu policies policies/arc policies/tinylfu metrics bandit bandit/redis bench examples/basic examples/migration
 
 GOLANGCI_LINT_VERSION := v2.8.0
 
@@ -49,6 +49,33 @@ release-check: ## Check the repository could actually be released today
 .PHONY: evidence
 evidence: ## Replay the workload suite and print the policy comparison tables
 	( cd bench && go test -count=1 -timeout 20m -v ./... )
+
+# The bandit/redis tests run against miniredis by default, which is a fake.
+# The Lua the adapter depends on - TIME inside a script, SET NX PX, HINCRBY on
+# a key the script names itself - is exactly what a fake can be too permissive
+# about, so the same suite runs against real servers here. See
+# docker-compose.yml for why both engines are covered rather than one.
+COMPOSE ?= docker compose
+
+.PHONY: redis-up
+redis-up: ## Start the local Valkey and Redis containers and wait for them
+	$(COMPOSE) up -d --wait
+
+.PHONY: redis-down
+redis-down: ## Stop the local Valkey and Redis containers
+	$(COMPOSE) down -v
+
+.PHONY: redis-test
+redis-test: ## Run the bandit/redis suite against real Valkey and Redis
+	@$(MAKE) redis-up
+	@status=0; \
+		for target in "valkey 127.0.0.1:63799" "redis 127.0.0.1:63798"; do \
+			set -- $$target; \
+			echo "==> bandit/redis against $$1 ($$2)"; \
+			( cd bandit/redis && AS_CACHE_REDIS_ADDR=$$2 go test -race -count=1 ./... ) || status=1; \
+		done; \
+		$(MAKE) redis-down; \
+		exit $$status
 
 .PHONY: tidy
 tidy: ## Run go mod tidy across all modules
