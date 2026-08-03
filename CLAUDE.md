@@ -53,7 +53,15 @@ README "Evidence"); not yet tagged or published -- `make release-check`.
 ```
 as-cache/
 ├── CLAUDE.md                    # This file
-├── README.md                    # User-facing documentation
+├── README.md                    # Landing page: pitch, quick start, API, doc index
+├── docs/                        # The long-form documentation the README links to
+│   ├── design.md                # mechanism, Bandit interface, what is not done
+│   ├── configuration.md         # Settings, migration, sampling, stability, tuning
+│   ├── policies.md              # ready-made arms and their caveats
+│   ├── advisor-mode.md          # ObserveOnly, Advice(), metrics module
+│   ├── benchmarking.md          # reproducible replays, benchclient, make evidence
+│   ├── fleet.md                 # distributed bandit over Valkey/Redis
+│   └── evidence.md              # every measured claim and its table
 ├── go.mod / go.sum              # Root module dependencies
 ├── generate.go                  # go:generate stringer directive
 │

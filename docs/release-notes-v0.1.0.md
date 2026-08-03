@@ -114,7 +114,7 @@ Zero allocations per `Get` in all three.
 - **Correctness.** The policy-switch data race, lost hit/miss counters, a stale
   bandit posterior, a `Close` that neither waited nor was idempotent, and a
   `Cap()` that never changed after construction are all fixed. See the
-  [CHANGELOG](CHANGELOG.md) for the full list.
+  [CHANGELOG](../CHANGELOG.md) for the full list.
 - **Drop-in.** The API remains a superset of `hashicorp/golang-lru/v2`.
 
 ### Known limitations

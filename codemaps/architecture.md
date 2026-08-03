@@ -139,4 +139,6 @@ when a policy changes role, so a comparison never pools a policy's active tenure
 - `codemaps/backend.md` -- file-by-file structure
 - `codemaps/data.md` -- types, enums and their invariants
 - `CLAUDE.md` -- development rules and the multi-module release procedure
-- `README.md` -- measured evidence and configuration guidance
+- `README.md` -- landing page: what it is, when to use it, quick start, API
+- `docs/` -- design, configuration, policies, advisor mode, benchmarking,
+  fleets and the measured evidence behind every claim
