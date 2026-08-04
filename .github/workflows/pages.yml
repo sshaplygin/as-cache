@@ -1,0 +1,43 @@
+name: Pages
+
+# The site is static files in site/, deployed as-is: no generator, no
+# dependencies, nothing to build. Deploys only when the site itself changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a queued deploy of newer content should not be
+# cancelled by force-pushing history, so in-progress runs finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy site
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+        with:
+          # Creates the Pages site through the API on first run, so this
+          # works without visiting the repository settings. Requires the
+          # pages: write permission above.
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

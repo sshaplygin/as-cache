@@ -1,0 +1,8 @@
+# Crawlers only consult robots.txt at the origin root, and a project page
+# lives under a subpath, so this file takes effect only if the site ever
+# moves to a custom domain. Sitemap discovery for the github.io URL goes
+# through Search Console instead.
+User-agent: *
+Allow: /
+
+Sitemap: https://sshaplygin.github.io/as-cache/sitemap.xml

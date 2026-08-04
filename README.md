@@ -19,6 +19,7 @@ and the cache switches if the win is worth the migration. Full mechanism in
 
 | Document | Contents |
 | --- | --- |
+| [Project site](https://sshaplygin.github.io/as-cache/) | Landing page, plus an interactive explorer of the bandit's decisions on a phase-shift run |
 | [Design](docs/design.md) | How it works per request and per epoch, the `Bandit` interface, what is not done |
 | [Configuration](docs/configuration.md) | Every `Settings` field, migration strategies, sampling, stability gates, tuning |
 | [Policies](docs/policies.md) | The ready-made arms, ARC's patent split, W-TinyLFU's caveats, adapting your own cache |

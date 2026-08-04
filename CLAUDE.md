@@ -143,6 +143,15 @@ as-cache/
 │       ├── lfu.go               # Core LFU algorithm (O(1) add/get/evict)
 │       └── lfu_test.go          # (stub - needs tests)
 │
+├── site/                        # GitHub Pages frontend; static, no build step
+│   ├── index.html               # landing page: pitch, evidence, docs links
+│   ├── bandit-explorer.html     # interactive phase-shift replay, self-contained
+│   ├── active-policy-timeline.svg  # static preview linking to the explorer
+│   ├── og.png                   # 1200x630 social card (og:image, twitter:image)
+│   ├── sitemap.xml              # both pages; submit via Search Console
+│   └── robots.txt               # effective only on a custom domain (see file)
+│                                # deployed by .github/workflows/pages.yml
+│
 └── examples/
     └── basic/
         ├── go.mod / go.sum

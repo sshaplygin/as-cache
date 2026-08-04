@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>as-cache — Adaptive Selection Cache for Go</title>
+<meta name="description" content="A Go cache that runs several eviction policies in parallel and lets a multi-armed bandit pick the one that wins on your real traffic.">
+<meta name="author" content="Sam Shaplygin">
+<meta name="theme-color" content="#fcfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://sshaplygin.github.io/as-cache/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Ctext x='16' y='21.5' text-anchor='middle' font-family='ui-monospace,Menlo,monospace' font-size='13' font-weight='600' fill='%23fff'%3Eas%3C/text%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="as-cache">
+<meta property="og:title" content="as-cache — Adaptive Selection Cache for Go">
+<meta property="og:description" content="Stop guessing your cache eviction policy. Run several policies in parallel and let a multi-armed bandit pick the one that wins on your real traffic.">
+<meta property="og:url" content="https://sshaplygin.github.io/as-cache/">
+<meta property="og:image" content="https://sshaplygin.github.io/as-cache/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="as-cache: stop guessing your cache eviction policy, measure it">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="as-cache — Adaptive Selection Cache for Go">
+<meta name="twitter:description" content="Stop guessing your cache eviction policy. Run several policies in parallel and let a multi-armed bandit pick the one that wins on your real traffic.">
+<meta name="twitter:image" content="https://sshaplygin.github.io/as-cache/og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "as-cache",
+  "alternateName": "Adaptive Selection Cache",
+  "description": "A Go library that runs several cache eviction policies in parallel and uses a multi-armed bandit to select the one that wins on real traffic.",
+  "url": "https://sshaplygin.github.io/as-cache/",
+  "codeRepository": "https://github.com/sshaplygin/as-cache",
+  "programmingLanguage": "Go",
+  "runtimePlatform": "Go 1.25+",
+  "license": "https://www.mozilla.org/en-US/MPL/2.0/",
+  "version": "0.3.0",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Shaplygin",
+    "url": "https://github.com/sshaplygin"
+  }
+}
+</script>
+<style>
+  :root {
+    color-scheme: light;
+    --ground:      #fcfcfb;
+    --panel:       #f4f4f2;
+    --hairline:    #dedddaee;
+    --ink:         #14161a;
+    --ink-2:       #4b4f57;
+    --ink-3:       #7d818a;
+    --accent:      #2a78d6;
+    --accent-soft: #2a78d61f;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  /* Two themes, same tokens. Auto follows the system; a manual choice is
+     stamped as data-theme on the root and must win in both directions. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground:      #16181c;
+      --panel:       #1d2026;
+      --hairline:    #2e323a;
+      --ink:         #f2f3f5;
+      --ink-2:       #a9aeb8;
+      --ink-3:       #767b85;
+      --accent:      #3987e5;
+      --accent-soft: #3987e526;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground:      #16181c;
+    --panel:       #1d2026;
+    --hairline:    #2e323a;
+    --ink:         #f2f3f5;
+    --ink-2:       #a9aeb8;
+    --ink-3:       #767b85;
+    --accent:      #3987e5;
+    --accent-soft: #3987e526;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 34px 22px 56px; }
+
+  nav {
+    display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 12px;
+    margin-bottom: 40px;
+  }
+  nav .brand { font-weight: 600; color: var(--ink); margin-right: auto; }
+  nav a { color: var(--ink-3); text-decoration: none; }
+  nav a:hover { color: var(--accent); }
+  #theme {
+    font: inherit; color: var(--ink-3);
+    background: none; border: 0; padding: 0; cursor: pointer;
+  }
+  #theme:hover { color: var(--accent); }
+  #theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--ink-3); margin: 0 0 8px;
+  }
+  h1 {
+    font-size: clamp(24px, 4.2vw, 36px);
+    line-height: 1.15; margin: 0 0 14px;
+    letter-spacing: -0.015em; text-wrap: balance;
+  }
+  .lede { margin: 0 0 24px; color: var(--ink-2); max-width: 64ch; font-size: 16px; }
+  .lede b, .note b, p b { color: var(--ink); font-weight: 600; }
+
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 6px 26px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    padding: 11px 0; margin-bottom: 40px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta b { color: var(--ink-2); font-weight: 600; }
+
+  h2 {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-3);
+    margin: 44px 0 16px; font-weight: 600;
+  }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .step {
+    background: var(--panel); border: 1px solid var(--hairline);
+    border-radius: 10px; padding: 16px 18px;
+  }
+  .step .k {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 0.07em; text-transform: uppercase; margin: 0 0 6px;
+  }
+  .step p { margin: 0; font-size: 14px; color: var(--ink-2); }
+
+  .explorer-card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--panel); border: 1px solid var(--hairline);
+    border-radius: 10px; padding: 18px; margin-top: 16px;
+  }
+  .explorer-card:hover { border-color: var(--accent); }
+  .explorer-card img {
+    display: block; width: 100%; height: auto;
+    border-radius: 6px; border: 1px solid var(--hairline);
+    background: #fcfcfb;
+  }
+  .explorer-card .cta {
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    align-items: baseline; margin-top: 12px;
+  }
+  .explorer-card .cta b { color: var(--accent); font-family: var(--mono); font-size: 13px; }
+  .explorer-card .cta span { font-size: 13px; color: var(--ink-3); }
+
+  pre {
+    background: var(--panel); border: 1px solid var(--hairline);
+    border-radius: 10px; padding: 16px 18px; overflow-x: auto;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+    margin: 0 0 10px;
+  }
+  code { font-family: var(--mono); font-size: 0.92em; }
+  p code, td code, li code {
+    background: var(--accent-soft); border-radius: 4px; padding: 1px 5px;
+  }
+
+  .scroller { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td {
+    text-align: left; padding: 7px 12px 7px 0;
+    border-bottom: 1px solid var(--hairline);
+    font-variant-numeric: tabular-nums; vertical-align: top;
+  }
+  th { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase;
+       letter-spacing: 0.07em; color: var(--ink-3); font-weight: 500; }
+  td.num, td.mono { font-family: var(--mono); font-size: 12.5px; }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .cols ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
+  .cols li { margin-bottom: 8px; }
+  .cols .col {
+    background: var(--panel); border: 1px solid var(--hairline);
+    border-radius: 10px; padding: 16px 18px;
+  }
+  .cols .col > .k {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.07em;
+    text-transform: uppercase; margin: 0 0 10px; color: var(--ink-2); font-weight: 600;
+  }
+
+  .note { font-size: 13.5px; color: var(--ink-2); margin: 14px 0 0; max-width: 66ch; }
+  a { color: var(--accent); }
+  main a { text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  footer {
+    margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--hairline);
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+    display: flex; gap: 6px 24px; flex-wrap: wrap;
+  }
+  footer a { color: var(--ink-3); }
+</style>
+<script>
+  // Applied before first paint so a saved choice never flashes the other theme.
+  (() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light" || saved === "dark") {
+      document.documentElement.dataset.theme = saved;
+    }
+  })();
+</script>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <span class="brand">as-cache</span>
+    <a href="https://github.com/sshaplygin/as-cache">GitHub</a>
+    <a href="https://pkg.go.dev/github.com/sshaplygin/as-cache">pkg.go.dev</a>
+    <a href="https://github.com/sshaplygin/as-cache/tree/main/docs">Docs</a>
+    <a href="bandit-explorer.html">Explorer</a>
+    <button id="theme" type="button" aria-label="Switch color theme"></button>
+  </nav>
+
+  <main>
+    <p class="eyebrow">Adaptive Selection Cache · Go</p>
+    <h1>Stop guessing your cache eviction policy. Measure it.</h1>
+    <p class="lede">
+      as-cache runs several eviction policies at once. One is <b>active</b> and
+      serves every request; the rest run as <b>shadows</b> that see each key,
+      never its value, and answer "would I have had this?" Once per epoch a
+      <b>multi-armed bandit</b> compares their hit rates and switches to the
+      winner, if the win is worth the migration.
+    </p>
+
+    <div class="meta">
+      <span><b>7</b> ready-made policies</span>
+      <span>Thompson sampling</span>
+      <span>Go <b>1.25+</b></span>
+      <span>MPL 2.0</span>
+      <span>pre-1.0, <b>v0.3.0</b></span>
+    </div>
+
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <p class="k">Per request</p>
+        <p>The active policy stores real values and serves the caller. A shared
+           sampler gates the shadow fan-out, so shadows track a miniature of the
+           same substream and cost stays flat in the number of policies.</p>
+      </div>
+      <div class="step">
+        <p class="k">Per epoch</p>
+        <p>Every arm reports its hit rate over the same sampled substream, so
+           each carries equal, honest evidence. The bandit updates its
+           posteriors and names a winner.</p>
+      </div>
+      <div class="step">
+        <p class="k">On switch</p>
+        <p>Stability gates filter out noise wins; a migration strategy (cold,
+           warm, or gradual) moves data so a switch never serves a shadow's
+           placeholder as a real value.</p>
+      </div>
+    </div>
+
+    <h2>Watch the bandit decide</h2>
+    <a class="explorer-card" href="bandit-explorer.html">
+      <img src="active-policy-timeline.svg" width="808" height="310"
+           alt="Timeline of which policy is active over a phase-shift run">
+      <span class="cta">
+        <b>Open the interactive explorer &rarr;</b>
+        <span>Scrub a 240,000-request phase-shift run and see what the bandit
+              knew at each epoch and why it switched.</span>
+      </span>
+    </a>
+
+    <h2>Quick start</h2>
+    <pre><code>go get github.com/sshaplygin/as-cache
+go get github.com/sshaplygin/as-cache/policies
+go get github.com/sshaplygin/as-cache/bandit</code></pre>
+    <pre><code>lru, _ := policies.NewLRU[string, int](10000)
+twoQ, _ := policies.NewTwoQueue[string, int](10000)
+
+cache, err := ascache.NewAdaptiveCache(
+    []ascache.Policy[string, int]{lru, twoQ},
+    bandit.NewThompson(0.9, 1), // discount, seed
+    &ascache.Settings{EpochDuration: time.Minute, ShadowSampleRate: 0.05},
+)
+if err != nil {
+    return err
+}
+defer cache.Close()
+
+cache.Add("k", 1)
+v, ok := cache.Get("k")</code></pre>
+    <p class="note">
+      Prefer measurement without the switching? <code>ObserveOnly</code> mode
+      guarantees the cache behaves exactly like the policy it was built with,
+      while <code>Advice()</code> reports which policy would win and by how
+      much — see
+      <a href="https://github.com/sshaplygin/as-cache/blob/main/docs/advisor-mode.md">advisor mode</a>.
+    </p>
+
+    <h2>Policies</h2>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Policy</th><th>Constructor</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>LRU</td><td class="mono">policies.NewLRU</td><td>via hashicorp/golang-lru/v2</td></tr>
+          <tr><td>LFU</td><td class="mono">policies.NewLFU</td><td>native O(1) implementation</td></tr>
+          <tr><td>2Q</td><td class="mono">policies.NewTwoQueue</td><td>scan-resistant</td></tr>
+          <tr><td>Random</td><td class="mono">policies.NewRandomPolicy</td><td>the control arm worth beating</td></tr>
+          <tr><td>TTL</td><td class="mono">policies.NewTTL</td><td>expiry as well as recency</td></tr>
+          <tr><td>ARC</td><td class="mono">arc.NewPolicy</td><td>separate module — patented by IBM</td></tr>
+          <tr><td>W-TinyLFU</td><td class="mono">tinylfu.NewPolicy</td><td>separate module; the strongest baseline</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>What the evidence says</h2>
+    <p class="note" style="margin-top:0">
+      Every claim below comes from a reproducible replay against published
+      traces, not from intuition — the full tables are in
+      <a href="https://github.com/sshaplygin/as-cache/blob/main/docs/evidence.md">docs/evidence.md</a>.
+    </p>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Finding</th><th>Numbers</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>No single policy wins everywhere. The best fixed policy changes
+                by trace, and the strongest baseline can land near the bottom.</td>
+            <td class="num">2Q wins Twitter and OLTP; W-TinyLFU wins ARC P3 and
+                LIRS — and is second-worst on OLTP</td>
+          </tr>
+          <tr>
+            <td>Tuned sensibly, adaptive selection tracks the best fixed policy
+                without being told which one it is.</td>
+            <td class="num">within ~1 point on most traces; beats the best
+                fixed policy on P3 by 0.76</td>
+          </tr>
+          <tr>
+            <td>The real product is a bound on the cost of guessing wrong.</td>
+            <td class="num">77.5% vs LRU's 0.0% on the loop workload</td>
+          </tr>
+          <tr>
+            <td>Shadows hold keys and bookkeeping, never values, so memory does
+                not multiply by the policy count.</td>
+            <td class="num">6 policies cost 2.65x one LRU; 1.32x with sampling</td>
+          </tr>
+          <tr>
+            <td>The adaptive layer is not free on the hot path.</td>
+            <td class="num">32 ns/op bare LRU vs 82 sampled, 618 unsampled</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>When to use it</h2>
+    <div class="cols">
+      <div class="col">
+        <p class="k">Use it when</p>
+        <ul>
+          <li>You do not know which policy suits your traffic, and cannot easily find out.</li>
+          <li>Your traffic changes shape and you would rather not re-tune.</li>
+          <li>You want the measurement more than the switching — advisor mode gives you that at zero risk.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <p class="k">Skip it when</p>
+        <ul>
+          <li>You have already measured your traffic and know which policy wins. Use that policy directly.</li>
+          <li>The hot path is latency-critical at single-digit nanoseconds.</li>
+          <li>You need a hard memory ceiling, or cannot give it enough traffic per epoch to measure anything.</li>
+          <li>Your keyspace fits in the cache — every policy scores the same when nothing is evicted.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Documentation</h2>
+    <div class="scroller">
+      <table>
+        <tbody>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/design.md">Design</a></td>
+              <td>How it works per request and per epoch, the Bandit interface, what is not done</td></tr>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/configuration.md">Configuration</a></td>
+              <td>Every Settings field, migration strategies, sampling, stability gates, tuning</td></tr>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/policies.md">Policies</a></td>
+              <td>The ready-made arms, ARC's patent split, W-TinyLFU's caveats</td></tr>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/advisor-mode.md">Advisor mode</a></td>
+              <td>ObserveOnly, Advice(), and the metrics module</td></tr>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/evidence.md">Evidence</a></td>
+              <td>Every measured claim: policy tables, real traces, sampling fidelity, fleets</td></tr>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/benchmarking.md">Benchmarking</a></td>
+              <td>Reproducible replays, benchclient, make evidence</td></tr>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/fleet.md">Running a fleet</a></td>
+              <td>Pooling evidence across replicas through Valkey or Redis</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>
+    <span>Mozilla Public License 2.0</span>
+    <a href="https://github.com/sshaplygin/as-cache">github.com/sshaplygin/as-cache</a>
+    <span>pre-1.0: the API may still change</span>
+  </footer>
+</div>
+<script>
+  (() => {
+    const root = document.documentElement;
+    const btn = document.getElementById("theme");
+    const modes = ["auto", "light", "dark"];
+    const label = () => { btn.textContent = "theme: " + (root.dataset.theme || "auto"); };
+    btn.addEventListener("click", () => {
+      const next = modes[(modes.indexOf(root.dataset.theme || "auto") + 1) % modes.length];
+      if (next === "auto") {
+        delete root.dataset.theme;
+        localStorage.removeItem("theme");
+      } else {
+        root.dataset.theme = next;
+        localStorage.setItem("theme", next);
+      }
+      label();
+    });
+    label();
+  })();
+</script>
+</body>
+</html>
