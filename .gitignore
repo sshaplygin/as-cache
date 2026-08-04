@@ -10,3 +10,4 @@ traces/
 *.trace.gz
 *.spc.bz2
 cluster0*
+.DS_Store

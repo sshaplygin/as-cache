@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and from v0.1.0 the
 project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1]
+
+A packaging release: the library gains a project site. No Go code changed;
+every module is re-tagged so the version graph stays uniform, which is the
+same trade 0.2.0 made and for the same reason - each sibling's require moves
+to the root's new version anyway.
+
+### Added
+
+- **Project site** at <https://sshaplygin.github.io/as-cache/> - a static
+  landing page under `site/` with the pitch, the evidence highlights and the
+  documentation index, plus an interactive explorer of the bandit's decisions
+  over a 240,000-request phase-shift run, carried over from the article it
+  was built for and translated to English. Light and dark themes with a
+  persisted toggle, system font stacks, no build step, no external requests.
+- **Pages deploy workflow** (`.github/workflows/pages.yml`). Deploys `site/`
+  as-is on pushes that touch it; the first run creates the Pages site through
+  the API, so nothing needs configuring in the repository settings.
+- **SEO for the site**: canonical URLs, Open Graph and Twitter cards backed
+  by a rendered `og.png`, JSON-LD `SoftwareSourceCode` markup, and a sitemap.
+  `robots.txt` documents in-file why it only takes effect on a custom domain:
+  crawlers consult it at the origin root, and a project page lives under a
+  subpath.
+
 ## [0.3.0]
 
 Makes a replay reproducible and then uses that to answer a question the

@@ -3,7 +3,7 @@ module github.com/sshaplygin/as-cache/bandit
 go 1.25.2
 
 require (
-	github.com/sshaplygin/as-cache v0.3.0
+	github.com/sshaplygin/as-cache v0.3.1
 	github.com/stretchr/testify v1.11.1
 )
 
