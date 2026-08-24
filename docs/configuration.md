@@ -75,19 +75,18 @@ than what any particular policy costs:
 
 | Benchmark | shadows | sampling off | rate 0.05 |
 | --- | --- | --- | --- |
-| `Get` | 1 | 97 ns/op | 35 ns/op |
-| `Get` | 3 | 148 ns/op | 38 ns/op |
-| `GetParallel` | 1 | 271 ns/op | 181 ns/op |
-| `GetParallel` | 3 | 405 ns/op | 185 ns/op |
-| `Add` | 1 | 110 ns/op | 52 ns/op |
-| `Add` | 3 | 193 ns/op | 59 ns/op |
-| `MixedParallel` | 1 | 183 ns/op | 87 ns/op |
+| `Get` | 1 | 102 ns/op | 40 ns/op |
+| `Get` | 3 | 153 ns/op | 44 ns/op |
+| `GetParallel` | 1 | 284 ns/op | 183 ns/op |
+| `GetParallel` | 3 | 361 ns/op | 187 ns/op |
+| `Add` | 1 | 98 ns/op | 53 ns/op |
+| `Add` | 3 | 142 ns/op | 55 ns/op |
+| `MixedParallel` | 1 | 187 ns/op | 96 ns/op |
 
-Read the `Get` rows down the shadow count. Unsampled, a third shadow costs
-another 50ns, because every operation visits every policy. Sampled, going from
-one shadow to three costs 3ns -- the fan-out happens on 5% of operations, so
-adding a policy is close to free. That is what makes carrying nine arms
-practical.
+Read the `Get` rows down the shadow count. Unsampled, two further shadows cost
+another 51ns, because every operation visits every policy. Sampled, the same
+step costs 4ns -- the fan-out happens on 5% of operations, so adding a policy
+is close to free. That is what makes carrying nine arms practical.
 
 Reproduce with `go test -run '^$' -bench . -benchtime=300ms .`
 
@@ -126,8 +125,10 @@ not subtle. Measured on the ARC P3 trace with a 20k-entry cache:
 An epoch short enough to trigger frequent switches makes the cache copy its
 entire contents on every switch, so it spends its time migrating rather than
 serving. Cold migration is worse: it discards the cache at each switch, which
-on the OLTP trace costs 30.7 points against warm migration at the same epoch
-(37.2% against 67.8%).
+on the OLTP trace costs 25.7 points against warm migration at the same epoch
+(37.2% against 62.9%, both at 2ms). There is no 50ms cold run to compare
+against; the sweep covers 2ms warm, 2ms cold, 50ms warm and 50ms warm with the
+stability gates.
 
 Rules of thumb:
 
@@ -140,8 +141,10 @@ Rules of thumb:
   which needs to re-adapt constantly, and 0.8 on OLTP, which does not.
 - `ShadowSampleRate: 0.05` is a reasonable default. Higher rates cost more and
   buy no better ranking.
-- Set `EvictPartialCapacityFilling: true` when W-TinyLFU or S3-FIFO is one of
-  the arms. The capacity gate compares `Len()` against `Cap()` for exact
-  equality, and neither arm holds that reliably: otter reports an approximate
-  size, and S3-FIFO can drop about a tenth of the cache in a single write. An
-  arm sitting below its capacity has its epochs skipped entirely.
+- Set `EvictPartialCapacityFilling: true` when W-TinyLFU or S3-FIFO could be
+  the **active** arm. The gate reads that one policy and compares its `Len()`
+  against `Cap()` for exact equality, and neither of those two holds that
+  reliably: otter reports an approximate size, and S3-FIFO can drop about a
+  tenth of the cache in a single write. When it fires, the whole epoch is
+  skipped — no arm is reported and none is reset — so one under-filled active
+  policy suspends every measurement, not just its own.

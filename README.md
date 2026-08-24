@@ -8,7 +8,7 @@
 Choosing a cache eviction policy is a decision most projects make once, from
 intuition, and never revisit. The trouble is that the right answer depends on
 traffic you have not seen yet, and it is not stable: replayed against six
-published production traces, **four different policies win**, and the strongest
+published traces, **four different policies win**, and the strongest
 general-purpose baseline of them all comes near the bottom on one. Guessing
 wrong is not a rounding error either — on one of those traces seven of the nine
 policies here serve **0.0%** while one serves 45%.
@@ -17,16 +17,19 @@ as-cache makes the choice at runtime instead. One policy is **active** and
 serves every request. The others run as **shadows**: they see each key but
 never its value, and answer "would I have had this?" Once per epoch every arm
 reports its hit rate, a multi-armed bandit names the winner, and the cache
-switches if the win is worth the migration. There is also an observe-only mode
+switches to it — unconditionally by default, or subject to [stability
+gates](docs/configuration.md#keeping-switches-stable) you opt into. There is also an observe-only mode
 where nothing ever switches and the library simply tells you which policy your
 traffic wants — often the more useful half of it.
 
 It is pre-1.0, the API may still change, and nothing here has run in production
-that I know of. What it does have is measurement: every claim in these
-documents comes from a reproducible run against published traces, and the
-concurrency has been exercised under the race detector and adversarially
-reviewed. The numbers are all in [the evidence](docs/evidence.md), so you do
-not have to take "experimental" or "production-ready" on trust.
+that I know of. What it does have is measurement: every number in these
+documents comes from a run you can repeat with `make evidence`, over published
+traces and generated workloads both, and the two arms whose results do not
+repeat exactly are named wherever their numbers appear. The concurrency has
+been exercised under the race detector and adversarially reviewed. It is all in
+[the evidence](docs/evidence.md), so you do not have to take "experimental" or
+"production-ready" on trust.
 
 ## Documentation
 
