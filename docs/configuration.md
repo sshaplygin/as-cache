@@ -126,7 +126,8 @@ not subtle. Measured on the ARC P3 trace with a 20k-entry cache:
 An epoch short enough to trigger frequent switches makes the cache copy its
 entire contents on every switch, so it spends its time migrating rather than
 serving. Cold migration is worse: it discards the cache at each switch, which
-on the OLTP trace costs 28 points.
+on the OLTP trace costs 30.7 points against warm migration at the same epoch
+(37.2% against 67.8%).
 
 Rules of thumb:
 
@@ -135,9 +136,12 @@ Rules of thumb:
 - Prefer `MigrationWarm`. `MigrationCold` is only reasonable if switches are
   rare.
 - The stability gates help on steady traffic and hurt on fast-changing traffic
-  -- they cost 37 points on `loop`, which needs to re-adapt constantly.
+  -- they cost 20.6 points on the LIRS `loop` trace (17.0% against 37.6%),
+  which needs to re-adapt constantly, and 0.8 on OLTP, which does not.
 - `ShadowSampleRate: 0.05` is a reasonable default. Higher rates cost more and
   buy no better ranking.
-- Set `EvictPartialCapacityFilling: true` when W-TinyLFU is one of the arms:
-  the capacity gate compares `Len()` against `Cap()` for exact equality, and
-  otter reports an approximate size.
+- Set `EvictPartialCapacityFilling: true` when W-TinyLFU or S3-FIFO is one of
+  the arms. The capacity gate compares `Len()` against `Cap()` for exact
+  equality, and neither arm holds that reliably: otter reports an approximate
+  size, and S3-FIFO can drop about a tenth of the cache in a single write. An
+  arm sitting below its capacity has its epochs skipped entirely.

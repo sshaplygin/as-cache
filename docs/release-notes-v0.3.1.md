@@ -1,5 +1,9 @@
 # as-cache v0.3.1
 
+> Historical record of the v0.3.1 release, kept as published. Numbers and
+> behaviour described here were true of that version; for what is true now
+> see [the evidence](evidence.md) and [the docs index](../README.md).
+
 A packaging release. The library gains a project site; no Go code changed.
 
 ## The site

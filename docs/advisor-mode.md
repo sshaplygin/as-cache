@@ -29,7 +29,7 @@ Rates are estimated from 5.0% of the keyspace.
 policy      hit rate         hits       misses
  TwoQueue      59.62%       596200       403800
 *LRU           56.34%       563400       436600
- Random        54.80%       548000       452000
+ TinyLFU       54.80%       548000       452000
 
 * currently active
 ```

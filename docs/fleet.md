@@ -64,8 +64,11 @@ the outage are discarded rather than replayed on recovery — evidence that
 arrives in the wrong window is worse than no evidence. `Snapshot().Fallback` is
 the field to alert on: the cache looks entirely healthy either way.
 
-**Only integers cross the wire.** Per-policy hit and miss counts, a node id and
-a policy name. No cache keys and no cache values ever leave the process.
+**Only integers cross the wire.** Per-policy hit and miss counts, a node id,
+and the policy written as its numeric `PolicyType` rather than its name —
+names come from stringer and are a presentation detail, so renaming one would
+silently split a fleet's counters in two. No cache keys and no cache values
+ever leave the process.
 Everything written carries a TTL, so a fleet that stops running leaves nothing
 behind.
 
@@ -93,13 +96,15 @@ for everyone, so the fleet runs one policy at a time. `ModeSharedPosterior`
 has every replica draw its own selection from the pooled evidence, so no
 election happens and replicas may run different policies indefinitely.
 
-Leader election is the default for a reason that is not obvious. The active
-arm on a replica is measured at full capacity while every shadow runs on a
-miniature, and shadows measure a point or two pessimistic. Under leader
-election every replica has the *same* arm in the flattering role, so the bias
-applies uniformly and largely cancels when the counts are summed. Under
-shared-posterior selection it does not: an arm active on most of the fleet is
-mostly measured in the flattering role, so it accumulates an advantage in
+Leader election is the default for a reason that is not obvious. Whenever
+`ShadowSampleRate` is below 1, the active arm on a replica is measured at full
+capacity while every shadow runs on a miniature of it — the two roles are not
+identically measured, even though their rates are comparable by construction.
+Under leader election every replica has the *same* arm in the flattering role,
+so whatever that asymmetry is worth applies uniformly and cancels when the
+counts are summed. Under shared-posterior selection it does not: an arm active
+on most of the fleet is mostly measured in the flattering role, so it
+accumulates an advantage in
 proportion to how widely it is already deployed. `EvidenceShadowOnly` removes
 that feedback by discarding active-role counts, which is why it is available
 under shared-posterior selection and rejected under leader election — where
