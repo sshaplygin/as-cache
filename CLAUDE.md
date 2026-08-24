@@ -389,7 +389,12 @@ cd examples/basic && go mod tidy
   0.0% on `loop`). That argues for Milestone 5 advisor mode as the primary
   product rather than a stepping stone.
   - Milestone 2's sampling was validated here: sampled shadows preserve the
-    policy ranking, running 1-3 points pessimistic uniformly across arms.
+    policy ranking. (The "1-3 points pessimistic uniformly across arms" figure
+    once recorded here was measured before the shadow-insert fix and no longer
+    holds: with shadows filling themselves, every deterministic arm now matches
+    its standalone replay to within 0.005 at full size, and a sampled rate can
+    land either side of the true one depending on which slice of the keyspace
+    the seed selected.)
   - Evidence tests are guarded by `testing.Short()` and excluded from
     `make test`, which now passes `-short`. Under `-race` the epoch pacing
     changes ~15x and the measurements become meaningless. Run `make evidence`.
@@ -490,8 +495,8 @@ cd examples/basic && go mod tidy
     `TestCapEvidence_RestoresExploration` is the demonstration: uncapped, a
     marginally worse arm is drawn zero times in 200.
   - **The active/shadow role gap is why `ModeLeader` is the default.** The
-    active arm is measured at full capacity, shadows on miniatures running 1-3
-    points pessimistic. Under leader election every replica has the same arm in
+    active arm is measured at full capacity, shadows on miniatures whenever
+    sampling is on. Under leader election every replica has the same arm in
     the flattering role so the bias cancels on summing; under
     `ModeSharedPosterior` it is asymmetric and compounds with deployment share.
     `EvidenceShadowOnly` removes it and is rejected under `ModeLeader`, where
@@ -542,23 +547,24 @@ cd examples/basic && go mod tidy
   leadership and followed no leader; `validate` now resolves it explicitly.
 
 - [x] Evidence: **pooling helps only in the regime it was built for.** Paced to
-  ~8 requests per cache epoch per replica, a pooled fleet gains 2.3-3.9 points
-  over replicas deciding alone (58-59% vs 55.5%), and the mechanism is visible
-  in the endings: starved replicas scatter across 5 policies, the pooled fleet
-  holds 1. Unstarved, pooling *loses* -- 1-2 points on uniform traffic, 5.1
-  points on a fleet whose replicas serve different workloads, where one
-  fleet-wide policy is a compromise nobody wanted.
+  ~8 requests per cache epoch per replica, a pooled fleet gains 3.6 points over
+  replicas deciding alone (58.17% vs 54.52%), and the mechanism is visible in
+  the endings: starved replicas scatter across 7 policies, the pooled fleet
+  holds 2. Unstarved, pooling *loses* -- about a point on zipf, 3.1 points on a
+  fleet whose replicas serve different workloads, where one fleet-wide policy
+  is a compromise nobody wanted. Re-measured after the shadow-insert fix; the
+  coordination sweep changed sign at the fast end (10ms +0.25, 25ms +0.47, 50ms
+  -0.46, 200ms -2.52 vs local), so coordinating often is now worth a fraction
+  of a point rather than always costing.
   - **The unpaced fleet tests measure the wrong regime.** `Replay` runs flat
     out, so it delivers thousands of requests per epoch however small the
     workload; a smaller workload just finishes sooner. `ReplayPaced` holds a
     request rate, which is the only way to reproduce thin traffic, and it costs
     wall-clock time to do so. Do not "speed up" the paced test by unpacing it.
-  - The coordination-epoch sweep (10/25/50/200ms: -0.41/-0.67/-2.21/-3.47 vs
-    local) shows most of the unstarved loss is the fleet getting fewer chances
-    to change its mind -- but it closes towards break-even, never past it, and
-    the fastest setting is the one a real round trip makes most expensive.
-    These replays use `MemStore`, so coordination is free in a way it will not
-    be in production.
+  - The coordination-epoch sweep shows most of the unstarved loss is the fleet
+    getting fewer chances to change its mind, and the fastest settings are the
+    ones a real round trip makes most expensive. These replays use `MemStore`,
+    so coordination is free in a way it will not be in production.
   - `bench/bandit.go` is gone; `bench` imports the `bandit` module.
 
 ### Incomplete / TODO

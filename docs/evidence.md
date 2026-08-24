@@ -1,10 +1,33 @@
 # Evidence
 
-Every claim in the README comes from here. `make evidence` replays a suite of
-deterministic workloads against every policy and against the adaptive cache.
-The numbers below are from an M1 Max, cache capacity 500, 200k requests per
-workload. Reproduce with `make evidence`; the generators are in
+Every measured claim in this repository comes from here. `make evidence`
+replays a suite of deterministic workloads against every policy and against the
+adaptive cache. The numbers below are from an M1 Max, cache capacity 500, 200k
+requests per workload. Reproduce with `make evidence`; the generators are in
 [bench/workload.go](../bench/workload.go).
+
+## What the numbers say
+
+Four findings, each with its own section below.
+
+1. **No single policy wins everywhere.** Across six published traces the best
+   fixed policy is a different one four times over, and the strongest
+   general-purpose baseline lands near the bottom on one of them —
+   [real traces](#real-traces).
+2. **Adaptive selection roughly matches the best fixed policy without being
+   told which it is**: it beats it on two of the six traces and lands within
+   1.4 points on the other four. On synthetic workloads it does not manage
+   that — [against fixed policies](#does-adaptive-selection-beat-picking-one-policy).
+3. **Memory does not multiply by the number of arms.** Shadows hold keys and
+   eviction bookkeeping but never values: eight policies cost 3.92x a single
+   LRU, or 1.40x with sampling on —
+   [memory and per-operation cost](#memory-and-per-operation-cost).
+4. **The hot path is not free.** 32 ns/op for a bare LRU against 90 sampled and
+   856 unsampled, which is the price of the measurement.
+
+Configuration moves these numbers more than the choice of arms does; see
+[tuning](configuration.md#tuning-measured) before drawing conclusions from your
+own run.
 
 Hit rate by policy and workload:
 
@@ -413,13 +436,6 @@ effective rate rather than letting a miniature shrink into noise.
 
 ## Does pooling across a fleet help?
 
-> **These figures predate two changes and have not been re-measured.** They were
-> taken before S3-FIFO and SIEVE joined the arm set, and before the shadow
-> measurement defect described under [real traces](#real-traces) was fixed —
-> and pooling works by sharing exactly the evidence that defect distorted. Treat
-> the direction as indicative and the numbers as stale until `make evidence` is
-> re-run against this section.
-
 **Only in the regime it was built for, and it is worth checking you are in that
 regime before turning it on.** All figures are 8 replicas, cache capacity 300
 to 500, `make evidence`. The mechanism is described in [running a
@@ -433,49 +449,60 @@ epoch per replica:
 
 | Setup | Hit rate | Policies in use at the end |
 | --- | --- | --- |
-| best fixed (ARC) | 62.8% | 1 |
-| pooled, leader-elected | 58.3-59.5% | 1-2 |
-| each replica deciding alone | 55.5-55.9% | 5 |
+| pooled, leader-elected | 58.17% | 2 |
+| each replica deciding alone | 54.52% | 7 |
 
-**Pooling gains 2.3 to 3.9 points** over independent replicas, across four
-runs. The last column is the mechanism: a replica with eight requests an epoch
-cannot tell its arms apart, so the fleet scatters across five different
-policies, several of them poor. Pooled, the fleet has 64 requests an epoch of
-evidence and stays on one.
+**Pooling gains 3.6 points** over independent replicas. The last column is the
+mechanism: a replica with eight requests an epoch cannot tell nine arms apart,
+so the fleet scatters across seven different policies, several of them poor.
+Pooled, the fleet has 64 requests an epoch of evidence and holds two.
 
 Now the same comparison where replicas are *not* starved — the unpaced replays
 every other measurement here uses:
 
-| Workload | Pooled | Deciding alone | Best fixed |
+| Workload | Pooled (leader) | Deciding alone | Best fixed |
 | --- | --- | --- | --- |
-| zipf, split evenly | 68.2% | 70.4% | 73.0% |
-| zipf, sharded by key | 86.2% | 87.4% | LFU 88.2% |
-| phase-shift | 82.0% | 82.0% | 2Q 83.0% |
-| mixed fleet (half loop, half zipf) | 36.6% | 41.7% | — |
+| zipf, split evenly | 68.87% | 69.65% | S3-FIFO 72.73% |
+| zipf, sharded by key | 86.18% | 87.23% | SIEVE 88.22% |
+| phase-shift | 81.91% | 81.58% | 2Q 83.00% |
+| mixed fleet (half loop, half zipf) | 38.28% | 41.33% | — |
 
 **Pooling loses whenever the replicas could already measure for themselves**,
-by 1 to 2 points on uniform traffic and by 5.1 points on a fleet whose replicas
-serve different workloads. The mixed-fleet row is the clearest: a fleet-wide
-decision is a compromise, and when half your replicas want the policy the other
-half are worst served by, forcing agreement costs more than the disagreement
-did.
+by about a point on zipf and by 3.1 points on a fleet whose replicas serve
+different workloads. The mixed-fleet row is the clearest: a fleet-wide decision
+is a compromise, and when half your replicas want the policy the other half are
+worst served by, forcing agreement costs more than the disagreement did.
+Phase-shift is the exception that shows the size of the effect — pooling wins
+there by 0.33 points, which is inside the run-to-run noise of these replays.
 
-Most of the loss on uniform traffic is the fleet simply getting fewer chances
-to change its mind:
+Fleet size matters more than the direction suggests. Holding the total traffic
+fixed and splitting it more ways:
+
+| Fleet | Requests per replica | Deciding alone | Pooled | Delta |
+| --- | --- | --- | --- | --- |
+| 2 replicas | 100,000 | 67.05% | 66.86% | -0.19 |
+| 8 replicas | 25,000 | 65.55% | 61.65% | -3.89 |
+| 32 replicas | 6,250 | 62.52% | 60.97% | -1.55 |
+
+None of these is starved enough for pooling to pay: even 6,250 requests is
+thousands per epoch. Thin traffic is a rate, not a total, which is why the
+paced replay above is the only one that reproduces the regime.
+
+How fast the fleet coordinates is the setting that decides the rest:
 
 ```text
-local (no coordination):     70.42%
-coordination epoch 10ms:     70.01%  (-0.41)
-coordination epoch 25ms:     69.75%  (-0.67)
-coordination epoch 50ms:     68.20%  (-2.21)
-coordination epoch 200ms:    66.95%  (-3.47)
+local (no coordination):     69.47%
+coordination epoch 10ms:     69.72%  (+0.25)
+coordination epoch 25ms:     69.94%  (+0.47)
+coordination epoch 50ms:     69.01%  (-0.46)
+coordination epoch 200ms:    66.95%  (-2.52)
 ```
 
-The gap closes monotonically as coordination speeds up — but it closes towards
-break-even, never past it, and a 10ms coordination epoch is where a real round
-trip stops being negligible. Note that these replays coordinate through an
-in-process store, so coordination is free in a way it will not be for you: the
-setting that looks best here is the one that costs most to run.
+Coordinating often enough is worth a fraction of a point; coordinating rarely
+costs 2.5. Note that these replays coordinate through an in-process store, so
+coordination is free in a way it will not be for you: 10ms is where a real
+round trip stops being negligible, and the settings that look best here are the
+ones that cost most to run.
 
 **So the rule is:** pool when your replicas are individually starved of
 traffic, run the same workload shape as each other, and are numerous enough

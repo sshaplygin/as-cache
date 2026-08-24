@@ -344,7 +344,7 @@ v, ok := cache.Get("k")</code></pre>
             <td>No single policy wins everywhere. The best fixed policy changes
                 by trace, and the strongest baseline can land near the bottom.</td>
             <td class="num">SIEVE wins Twitter, S3-FIFO wins Meta kvcache, 2Q wins OLTP; W-TinyLFU wins ARC P3 and
-                LIRS — and is second-worst on OLTP</td>
+                LIRS — and lands near the bottom on OLTP</td>
           </tr>
           <tr>
             <td>Tuned sensibly, adaptive selection tracks the best fixed policy

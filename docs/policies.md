@@ -81,8 +81,10 @@ the competitor harness calls `CleanUp`. Read its wins on write-heavy workloads
 with that in mind; on read-heavy ones the overshoot is a few percent and the
 comparison is sound.
 
-It is also the one arm that is not deterministic, which matters for
-[reproducible replays](benchmarking.md).
+It is one of two arms that are not deterministic, which matters for
+[reproducible replays](benchmarking.md). `Random` is the other, and for a
+better reason: it seeds itself from the global source, which is what a control
+arm is for.
 
 ## S3-FIFO and SIEVE
 
@@ -90,8 +92,9 @@ Both constructors reject a size of zero or less, as `NewLRU`, `NewLFU` and
 `NewTwoQueue` do: a cache built at zero would accept nothing and report no hits
 for as long as it existed, which as a bandit arm is a silent no-op rather than
 a policy. Resizing an existing cache to zero is still legal, which is a
-different case — `AdaptiveCache.Resize` passes its own new capacity through to
-every arm, so resizing the whole cache to zero resizes each of them to zero.
+different case — `AdaptiveCache.Resize` resizes the active policy to the new
+capacity and every shadow to the miniature that corresponds to it, so resizing
+the whole cache to zero takes every arm to zero with it.
 (`Random` and `TTL` still accept a zero size at construction; the inconsistency
 is theirs to resolve, not something these two should copy.)
 
@@ -104,9 +107,12 @@ Measured at capacity 1000: `Len()` went 1000 → 901 on one `Add`, recovering on
 the next refill. SIEVE is unaffected.
 
 That matters because `EvictPartialCapacityFilling: false` (the default) holds
-off policy switching until `Len() == Cap()` exactly, so an arm sitting below
-its capacity has its epochs skipped entirely. The same caveat already applies
-to W-TinyLFU for a different reason. It is hard to reach from ordinary traffic
+off policy switching until the **active** policy reports `Len() == Cap()`
+exactly. The gate reads that one arm and no other, so the cost lands only while
+one of these is the active policy — but then it lands on everything: the epoch
+returns before any arm is reported or reset, so the whole fleet of measurements
+is skipped, not just the offender's. The same caveat already applies to
+W-TinyLFU for a different reason. It is hard to reach from ordinary traffic
 — over 200k requests of zipf-ish and cyclic workloads both FIFO arms held
 `Len() == Cap()` on every sample — but if you construct the state (fill exactly
 to capacity, read everything several times, then write once) it is real. Set
@@ -175,8 +181,8 @@ your traffic, which is the argument this whole library rests on.
 This applies to both arms; they share the adapter.
 
 `golang-fifo` exposes `Set`/`Get`/`Remove`/`Contains`/`Peek`/`Len`/`Purge`/
-`Close`. `Cacher` also needs `Keys`, `Values`, `Resize` and `Cap`, and needs
-`Add` to report whether it evicted. None of those exist upstream. Three
+`Close`. `Cacher` also needs `Keys`, `Values` and `Resize` and needs `Add` to
+report whether it evicted, and `Policy` needs `Cap` on top of that. None of those exist upstream. Three
 consequences are worth knowing before you read either arm's numbers.
 
 **`Resize` rebuilds the cache, discarding everything the algorithm has
@@ -196,8 +202,11 @@ not an eviction order.
 
 **Upstream counts a write as an access.** `Set` on a key already present raises
 S3-FIFO's frequency counter, and sets SIEVE's visited bit. Neither paper counts
-a write that way, and shadow policies here are driven with `Add`, so an arm on
-shadow duty looks more used than it should.
+a write that way. It used to matter more than it does: shadow policies are now
+driven with `Get` and filled with `Add` only on their own miss, and the write
+fan-out skips a key the shadow already holds, so the counters no longer run
+ahead on shadow duty. It still applies to a caller whose own traffic rewrites
+live keys.
 
 Two smaller notes. The adapter always builds with a TTL of zero, which is
 load-bearing: a non-zero TTL starts a background goroutine that would invoke
@@ -214,7 +223,8 @@ A key is promoted out of the small queue only if it is requested again **while
 it is still there or still in the ghost queue**. On a workload whose reuse
 distances are longer than that window, S3-FIFO sends keys round the small queue
 forever and never promotes anything — it serves 0.00% on the LIRS `loop` trace,
-tied with LRU, LFU, 2Q, TTL and ARC. That is the algorithm working as designed,
+tied with LRU, LFU, 2Q, TTL, ARC and SIEVE, and beaten there by random
+eviction. That is the algorithm working as designed,
 and it is why this is not uniformly better than LRU. See
 [evidence](evidence.md).
 
