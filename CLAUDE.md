@@ -831,6 +831,30 @@ cd examples/basic && go mod tidy
     format misread is a correctness bug, not evidence. They are pinned against
     fixtures copied out of the real files.
 
+- [x] **Bug found and fixed: a gradual migration window served shadow zeros as
+  real data.** Introduced by the shadow-insert fix above and caught by an
+  adversarial review agent, not by the suite.
+  - While a `MigrationGradual` window is open, `switchLocked` deliberately does
+    NOT demote the source: it holds the only copy of everything not yet
+    promoted. But it is not the active policy either, so `fanOutReadLocked`
+    treated it as a shadow and filled it with the zero value on a miss.
+    `promoteLocked` then `Peek`s the source and cannot tell that zero from a
+    real pending value, so it promoted the zero into the active policy and the
+    caller got it as a hit.
+  - **"Not active" is not the same as "is a shadow."** That is the general
+    lesson: for the duration of a gradual window there are three roles, not
+    two, and anything iterating `c.policies` and skipping only `activePolicy`
+    has to decide what it means to do to `migrateFrom`.
+  - `Add`'s fan-out writes to the source too, but compensates by deleting the
+    key from `migrationRealKeys`, so the poisoned entry is never promoted. Only
+    the read path was wrong.
+  - **The precondition is eviction from the source during the window**, so a
+    test whose working set fits inside the capacity cannot catch it however
+    many switches it drives - which is exactly why
+    `TestArmsDriveAnAdaptiveCacheThroughSwitches/gradual` (500 keys, capacity
+    500) passed throughout. `TestGradualMigration_NeverServesAZeroFromTheSource`
+    uses a working set three times the capacity and fails without the guard.
+
 - [x] **Bug found and fixed: a shadow policy could only ever acquire a key the
   active policy had missed**, which made every shadow measurement meaningless
   whenever the active policy was performing well.
@@ -862,6 +886,23 @@ cd examples/basic && go mod tidy
   - It was found by an independent review agent, not by the test suite. Nothing
     in the suite compared a shadow's measured rate against the same policy
     replayed on its own - the one property a shadow exists to have.
+
+### Release blocker for the S3-FIFO/SIEVE work
+
+`benchclient/go.mod` requires `github.com/sshaplygin/as-cache/policies/fifo
+v0.3.1`, and **no `policies/fifo/*` tag has ever existed** - the module is new
+on this branch. `policies/fifo/go.mod` likewise requires root `v0.3.1`, which
+does not contain `ascache.S3FIFO`. Both are correct as pre-release placeholders
+under the bottom-up procedure below, which rewrites every `require` at tag
+time; neither is safe to tag as-is.
+
+**`release-check` reports green on both, and should not.** Its version filter
+only rejects `^v0\.0\.0`, so a require naming a plausible-but-nonexistent tag
+passes. That is precisely the "builds here, unusable by a stranger" failure the
+script exists to catch, reached through a hole in it. Verified: resolving
+`benchclient` from the proxy fails with "module ... found, but does not contain
+package .../policies/fifo". Fix the check to confirm each intra-repo require
+resolves to a tag that exists before tagging anything.
 
 ### Releasing 0.2.0
 

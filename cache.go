@@ -136,43 +136,6 @@ func (c *AdaptiveCache[K, V]) Get(key K) (V, bool) {
 	return value, found
 }
 
-// fanOutReadLocked feeds one lookup to every shadow policy, which is what
-// makes a shadow's measurement mean anything.
-//
-// A shadow that misses is filled, exactly as the caller would fill a
-// read-through cache that missed. That fill is the whole point: without it a
-// shadow can only ever acquire a key on a request the ACTIVE policy also
-// missed, because a read-through caller calls Add only then - so the better
-// the incumbent performs, the less the shadows are allowed to learn, and their
-// hit rates stop describing the policies at all.
-//
-// The distortion that causes is not a small bias. Measured on a cyclic
-// workload with a 94%-hit incumbent, shadows holding policies that truly serve
-// 0.00% reported over 90%: starved of inserts, their contents go static, and a
-// static cache covering most of a small keyspace looks excellent. The sign and
-// size depend on which arm is incumbent, so it does not cancel in the
-// comparison - it inverts it, and Advice() recommended switching away from the
-// best arm to the worst.
-//
-// Shadows store the zero value, never the caller's, so filling one costs a key
-// and its eviction bookkeeping and no more.
-//
-// It must be called while at least the read lock is held. Each policy is
-// independently synchronised, so mutating one here is safe: the shadow Get
-// above already mutates recency and frequency state the same way.
-func (c *AdaptiveCache[K, V]) fanOutReadLocked(key K) {
-	for _, policy := range c.policies {
-		if policy.GetType() == c.activePolicy {
-			continue
-		}
-
-		if _, hit := policy.Get(key); !hit {
-			var zeroValue V
-			_ = policy.Add(key, zeroValue)
-		}
-	}
-}
-
 func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 	sampled := c.sampler.sampled(key)
 
@@ -245,9 +208,9 @@ func (c *AdaptiveCache[K, V]) Add(key K, value V) bool {
 
 	if c.migrating {
 		// The key is about to be written to the active policy with its real
-		// value, so it needs no promotion; and if the shadow pass above ran,
-		// it just overwrote the value held by the migration source. Either
-		// way the key must not be promoted later.
+		// value, so promoting the source's copy later would at best duplicate
+		// work and at worst overwrite this write with a staler value. Drop it
+		// from the pending set either way.
 		delete(c.migrationRealKeys, key)
 		if len(c.migrationRealKeys) == 0 {
 			c.closeMigrationLocked()

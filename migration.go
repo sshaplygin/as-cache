@@ -80,7 +80,8 @@ func (c *AdaptiveCache[K, V]) drainOneKey() {
 		key := c.migrationKeys[len(c.migrationKeys)-1]
 		c.migrationKeys = c.migrationKeys[:len(c.migrationKeys)-1]
 
-		// Skip keys already promoted via Get or overwritten by a shadow Add.
+		// Skip keys already promoted via Get, or written directly by the
+		// caller through Add, which drops them from the pending set.
 		if _, ok := c.migrationRealKeys[key]; !ok {
 			continue
 		}
@@ -106,13 +107,23 @@ func (c *AdaptiveCache[K, V]) drainOneKey() {
 }
 
 // promoteLocked moves key from the migration source policy into the current
-// active policy if it is still eligible: keys overwritten by a shadow Add or
-// already promoted are skipped. It closes the migration window when no
-// eligible keys remain, whichever path emptied the set (promotion here or an
-// earlier Remove). It must be called while the write lock is held during a
-// gradual migration window.
+// active policy if it is still eligible: keys already promoted, or written
+// directly by the caller through Add, are skipped. It closes the migration
+// window when no eligible keys remain, whichever path emptied the set
+// (promotion here or an earlier Remove). It must be called while the write
+// lock is held during a gradual migration window.
+//
+// A note on why the source is trustworthy here. It is not the active policy,
+// so anything walking c.policies and skipping only activePolicy would treat it
+// as a shadow and fill it with zero values - and the Peek below cannot tell
+// such a zero from a real value still pending, so it would promote the zero
+// and serve it to a caller as a hit. fanOutReadLocked therefore skips the
+// source while a window is open. "Not active" is not the same as "is a
+// shadow": for the duration of a gradual window there are three roles, not
+// two, and anything iterating the policies has to say what it means to do to
+// this one.
 func (c *AdaptiveCache[K, V]) promoteLocked(key K) {
-	// Skip keys whose values have been overwritten by a shadow Add.
+	// Skip keys the caller has since written directly, or already promoted.
 	if _, ok := c.migrationRealKeys[key]; ok {
 		if val, ok := c.policies[c.migrateFrom].Peek(key); ok {
 			c.policies[c.activePolicy].Add(key, val)

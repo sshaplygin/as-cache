@@ -1,5 +1,53 @@
 package ascache
 
+// fanOutReadLocked feeds one lookup to every shadow policy, which is what
+// makes a shadow's measurement mean anything.
+//
+// A shadow that misses is filled, exactly as the caller would fill a
+// read-through cache that missed. That fill is the whole point: without it a
+// shadow can only ever acquire a key on a request the ACTIVE policy also
+// missed, because a read-through caller calls Add only then - so the better
+// the incumbent performs, the less the shadows are allowed to learn, and their
+// hit rates stop describing the policies at all.
+//
+// The distortion that causes is not a small bias. Measured on a cyclic
+// workload with a 94%-hit incumbent, shadows holding policies that truly serve
+// 0.00% reported over 90%: starved of inserts, their contents go static, and a
+// static cache covering most of a small keyspace looks excellent. The sign and
+// size depend on which arm is incumbent, so it does not cancel in the
+// comparison - it inverts it, and Advice() recommended switching away from the
+// best arm to the worst.
+//
+// Shadows store the zero value, never the caller's, so filling one costs a key
+// and its eviction bookkeeping and no more.
+//
+// It must be called while at least the read lock is held. Each policy is
+// independently synchronised, so mutating one here is safe: the shadow Get
+// above already mutates recency and frequency state the same way.
+func (c *AdaptiveCache[K, V]) fanOutReadLocked(key K) {
+	for _, policy := range c.policies {
+		if policy.GetType() == c.activePolicy {
+			continue
+		}
+
+		// The source of an open gradual migration is not a shadow yet. It is
+		// the only holder of every value not promoted so far, and promoteLocked
+		// reads those values back out with Peek. Filling it with a zero here
+		// would put a value nobody stored where a real one is still pending,
+		// and Peek cannot tell the two apart - so the zero would be promoted
+		// into the active policy and served to a caller as a hit. It is fed
+		// like any other shadow again once the window closes and it is demoted.
+		if c.migrating && policy.GetType() == c.migrateFrom {
+			continue
+		}
+
+		if _, hit := policy.Get(key); !hit {
+			var zeroValue V
+			_ = policy.Add(key, zeroValue)
+		}
+	}
+}
+
 // demoteLocked puts a policy that has just stopped being active onto shadow
 // duty: it releases the policy's hold on real values and shrinks it to the
 // miniature capacity it simulates at.
