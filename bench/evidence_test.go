@@ -289,8 +289,21 @@ func TestSamplingPreservesClearOrderings(t *testing.T) {
 	// run even with no sampling at all, so they carry no ordering to preserve.
 	const separated = 0.05
 
+	// zipf is deliberately absent, and why is worth recording. It used to
+	// supply separated pairs here, but only because a shadow measurement
+	// defect held Random at 32.80% on this workload when it truly serves
+	// 76.67% - a 44-point artifact. With shadows measuring honestly the nine
+	// arms land within 4.96 points of each other on zipf, which is under the
+	// threshold above, so the workload separates nothing and can prove nothing
+	// about ordering. Its own ranking is still checked by
+	// TestSamplingPreservesPolicyRanking, which asks about regret rather than
+	// about pairs.
+	//
+	// loop replaces it: a cyclic scan just over capacity spreads the arms
+	// across ninety points, which is separation no sampling artifact could
+	// manufacture.
 	for _, w := range []bench.Workload{
-		bench.Zipf(300000, 200000, 1.1, 11),
+		bench.Loop(300000, size+50),
 		bench.Scan(30, 4000, 16000, 40000),
 	} {
 		t.Run(w.Name, func(t *testing.T) {

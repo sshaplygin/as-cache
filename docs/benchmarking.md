@@ -24,7 +24,12 @@ Two things outside the epoch clock also have to hold still, and one of them is
 not in your control:
 
 - **Seed the bandit.** `bandit.NewThompson(discount, seed)` takes one.
-- **Every arm must be deterministic.** LRU, LFU, 2Q and Random are.
+- **Every arm must be deterministic.** LRU, LFU, 2Q, S3-FIFO and SIEVE are.
+  **Random is not**, despite being the simplest arm here: it seeds itself from
+  the global source at construction, so three identical replays served 44, 44
+  and 40 hits over 20,000 requests. It is in `DefaultArms` as the control arm,
+  so replays through `benchclient` are reproducible up to that arm's jitter
+  rather than exactly.
   **W-TinyLFU is not**: otter evicts asynchronously and reports an approximate
   size, so replaying one trace three times against it directly gave three
   different hit counts and left 527, 504 and 545 entries in a cache with a
@@ -55,7 +60,9 @@ usable by anything wanting the same five methods.
 
 It is configured for reproducibility rather than for the best number:
 request-counted epochs, a seeded bandit, and no sampling. `DefaultArms` is LRU,
-LFU, 2Q and Random, all of which are deterministic. `ArmsWithWindowTinyLFU`
+LFU, 2Q, Random and S3-FIFO — all deterministic except `Random`, which is
+noted above.
+`ArmsWithWindowTinyLFU`
 adds the strongest arm and gives up repeatability to do it — that trade is
 yours to make explicitly, which is why it is a second function rather than an
 option. ARC is absent for the [patent reason](policies.md#arc-is-a-separate-module);
@@ -68,9 +75,58 @@ against the adaptive cache, and against competing Go cache libraries. The
 generators are in [bench/workload.go](../bench/workload.go) and the results are
 written up in [evidence](evidence.md).
 
-`./scripts/fetch-traces.sh` downloads five published traces (nothing is
-committed), after which `AS_CACHE_TRACES=... make evidence` replays those too.
+`./scripts/fetch-traces.sh` downloads published traces (nothing is committed),
+after which `AS_CACHE_TRACES=... make evidence` replays those too.
 
 Evidence tests are guarded by `testing.Short()` and excluded from `make test`.
 Under `-race` epoch pacing changes by roughly 15x and the measurements become
 meaningless, so run them through `make evidence` rather than `go test -race`.
+
+The trace *loaders*, by contrast, are ordinary tests and do run in `make test`.
+A format misread is a correctness bug, not evidence: it produces a workload
+that looks entirely plausible and quietly invalidates every number taken from
+it. They are pinned against fixtures copied from the real files in
+[bench/trace_formats_test.go](../bench/trace_formats_test.go).
+
+## Real traces
+
+| Trace | Loader | Obtained by |
+| --- | --- | --- |
+| Twitter Twemcache | `LoadTrace(p, TwitterFormat, n)` | script |
+| LIRS (`loop`, `2_pools`, `multi2`) | `LoadTrace(p, LIRSFormat, n)` | script |
+| ARC paper (`p3`, `oltp`) | `LoadARCTrace(p, n)` | script |
+| Meta kvcache | `LoadMetaKVTrace(p, MetaKVFormat{}, n)` | script, partial download |
+| MSR Cambridge | `LoadMSRTrace(p, MSRFormat{}, n)` | by hand — see below |
+
+Three of these layouts expand: **one record is not one request**, and reading
+them as though it were produces a workload with the same keys, far fewer
+requests and much less reuse than the traffic they were taken from.
+
+- The **ARC** layout is `startBlock blockCount`, and stands for `blockCount`
+  consecutive accesses.
+- The **MSR** layout carries a byte offset and a byte length, and stands for as
+  many block accesses as fit in the length. A 64 KiB read is 128 accesses at
+  the default 512-byte block size, not one. `MSRFormat.BlockSize` changes that
+  granularity, and therefore changes the workload — two runs at different block
+  sizes cannot be compared. Reads only by default; `IncludeWrites` models a
+  write-back cache instead, which is a different measurement.
+- The **Meta kvcache** layout collapses runs of identical operations into one
+  row and an `op_count`, which CacheBench replays that many times. On a 2M
+  request slice of `kvcache/202206`, 942,355 read rows expand to 2,000,000
+  requests. `GET` and `GET_LEASE` are the reads; `SET` and the rest are only
+  replayed under `IncludeWrites`, and counting them by default would hand every
+  policy a free hit per write, since almost every `SET` in these files is
+  immediately followed by a `GET` of the same key.
+
+The Meta files are 5 to 10 GB each, so the script fetches only the first slice
+of one over a byte-range request — no AWS credentials or CLI needed. The slice
+ends mid-line and the loader skips the truncated row. `AS_CACHE_META_BYTES`
+sets the size; the default of 128 MiB is about 5M rows.
+
+**MSR Cambridge has to be downloaded by hand.** SNIA serves the files behind a
+click-through licence and a cookie check, so the script cannot fetch them and
+does not pretend to: it prints a note instead. Take one or more per-volume CSVs
+from <https://iotta.snia.org/traces/block-io?only=388>, name them
+`msr_<volume>.csv` (`.gz` is fine) and drop them in the trace directory —
+anything matching that pattern is picked up automatically, so which volumes you
+take is your choice.

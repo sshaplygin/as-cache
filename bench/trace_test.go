@@ -1,8 +1,10 @@
 package bench_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -58,7 +60,44 @@ func knownTraces() []traceSpec {
 			cache:  20000,
 			source: "ARC paper OLTP database trace (FAST '03)",
 		},
+		{
+			file: "meta_kvcache_202206_1.csv",
+			load: func(p string) (bench.Workload, error) {
+				return bench.LoadMetaKVTrace(p, bench.MetaKVFormat{}, 2000000)
+			},
+			cache:  10000,
+			source: "Meta production key-value cache, 500 hosts over 5 days (CacheBench kvcache/202206)",
+		},
 	}
+}
+
+// msrVolumes finds the MSR Cambridge volumes present locally.
+//
+// They are listed by pattern rather than by name because the trace set has
+// thirteen servers and several volumes each, SNIA serves them one file at a
+// time behind a click-through licence, and which of them somebody downloaded
+// is their choice. Anything named msr_<volume>.csv (optionally gzipped) is
+// picked up.
+func msrVolumes(dir string) []traceSpec {
+	matches, err := filepath.Glob(filepath.Join(dir, "msr_*.csv*"))
+	if err != nil {
+		return nil
+	}
+	sort.Strings(matches)
+
+	specs := make([]traceSpec, 0, len(matches))
+	for _, path := range matches {
+		specs = append(specs, traceSpec{
+			file: filepath.Base(path),
+			load: func(p string) (bench.Workload, error) {
+				return bench.LoadMSRTrace(p, bench.MSRFormat{}, 2000000)
+			},
+			cache:  20000,
+			source: "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+		})
+	}
+
+	return specs
 }
 
 // loadKnownTraces returns the traces present locally, skipping the test when
@@ -79,7 +118,7 @@ func loadKnownTraces(t *testing.T) []struct {
 		workload bench.Workload
 	}
 
-	for _, spec := range knownTraces() {
+	for _, spec := range append(knownTraces(), msrVolumes(dir)...) {
 		path := filepath.Join(dir, spec.file)
 		if _, statErr := os.Stat(path); statErr != nil {
 			t.Logf("absent, skipping: %s", spec.file)
@@ -199,6 +238,15 @@ func TestTraceLoaders(t *testing.T) {
 			requests: 100000, distinct: 9939,
 			load: func(p string) (bench.Workload, error) { return bench.LoadTrace(p, bench.LIRSFormat, 0) },
 		},
+		// Counted independently from the published slice with awk, not read
+		// back off this loader: a parser pinned against its own output would
+		// agree with itself no matter what it did. The whole 128 MiB slice
+		// holds 5,696,382 rows - 4,620,969 GET, 1,020,845 SET, 54,568 DELETE -
+		// which expand by op_count to these 9,313,712 read requests.
+		"meta_kvcache_202206_1.csv": {
+			requests: 9313712, distinct: 1144478,
+			load: func(p string) (bench.Workload, error) { return bench.LoadMetaKVTrace(p, bench.MetaKVFormat{}, 0) },
+		},
 	}
 
 	for file, want := range expectations {
@@ -214,6 +262,33 @@ func TestTraceLoaders(t *testing.T) {
 			assert.Equal(t, want.requests, w.Len(),
 				"request count must match the published file; a parser that drops or invents records invalidates every number derived from it")
 			assert.Equal(t, want.distinct, bench.DistinctKeys(w), "distinct key count")
+		})
+	}
+
+	// The Meta layout collapses runs of identical operations into one row and
+	// a repeat count, so the request count must exceed the row count. A loader
+	// that reads one row as one request keeps every key and loses most of the
+	// reuse, which shows up as hit rates that are wrong and plausible.
+	metaPath := filepath.Join(dir, "meta_kvcache_202206_1.csv")
+	if _, statErr := os.Stat(metaPath); statErr == nil {
+		t.Run("meta kvcache expansion", func(t *testing.T) {
+			const requests = 2000000
+
+			w, loadErr := bench.LoadMetaKVTrace(metaPath, bench.MetaKVFormat{}, requests)
+			require.NoError(t, loadErr)
+			require.Equal(t, requests, w.Len(), "the limit must be met exactly")
+
+			var rows, reads, writes int
+			_, scanErr := fmt.Sscanf(w.Description,
+				"Meta kvcache trace: %d rows (%d reads, %d writes)", &rows, &reads, &writes)
+			require.NoError(t, scanErr, "description %q", w.Description)
+
+			t.Logf("%d rows (%d reads, %d writes) -> %d requests over %d distinct keys",
+				rows, reads, writes, w.Len(), bench.DistinctKeys(w))
+
+			assert.Less(t, reads, requests,
+				"op_count must expand: %d read rows cannot yield %d requests without it", reads, requests)
+			assert.Positive(t, writes, "the trace contains SET rows, and they must be recognised as writes")
 		})
 	}
 

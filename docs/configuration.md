@@ -86,7 +86,7 @@ than what any particular policy costs:
 Read the `Get` rows down the shadow count. Unsampled, a third shadow costs
 another 50ns, because every operation visits every policy. Sampled, going from
 one shadow to three costs 3ns -- the fan-out happens on 5% of operations, so
-adding a policy is close to free. That is what makes carrying seven arms
+adding a policy is close to free. That is what makes carrying nine arms
 practical.
 
 Reproduce with `go test -run '^$' -bench . -benchtime=300ms .`
@@ -119,9 +119,9 @@ not subtle. Measured on the ARC P3 trace with a 20k-entry cache:
 
 | Configuration | Hit rate | ns/op |
 | --- | --- | --- |
-| 50ms epoch, warm migration | 12.2% | 540 |
-| 2ms epoch, warm migration | 4.8% | 13,476 |
-| 2ms epoch, cold migration | 0.9% | 580 |
+| 50ms epoch, warm migration | 11.4% | 795 |
+| 2ms epoch, warm migration | 3.2% | 38,056 |
+| 2ms epoch, cold migration | 0.7% | 722 |
 
 An epoch short enough to trigger frequent switches makes the cache copy its
 entire contents on every switch, so it spends its time migrating rather than

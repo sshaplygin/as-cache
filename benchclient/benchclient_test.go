@@ -127,7 +127,7 @@ func TestDefaultArmsAreDistinctAndPatentFree(t *testing.T) {
 
 	arms, err := benchclient.DefaultArms[uint64, uint64](256)
 	require.NoError(t, err)
-	require.Len(t, arms, 4)
+	require.Len(t, arms, 5)
 
 	seen := make(map[ascache.PolicyType]bool, len(arms))
 	for _, arm := range arms {
@@ -139,6 +139,8 @@ func TestDefaultArmsAreDistinctAndPatentFree(t *testing.T) {
 	assert.False(t, seen[ascache.ARC], "ARC is patented and must not be pulled in by default")
 	assert.False(t, seen[ascache.TinyLFU],
 		"W-TinyLFU is not reproducible and must be opted into, not defaulted to")
+	assert.True(t, seen[ascache.S3FIFO],
+		"S3-FIFO is deterministic and unencumbered, so it belongs in the default set")
 }
 
 func TestArmsWithWindowTinyLFUAddsExactlyThatArm(t *testing.T) {

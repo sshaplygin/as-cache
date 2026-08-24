@@ -136,18 +136,50 @@ func (c *AdaptiveCache[K, V]) Get(key K) (V, bool) {
 	return value, found
 }
 
+// fanOutReadLocked feeds one lookup to every shadow policy, which is what
+// makes a shadow's measurement mean anything.
+//
+// A shadow that misses is filled, exactly as the caller would fill a
+// read-through cache that missed. That fill is the whole point: without it a
+// shadow can only ever acquire a key on a request the ACTIVE policy also
+// missed, because a read-through caller calls Add only then - so the better
+// the incumbent performs, the less the shadows are allowed to learn, and their
+// hit rates stop describing the policies at all.
+//
+// The distortion that causes is not a small bias. Measured on a cyclic
+// workload with a 94%-hit incumbent, shadows holding policies that truly serve
+// 0.00% reported over 90%: starved of inserts, their contents go static, and a
+// static cache covering most of a small keyspace looks excellent. The sign and
+// size depend on which arm is incumbent, so it does not cancel in the
+// comparison - it inverts it, and Advice() recommended switching away from the
+// best arm to the worst.
+//
+// Shadows store the zero value, never the caller's, so filling one costs a key
+// and its eviction bookkeeping and no more.
+//
+// It must be called while at least the read lock is held. Each policy is
+// independently synchronised, so mutating one here is safe: the shadow Get
+// above already mutates recency and frequency state the same way.
+func (c *AdaptiveCache[K, V]) fanOutReadLocked(key K) {
+	for _, policy := range c.policies {
+		if policy.GetType() == c.activePolicy {
+			continue
+		}
+
+		if _, hit := policy.Get(key); !hit {
+			var zeroValue V
+			_ = policy.Add(key, zeroValue)
+		}
+	}
+}
+
 func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 	sampled := c.sampler.sampled(key)
 
 	c.mu.RLock()
 	if !c.migrating {
 		if sampled {
-			for _, policy := range c.policies {
-				if policy.GetType() == c.activePolicy {
-					continue
-				}
-				policy.Get(key)
-			}
+			c.fanOutReadLocked(key)
 		}
 
 		val, found := c.policies[c.activePolicy].Get(key)
@@ -168,12 +200,7 @@ func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 	defer c.mu.Unlock()
 
 	if sampled {
-		for _, policy := range c.policies {
-			if policy.GetType() == c.activePolicy {
-				continue
-			}
-			policy.Get(key)
-		}
+		c.fanOutReadLocked(key)
 	}
 
 	// Re-check: the window may have closed between the RUnlock and this Lock.
@@ -196,6 +223,21 @@ func (c *AdaptiveCache[K, V]) Add(key K, value V) bool {
 			if policy.GetType() == c.activePolicy {
 				continue
 			}
+
+			// Only a key the shadow does not already hold. A shadow's value is
+			// always the zero value, so re-adding a key it has carries no
+			// information - but it is not free: for a policy whose eviction
+			// state is a counter or a single bit, a write counts as an access.
+			// SIEVE would mark every freshly filled key as visited, defeating
+			// exactly the one-hit-wonder filtering it is carried for, and
+			// S3-FIFO's counter would run ahead of the algorithm.
+			//
+			// Peek rather than Contains or Get, because it must not disturb
+			// that state either.
+			if _, held := policy.Peek(key); held {
+				continue
+			}
+
 			var zeroValue V
 			_ = policy.Add(key, zeroValue)
 		}

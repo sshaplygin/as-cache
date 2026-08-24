@@ -9,6 +9,7 @@ import (
 	ascache "github.com/sshaplygin/as-cache"
 	"github.com/sshaplygin/as-cache/policies"
 	"github.com/sshaplygin/as-cache/policies/arc"
+	"github.com/sshaplygin/as-cache/policies/fifo"
 	"github.com/sshaplygin/as-cache/policies/tinylfu"
 )
 
@@ -94,6 +95,8 @@ func FixedPolicies() []PolicyBuilder {
 		}},
 		{"ARC", arc.NewPolicy[string, int]},
 		{"W-TinyLFU", tinylfu.NewPolicy[string, int]},
+		{"S3-FIFO", fifo.NewS3FIFOPolicy[string, int]},
+		{"SIEVE", fifo.NewSievePolicy[string, int]},
 	}
 }
 

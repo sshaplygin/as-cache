@@ -245,7 +245,7 @@
     </p>
 
     <div class="meta">
-      <span><b>7</b> ready-made policies</span>
+      <span><b>9</b> ready-made policies</span>
       <span>Thompson sampling</span>
       <span>Go <b>1.25+</b></span>
       <span>MPL 2.0</span>
@@ -324,6 +324,8 @@ v, ok := cache.Get("k")</code></pre>
           <tr><td>TTL</td><td class="mono">policies.NewTTL</td><td>expiry as well as recency</td></tr>
           <tr><td>ARC</td><td class="mono">arc.NewPolicy</td><td>separate module — patented by IBM</td></tr>
           <tr><td>W-TinyLFU</td><td class="mono">tinylfu.NewPolicy</td><td>separate module; the strongest baseline</td></tr>
+          <tr><td>S3-FIFO</td><td class="mono">fifo.NewS3FIFOPolicy</td><td>separate module; three static FIFO queues (SOSP '23)</td></tr>
+          <tr><td>SIEVE</td><td class="mono">fifo.NewSievePolicy</td><td>separate module; one queue and a sweeping hand (NSDI '24)</td></tr>
         </tbody>
       </table>
     </div>
@@ -341,27 +343,27 @@ v, ok := cache.Get("k")</code></pre>
           <tr>
             <td>No single policy wins everywhere. The best fixed policy changes
                 by trace, and the strongest baseline can land near the bottom.</td>
-            <td class="num">2Q wins Twitter and OLTP; W-TinyLFU wins ARC P3 and
+            <td class="num">SIEVE wins Twitter, S3-FIFO wins Meta kvcache, 2Q wins OLTP; W-TinyLFU wins ARC P3 and
                 LIRS — and is second-worst on OLTP</td>
           </tr>
           <tr>
             <td>Tuned sensibly, adaptive selection tracks the best fixed policy
                 without being told which one it is.</td>
             <td class="num">within ~1 point on most traces; beats the best
-                fixed policy on P3 by 0.76</td>
+                fixed policy on two of six traces</td>
           </tr>
           <tr>
             <td>The real product is a bound on the cost of guessing wrong.</td>
-            <td class="num">77.5% vs LRU's 0.0% on the loop workload</td>
+            <td class="num">87.1% vs LRU's 0.0% on the loop workload</td>
           </tr>
           <tr>
             <td>Shadows hold keys and bookkeeping, never values, so memory does
                 not multiply by the policy count.</td>
-            <td class="num">6 policies cost 2.65x one LRU; 1.32x with sampling</td>
+            <td class="num">8 policies cost 3.92x one LRU; 1.40x with sampling</td>
           </tr>
           <tr>
             <td>The adaptive layer is not free on the hot path.</td>
-            <td class="num">32 ns/op bare LRU vs 82 sampled, 618 unsampled</td>
+            <td class="num">32 ns/op bare LRU vs 90 sampled, 856 unsampled</td>
           </tr>
         </tbody>
       </table>

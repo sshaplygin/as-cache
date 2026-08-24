@@ -16,6 +16,20 @@ package ascache
 // Keys outside the sample are removed outright, so what remains is the
 // substream every other shadow is measuring.
 //
+// The ordering claim above does not hold for every policy, and the exception
+// is worth knowing. It assumes a write is either an ordering event (recency)
+// or a counted access (frequency). For the FIFO-queue policies it is neither
+// of those things cleanly: SIEVE treats a write as setting the entry's visited
+// bit, and that bit is its whole eviction criterion, so rewriting every key
+// sets it on every key and erases the ordering rather than preserving it;
+// S3-FIFO's counter saturates at three, so a key already at the cap gains
+// nothing while a key at zero gains one, compressing the ordering instead of
+// shifting it uniformly. The effect is a bias in the demoted policy's first
+// shadow epochs, not a standing loss - the queues themselves are untouched and
+// the bits are rewritten by ordinary traffic soon after - but a policy whose
+// eviction state is a single saturating bit per entry should not be demoted
+// this way without measuring what it costs.
+//
 // It must be called while the write lock is held, and only after the new state
 // has been published, so a reader holding a stale view cannot observe a value
 // being dropped and mistake the zero for real data.

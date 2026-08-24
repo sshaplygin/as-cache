@@ -23,9 +23,15 @@ On each request:
    `ShadowSampleRate` is below 1 they track a deterministic fraction of the
    keyspace and shrink to match, so per-operation cost stops scaling with the
    number of policies.
-3. Selected keys go to every shadow as `Add(key, zeroValue)`. Shadows hold keys
-   and eviction bookkeeping, never data, which is why N policies do not cost N
-   times the memory — and why no caller can ever be handed a shadow's zero.
+3. Each shadow answers the same lookup, and a shadow that **misses fills
+   itself** with `Add(key, zeroValue)` — exactly as the caller would fill a
+   read-through cache that missed. That fill is what makes the measurement mean
+   anything: a read-through caller only calls `Add` when the *active* policy
+   missed, so without it a shadow could never acquire a key the incumbent was
+   already serving, and the better the incumbent performed the less its rivals
+   were allowed to learn. Shadows hold keys and eviction bookkeeping, never
+   data, which is why N policies do not cost N times the memory — and why no
+   caller can ever be handed a shadow's zero.
 
 Then once per epoch, on a background goroutine:
 

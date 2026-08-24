@@ -280,7 +280,22 @@ func TestFleet_HeterogeneousShardsAreWherePoolingShouldHurt(t *testing.T) {
 	t.Logf("  pooled/shared  %.2f%% across %d policies (%+.2f vs local)",
 		shared.HitRate()*100, shared.Policies, (shared.HitRate()-local.HitRate())*100)
 
-	assert.Equal(t, 1, pooled.Policies, "leader election commits the whole fleet to one policy")
+	// The claim this test is named for. A replica choosing for itself can serve
+	// its own shard; one fleet-wide policy is a compromise nobody asked for.
+	assert.Less(t, pooled.HitRate(), local.HitRate(),
+		"on a fleet whose replicas serve different workloads, pooling must lose to deciding alone")
+	assert.Less(t, shared.HitRate(), local.HitRate())
+
+	// Leadership concentrates the fleet, but "all replicas on one policy at the
+	// final instant" is a claim about convergence speed, not about the
+	// mechanism, and it stopped holding exactly when an eighth arm was added:
+	// measured over eight runs, seven arms converged to one policy every time,
+	// and eight arms end on two roughly one run in five. The leader changes its
+	// mind more often with more arms to explore, and a replay is only so many
+	// coordination rounds long. Asserting the strict form again would be
+	// asserting that this repository never adds another policy.
+	assert.LessOrEqual(t, pooled.Policies, 2,
+		"leader election must still concentrate the fleet, whatever the arms cost in convergence")
 }
 
 // TestFleet_CoordinationEpochIsTheSettingThatMatters checks whether the gap

@@ -28,6 +28,27 @@ const (
 	// would displace. It is the strongest general-purpose baseline in wide
 	// use, and the one an adaptive cache has to beat to justify itself.
 	TinyLFU
+	// S3FIFO evicts using three static FIFO queues: a small queue that holds
+	// newly admitted entries just long enough to see whether they are ever
+	// requested again, a main queue for the ones that were, and a ghost queue
+	// of keys recently evicted from the small one so a returning key is
+	// admitted straight to the main queue. It carries no recency list to
+	// reorder on a hit, which is what makes it both scalable and, on the
+	// traces its authors measured, more efficient than LRU-based designs.
+	//
+	// Cite: Yang, Zhang, Qiu, Yue & Rashmi, "FIFO Queues are All You Need for
+	// Cache Eviction", SOSP '23.
+	S3FIFO
+	// SIEVE evicts using a single FIFO queue and a hand that sweeps it,
+	// dropping the first entry it reaches that has not been visited since the
+	// hand last passed and clearing the visited bit of every entry it steps
+	// over. It carries no ghost queue, no frequency counter and no second
+	// queue, which makes it simpler than LRU while filtering keys requested
+	// only once for much the same reason S3FIFO does.
+	//
+	// Cite: Zhang, Yang, Yue, Vigfusson & Rashmi, "SIEVE is Simpler than LRU:
+	// an Efficient Turn-Key Eviction Algorithm for Web Caches", NSDI '24.
+	SIEVE
 )
 
 // MigrationStrategy controls how key/value pairs are transferred when the
