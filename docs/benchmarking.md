@@ -28,8 +28,11 @@ not in your control:
   **Random is not**, despite being the simplest arm here: it seeds itself from
   the global source at construction, so three identical replays served 44, 44
   and 40 hits over 20,000 requests. It is in `DefaultArms` as the control arm,
-  so replays through `benchclient` are reproducible up to that arm's jitter
-  rather than exactly.
+  so replays through `benchclient` are reproducible up to that arm rather than
+  exactly — and note that Random is not always the weak arm it looks like: on
+  a cyclic workload it serves 82.2% where LRU and LFU serve 0.00%, so the
+  workloads where the bandit would actually pick it are the ones that inherit
+  its jitter.
   **W-TinyLFU is not**: otter evicts asynchronously and reports an approximate
   size, so replaying one trace three times against it directly gave three
   different hit counts and left 527, 504 and 545 entries in a cache with a

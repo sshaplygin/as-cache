@@ -113,12 +113,15 @@ type Cache[K comparable, V any] struct {
 // Random is the exception, and it is a real one rather than a caveat: it seeds
 // itself from the global source at construction (see policies.NewRandom), so
 // two replays of one trace do not agree. Measured over 20,000 requests against
-// a 50-entry cache, three identical replays served 44, 44 and 40 hits. Its
-// contribution is bounded - it is one arm of five, and the worst-performing
-// one on every workload measured here, so it is rarely the arm the bandit
-// selects - but a replay through this package is reproducible up to that arm's
-// jitter, not exactly. Giving RandomCache a fixed default seed would close
-// this; it is a behaviour change to a published module and has not been made.
+// a 50-entry cache, three identical replays served 44, 44 and 40 hits.
+//
+// Do not assume that bounds the damage. Random is not a weak arm everywhere -
+// on a cyclic workload it serves 82.2% where LRU and LFU serve 0.00%, making it
+// the best of these five - so it is exactly the workloads where the bandit
+// would select it that inherit its jitter. A replay through this package is
+// reproducible up to that arm, not exactly. Giving RandomCache a fixed default
+// seed would close it; that is a behaviour change to a published module and
+// has not been made.
 //
 // Two absences are deliberate.
 //

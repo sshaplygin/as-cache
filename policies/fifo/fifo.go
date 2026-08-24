@@ -37,6 +37,7 @@
 package fifo
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/scalalang2/golang-fifo/s3fifo"
@@ -80,33 +81,48 @@ type Cache[K comparable, V any] struct {
 	evictions uint64
 }
 
-// NewS3FIFO returns an S3-FIFO cache holding up to size entries. A size of zero
-// or less means the cache holds nothing.
-func NewS3FIFO[K comparable, V any](size int) *Cache[K, V] {
-	return newCache(size, func(size int) types.Cache[K, V] {
+// NewS3FIFO returns an S3-FIFO cache holding up to size entries.
+//
+// A size of zero or less is an error, which is what NewLRU, NewLFU and
+// NewTwoQueue all do. A cache built at zero would accept nothing and report no
+// hits for as long as it existed, and as a bandit arm that is a silent no-op
+// rather than a policy - the constructor is the last place it can be caught.
+//
+// Resizing an existing cache to zero remains legal, and is a separate case:
+// AdaptiveCache.Resize passes its own new capacity through to every policy, so
+// a caller resizing the whole cache to zero resizes each arm to zero. (A
+// shadow policy's miniature capacity never reaches zero on its own - both
+// scaledCapacity and shadowCapacity floor it at one.) See Resize.
+func NewS3FIFO[K comparable, V any](size int) (*Cache[K, V], error) {
+	return newCache(size, "s3-fifo", func(size int) types.Cache[K, V] {
 		return s3fifo.New[K, V](size, 0)
 	})
 }
 
-// NewSieve returns a SIEVE cache holding up to size entries. A size of zero or
-// less means the cache holds nothing.
-func NewSieve[K comparable, V any](size int) *Cache[K, V] {
-	return newCache(size, func(size int) types.Cache[K, V] {
+// NewSieve returns a SIEVE cache holding up to size entries.
+//
+// A size of zero or less is an error, for the reasons given on NewS3FIFO.
+func NewSieve[K comparable, V any](size int) (*Cache[K, V], error) {
+	return newCache(size, "sieve", func(size int) types.Cache[K, V] {
 		return sieve.New[K, V](size, 0)
 	})
 }
 
 // newCache builds an adapter around one of the library's constructors.
-func newCache[K comparable, V any](size int, newInner builder[K, V]) *Cache[K, V] {
-	if size < 0 {
-		size = 0
+func newCache[K comparable, V any](
+	size int,
+	name string,
+	newInner builder[K, V],
+) (*Cache[K, V], error) {
+	if size <= 0 {
+		return nil, fmt.Errorf("build %s cache: must provide a positive size", name)
 	}
 
 	c := &Cache[K, V]{newInner: newInner, size: size}
 	c.resetIndexLocked(size)
 	c.inner = c.build(size)
 
-	return c
+	return c, nil
 }
 
 // build constructs an underlying cache of the given size with the eviction
@@ -157,245 +173,15 @@ func (c *Cache[K, V]) onEvicted(key K, _ V, reason types.EvictReason) {
 	}
 }
 
-// Add stores a value, reporting whether storing it evicted another entry.
-//
-// The eviction count is exact rather than inferred: the library reports each
-// eviction through the callback, so this counts them instead of guessing from
-// the length as the 2Q, ARC and W-TinyLFU adapters have to.
-//
-// One upstream behaviour is worth knowing, and both algorithms have it: a
-// write over an existing key counts as an access. S3-FIFO raises the entry's
-// frequency counter and SIEVE sets its visited bit. Neither paper counts a
-// write that way, and this repository's shadow policies are driven with Add,
-// so an arm on shadow duty looks more used here than it should.
-func (c *Cache[K, V]) Add(key K, value V) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.inner == nil {
-		// A cache of zero capacity holds nothing, and nothing was evicted to
-		// make room, because nothing was stored.
-		return false
-	}
-
-	before := c.evictions
-	c.trackLocked(key)
-	c.inner.Set(key, value)
-
-	return c.evictions > before
-}
-
-// Get returns the value for key, if present, and records the access so the
-// entry's frequency counter rises.
-func (c *Cache[K, V]) Get(key K) (V, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.inner == nil {
-		var zero V
-
-		return zero, false
-	}
-
-	return c.inner.Get(key)
-}
-
-// Peek returns the value for key without recording an access.
-func (c *Cache[K, V]) Peek(key K) (V, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.inner == nil {
-		var zero V
-
-		return zero, false
-	}
-
-	return c.inner.Peek(key)
-}
-
-// Contains reports whether key is cached, without recording an access. A key
-// remembered only by the ghost queue is not cached and is not reported.
-func (c *Cache[K, V]) Contains(key K) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.inner == nil {
-		return false
-	}
-
-	return c.inner.Contains(key)
-}
-
-// Remove deletes key, reporting whether it was present.
-func (c *Cache[K, V]) Remove(key K) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.inner == nil {
-		return false
-	}
-
-	// The library's callback removes the key from the index for us.
-	return c.inner.Remove(key)
-}
-
-// Purge empties the cache.
-func (c *Cache[K, V]) Purge() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.inner != nil {
-		// The callback is detached first because the two algorithms disagree
-		// about whether Purge runs it: S3-FIFO deletes its entries directly,
-		// while SIEVE walks every entry through removeEntry, which does. The
-		// index is rebuilt on the next line either way, so those callbacks can
-		// only do redundant work - a map delete and a slice swap per entry,
-		// measured at over ten times the cost of the purge itself on a
-		// 20,000-entry cache, paid on every policy switch because migrateData
-		// purges the incoming policy.
-		c.inner.SetOnEvicted(nil)
-		c.inner.Purge()
-		c.inner.SetOnEvicted(c.onEvicted)
-	}
-	c.resetIndexLocked(c.size)
-}
-
-// Keys returns the cached keys.
-//
-// The order is this adapter's insertion order with removals filled by moving
-// the last key into the vacated slot, because golang-fifo exposes no way to
-// walk its queues. It is arbitrary, it is not an eviction order, and it is not
-// stable across mutations - a Keys call and a later Values call may disagree
-// if the cache changed in between, though each call on its own is consistent.
-//
-// AdaptiveCache uses this order in two places where a policy's own ordering
-// would be preferable: warm migration copies entries in it, and demotion
-// rewrites values in it. The arbitrary order is not what costs anything there
-// - see the note on ascache's demoteLocked, where the cost is that the rewrite
-// counts as an access at all, which for SIEVE sets the one bit its eviction
-// decision is made on. Neither is incorrect with an arbitrary order, but
-// neither gets the benefit a policy that can report its own recency gives.
-func (c *Cache[K, V]) Keys() []K {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	return c.snapshotLocked()
-}
-
-// Values returns the cached values, in the same order as the Keys returned by
-// the same snapshot.
-func (c *Cache[K, V]) Values() []V {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.inner == nil {
-		return nil
-	}
-
-	keys := c.snapshotLocked()
-	values := make([]V, 0, len(keys))
-	for _, key := range keys {
-		value, ok := c.inner.Peek(key)
-		if !ok {
-			continue
-		}
-		values = append(values, value)
-	}
-
-	return values
-}
-
-// Len returns the number of cached entries.
-//
-// It is answered from this adapter's index rather than by asking the library.
-// golang-fifo's S3-FIFO reads its two queues in Len without taking its mutex,
-// so calling that concurrently with a write is a data race the detector will
-// report. Its SIEVE does lock; answering both the same way here keeps the
-// hazard out of reach rather than depending on which algorithm is wrapped.
-func (c *Cache[K, V]) Len() int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	return len(c.keys)
-}
-
-// Cap returns the capacity.
-func (c *Cache[K, V]) Cap() int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	return c.size
-}
-
-// Resize changes the capacity to size and returns the number of entries
-// evicted to reach it.
-//
-// golang-fifo cannot be resized, so this rebuilds it at the new size and
-// replays the entries that fit. **The rebuilt cache starts with an empty ghost
-// queue and every frequency counter back at zero**, which is most of what
-// S3-FIFO knows: an entry that had earned the main queue has to earn it again,
-// and a key evicted just before the resize no longer gets its second chance.
-//
-// That matters more here than for the 2Q and ARC adapters, which pay the same
-// cost, because AdaptiveCache resizes a policy every time it is promoted or
-// demoted. A policy that changes role often is a policy that is permanently
-// re-learning, and it will under-report its own hit rate while it does.
-//
-// A size of zero or less empties the cache and holds nothing.
-func (c *Cache[K, V]) Resize(size int) int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if size < 0 {
-		size = 0
-	}
-	if size == c.size {
-		return 0
-	}
-
-	before := len(c.keys)
-
-	type entry struct {
-		key   K
-		value V
-	}
-	kept := make([]entry, 0, before)
-	if c.inner != nil {
-		for _, key := range c.snapshotLocked() {
-			value, ok := c.inner.Peek(key)
-			if !ok {
-				continue
-			}
-			kept = append(kept, entry{key: key, value: value})
-		}
-		// Detached for the same reason as in Purge: SIEVE's Close purges, and
-		// purging runs the callback per entry against an index this function
-		// is about to replace wholesale.
-		c.inner.SetOnEvicted(nil)
-		c.inner.Close()
-	}
-
-	c.size = size
-	c.resetIndexLocked(size)
-	c.inner = c.build(size)
-
-	if c.inner != nil {
-		for _, e := range kept {
-			// Tracked before the write, so the callback can find and drop any
-			// key the rebuilt cache evicts to make room for a later one.
-			c.trackLocked(e.key)
-			c.inner.Set(e.key, e.value)
-		}
-	}
-
-	return before - len(c.keys)
-}
-
 // NewS3FIFOPolicy returns an S3-FIFO policy of the given size, ready to be used
 // as a bandit arm.
 func NewS3FIFOPolicy[K comparable, V any](size int) (ascache.Policy[K, V], error) {
-	return ascache.NewCache[K, V](NewS3FIFO[K, V](size), ascache.S3FIFO, size), nil
+	cache, err := NewS3FIFO[K, V](size)
+	if err != nil {
+		return nil, err
+	}
+
+	return ascache.NewCache[K, V](cache, ascache.S3FIFO, size), nil
 }
 
 // NewSievePolicy returns a SIEVE policy of the given size, ready to be used as
@@ -406,7 +192,12 @@ func NewS3FIFOPolicy[K comparable, V any](size int) (ascache.Policy[K, V], error
 // first-out probation period against a sweeping hand - and SIEVE keeps no ghost
 // queue at all, so it costs less and sees less.
 func NewSievePolicy[K comparable, V any](size int) (ascache.Policy[K, V], error) {
-	return ascache.NewCache[K, V](NewSieve[K, V](size), ascache.SIEVE, size), nil
+	cache, err := NewSieve[K, V](size)
+	if err != nil {
+		return nil, err
+	}
+
+	return ascache.NewCache[K, V](cache, ascache.SIEVE, size), nil
 }
 
 var _ ascache.Cacher[string, int] = (*Cache[string, int])(nil)

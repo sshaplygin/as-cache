@@ -8,6 +8,18 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Bug fix: a gradual migration could serve a shadow's zero value as real
+  data.** While a `MigrationGradual` window is open the source policy is
+  deliberately not demoted - it holds the only copy of every value not yet
+  promoted - but it is also not the active policy, so the shadow read fan-out
+  filled it with zero values on a miss. `promoteLocked` reads those values back
+  with `Peek`, which cannot tell a zero somebody wrote from a real value still
+  pending, so the zero was promoted into the active policy and returned to the
+  caller as a hit. The fan-out now skips the migration source until its window
+  closes. Reachable whenever the working set exceeds the capacity during a
+  window; a test whose working set exactly fits never evicts and so could not
+  catch it, which is why the existing gradual-migration test did not.
+
 - **Bug fix: shadow policies could only acquire keys the active policy had
   missed**, which made every shadow measurement unreliable whenever the active
   policy was performing well, and inverted it outright behind a strong one.
@@ -100,7 +112,11 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   so the adapter answers `Len` from its own index for both algorithms rather
   than depending on which is wrapped. And neither can be built at size zero -
   SIEVE panics, S3-FIFO loops waiting to evict from an empty cache and never
-  returns - so the adapter holds no cache in that state.
+  returns - so both constructors reject a non-positive size and return an
+  error, matching `NewLRU`, `NewLFU` and `NewTwoQueue`. An arm built at zero
+  would accept nothing and report no hits for its whole life, which is a silent
+  no-op rather than a policy. Resizing an existing cache to zero stays legal,
+  since `AdaptiveCache.Resize` passes its own capacity through to every arm.
 - **Upstream counts a write as an access** for both algorithms - `Set` over a
   live key raises S3-FIFO's frequency counter and sets SIEVE's visited bit -
   which neither paper does. Shadow policies are driven with `Add`, so these

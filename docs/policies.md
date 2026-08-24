@@ -86,6 +86,32 @@ It is also the one arm that is not deterministic, which matters for
 
 ## S3-FIFO and SIEVE
 
+Both constructors reject a size of zero or less, as `NewLRU`, `NewLFU` and
+`NewTwoQueue` do: a cache built at zero would accept nothing and report no hits
+for as long as it existed, which as a bandit arm is a silent no-op rather than
+a policy. Resizing an existing cache to zero is still legal, which is a
+different case — `AdaptiveCache.Resize` passes its own new capacity through to
+every arm, so resizing the whole cache to zero resizes each of them to zero.
+(`Random` and `TTL` still accept a zero size at construction; the inconsistency
+is theirs to resolve, not something these two should copy.)
+
+**S3-FIFO can drop about a tenth of the cache in a single `Add`**, and that
+interacts with the capacity gate. Upstream's eviction promotes entries out of
+the small queue rather than discarding them, and each promotion that overflows
+the main queue evicts from it — so when the whole small queue holds entries
+worth promoting, one write drains it and takes `size/10` entries with it.
+Measured at capacity 1000: `Len()` went 1000 → 901 on one `Add`, recovering on
+the next refill. SIEVE is unaffected.
+
+That matters because `EvictPartialCapacityFilling: false` (the default) holds
+off policy switching until `Len() == Cap()` exactly, so an arm sitting below
+its capacity has its epochs skipped entirely. The same caveat already applies
+to W-TinyLFU for a different reason. It is hard to reach from ordinary traffic
+— over 200k requests of zipf-ish and cyclic workloads both FIFO arms held
+`Len() == Cap()` on every sample — but if you construct the state (fill exactly
+to capacity, read everything several times, then write once) it is real. Set
+`EvictPartialCapacityFilling: true` if you would rather not think about it.
+
 ```bash
 go get github.com/sshaplygin/as-cache/policies/fifo
 ```

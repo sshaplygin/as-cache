@@ -23,6 +23,16 @@ func (c *Cache[K, V]) resetIndexLocked(capacity int) {
 		capacity = 0
 	}
 
+	// The reservation is capped rather than taken at face value. Both
+	// containers grow on demand, so reserving is an optimisation - but a
+	// capacity near the top of the int range asks make for an allocation the
+	// runtime refuses, and a panic from Resize would leave AdaptiveCache
+	// half-way through resizing its arms, some at the new size and some not.
+	// A cache that large cannot be filled anyway.
+	if capacity > maxIndexReservation {
+		capacity = maxIndexReservation
+	}
+
 	// Fresh containers rather than truncation: truncating keeps the backing
 	// array and every key in it reachable, so a Purge meant to release memory
 	// would pin the whole key set until an equal number of writes overwrote
@@ -30,6 +40,11 @@ func (c *Cache[K, V]) resetIndexLocked(capacity int) {
 	c.keys = make([]K, 0, capacity)
 	c.index = make(map[K]int, capacity)
 }
+
+// maxIndexReservation bounds how much the key index reserves up front. It is
+// far above any cache anyone will build and far below the point where make
+// refuses the request.
+const maxIndexReservation = 1 << 22
 
 // trackLocked records a key as present. Re-tracking a key already in the index
 // is a no-op, which is what a write over a live key needs.

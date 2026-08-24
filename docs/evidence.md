@@ -20,6 +20,11 @@ TTL shares a column with LRU because these workloads carry no notion of
 staleness and its TTL is longer than any run, so it measures its LRU behaviour
 exactly -- identically, to the hundredth of a point, on all five.
 
+Every arm here reproduces to the hundredth of a point between runs except
+W-TinyLFU, which does not: on `loop` it has measured 88.7% and 94.5% within a
+single process. Read its column, and any delta computed against it, with that
+in mind — the cause is in [reproducible replays](benchmarking.md).
+
 Two things stand out. LRU and LFU both score **exactly zero** on `loop`, where a
 cyclic scan just over capacity evicts every key immediately before it is needed
 again -- that is the textbook pathology, and it is worth knowing your workload
@@ -407,6 +412,13 @@ handful of keys -- `MinShadowCapacity` guards the degenerate end by raising the
 effective rate rather than letting a miniature shrink into noise.
 
 ## Does pooling across a fleet help?
+
+> **These figures predate two changes and have not been re-measured.** They were
+> taken before S3-FIFO and SIEVE joined the arm set, and before the shadow
+> measurement defect described under [real traces](#real-traces) was fixed —
+> and pooling works by sharing exactly the evidence that defect distorted. Treat
+> the direction as indicative and the numbers as stale until `make evidence` is
+> re-run against this section.
 
 **Only in the regime it was built for, and it is worth checking you are in that
 regime before turning it on.** All figures are 8 replicas, cache capacity 300

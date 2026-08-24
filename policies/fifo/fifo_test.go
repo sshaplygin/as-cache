@@ -1,6 +1,7 @@
 package fifo_test
 
 import (
+	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -271,7 +272,10 @@ func indexStaysInStep(t *testing.T, newS3FIFO build) {
 		case 0:
 			p.Remove(key)
 		case 1:
-			if i%5000 == 0 {
+			// Rare but reachable. Gating this on a second condition as well
+			// left it firing zero times in fifty thousand iterations, so the
+			// path was never covered at all.
+			if rng.Intn(64) == 0 {
 				p.Purge()
 			}
 		case 2:
@@ -347,33 +351,55 @@ func TestResizeDiscardsTheAlgorithmsState(t *testing.T) {
 func resizeDiscardsState(t *testing.T, newS3FIFO build) {
 	t.Helper()
 
-	const size = 40
+	const size = 16
 
-	// Same workload either side of the fork: fill, evict the early keys, then
-	// bring one of them back.
-	build := func(resize bool) int {
+	// survivesPressure reports whether a key made deliberately hot is still
+	// resident after the cache is pushed a full capacity past its limit.
+	survivesPressure := func(resize bool) bool {
 		p := newS3FIFO(t, size)
-		for i := 0; i < size*3; i++ {
-			p.Add("k"+strconv.Itoa(i), i)
+		for i := range size {
+			p.Add("k"+strconv.Itoa(i), value(i))
 		}
+
+		// Six reads is more than enough to saturate S3-FIFO's counter, which
+		// caps at three, and to set SIEVE's visited bit.
+		for range 6 {
+			p.Get("k0")
+		}
+
 		if resize {
 			// What a promotion or demotion does to a shadow policy.
 			p.Resize(size * 2)
 			p.Resize(size)
 		}
 
-		hits := 0
-		for i := 0; i < size*3; i++ {
-			if _, ok := p.Get("k" + strconv.Itoa(i)); ok {
-				hits++
-			}
+		for i := range size {
+			p.Add("fresh"+strconv.Itoa(i), value(i))
 		}
 
-		return hits
+		_, resident := p.Peek("k0")
+
+		return resident
 	}
 
-	assert.NotPanics(t, func() { build(true) })
-	t.Logf("hits after a replay: %d without a resize, %d with one", build(false), build(true))
+	assert.True(t, survivesPressure(false),
+		"a key read six times must outlive keys read none; if it does not, the "+
+			"eviction state this test is about is not being built in the first place")
+
+	// The claim this test exists for. Upstream cannot resize, so the adapter
+	// rebuilds and replays every entry, and the replay carries values only -
+	// S3-FIFO's frequency counters and ghost queue and SIEVE's visited bits and
+	// hand position do not survive it. The hot key is therefore indistinguishable
+	// from the cold ones afterwards and is evicted with them.
+	//
+	// This costs a policy that changes role often, since AdaptiveCache resizes
+	// on every promotion and demotion: such an arm is permanently re-learning
+	// and under-reports itself. Asserting merely that a resize does not panic
+	// would pass just as happily if the state were preserved, which is the
+	// thing being denied.
+	assert.False(t, survivesPressure(true),
+		"after a rebuild-to-resize the hot key must be as evictable as any other; "+
+			"if it survived, the adapter kept state the rebuild is documented to discard")
 }
 
 // TestReplayIsDeterministic is a requirement of this arm being in
@@ -626,16 +652,24 @@ func TestArmsSurviveRoleChangesUnderConcurrency(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = cache.Close() })
 
-	var wg sync.WaitGroup
+	// Failures are collected rather than asserted in place: require.* calls
+	// FailNow, which is only legal on the goroutine running the test, and from
+	// a spawned one it kills that goroutine instead - leaving the WaitGroup
+	// waiting forever or the failure misreported.
+	var (
+		wg     sync.WaitGroup
+		mu     sync.Mutex
+		faults []string
+	)
+
 	for g := 0; g < 8; g++ {
 		wg.Add(1)
 		go func(seed int) {
 			defer wg.Done()
 
 			for i := 0; i < 3000; i++ {
-				key := "key-" + strconv.Itoa((seed*7+i)%(size*2))
-				id, convErr := strconv.Atoi(key[4:])
-				require.NoError(t, convErr)
+				id := (seed*7 + i) % (size * 2)
+				key := "key-" + strconv.Itoa(id)
 
 				got, ok := cache.Get(key)
 				if !ok {
@@ -643,11 +677,131 @@ func TestArmsSurviveRoleChangesUnderConcurrency(t *testing.T) {
 
 					continue
 				}
-				require.Equal(t, value(id), got, "key %q returned a value nobody stored", key)
+				if got != value(id) {
+					mu.Lock()
+					faults = append(faults,
+						fmt.Sprintf("Get(%q) returned %d, but only %d was ever stored for it",
+							key, got, value(id)))
+					mu.Unlock()
+
+					return
+				}
 			}
 		}(g)
 	}
 	wg.Wait()
 
+	assert.Empty(t, faults, "a caller read a value nobody stored")
 	assert.LessOrEqual(t, cache.Len(), size)
+}
+
+// TestConstructorsRejectANonPositiveSize pins the behaviour every sibling
+// adapter already has. A cache built at zero accepts nothing and reports no
+// hits for as long as it exists, so as a bandit arm it is a silent no-op that
+// drags the whole comparison down without ever looking broken. The constructor
+// is the last place that can be caught.
+func TestConstructorsRejectANonPositiveSize(t *testing.T) {
+	for _, size := range []int{0, -1, -100} {
+		t.Run(strconv.Itoa(size), func(t *testing.T) {
+			s3, err := fifo.NewS3FIFO[string, int](size)
+			require.Error(t, err, "NewS3FIFO(%d) must fail", size)
+			assert.Contains(t, err.Error(), "positive size")
+			assert.Nil(t, s3, "a failed constructor must not hand back a cache to dereference")
+
+			sv, err := fifo.NewSieve[string, int](size)
+			require.Error(t, err, "NewSieve(%d) must fail", size)
+			assert.Contains(t, err.Error(), "positive size")
+			assert.Nil(t, sv)
+
+			s3Policy, err := fifo.NewS3FIFOPolicy[string, int](size)
+			require.Error(t, err, "NewS3FIFOPolicy(%d) must fail", size)
+			assert.Contains(t, err.Error(), "positive size")
+			assert.Nil(t, s3Policy, "a nil interface, not a typed nil wrapped in one")
+
+			svPolicy, err := fifo.NewSievePolicy[string, int](size)
+			require.Error(t, err, "NewSievePolicy(%d) must fail", size)
+			assert.Contains(t, err.Error(), "positive size")
+			assert.Nil(t, svPolicy)
+		})
+	}
+
+	// The matching sibling behaviour, so this test fails if the analogy it
+	// rests on ever stops holding.
+	_, lruErr := policies.NewLRU[string, int](0)
+	require.Error(t, lruErr, "the LRU adapter this mirrors must also reject zero")
+}
+
+// TestResizeToZeroIsStillLegal separates the two cases. Refusing to build a
+// cache at zero must not stop an existing one being resized to zero, which is
+// reachable through AdaptiveCache.Resize: it passes its own new capacity
+// through to every arm, so a caller resizing the whole cache to zero resizes
+// each of them to zero. (A shadow's miniature capacity never reaches zero on
+// its own; scaledCapacity and shadowCapacity both floor it at one.)
+func TestResizeToZeroIsStillLegal(t *testing.T) {
+	forEachAlgorithm(t, func(t *testing.T, newPolicy build) {
+		t.Helper()
+
+		p := newPolicy(t, 8)
+		for i := 0; i < 8; i++ {
+			p.Add("key-"+strconv.Itoa(i), i)
+		}
+
+		p.Resize(0)
+
+		assert.Zero(t, p.Len(), "a policy resized to zero must hold nothing")
+		assert.Empty(t, p.Keys())
+		assert.Empty(t, p.Values())
+
+		p.Add("x", 1)
+		assert.Zero(t, p.Len(), "and must accept nothing afterwards")
+
+		// And back up again, which is the promotion path.
+		p.Resize(8)
+		p.Add("y", 2)
+		got, ok := p.Get("y")
+		require.True(t, ok, "a policy resized back up must accept entries again")
+		assert.Equal(t, 2, got)
+	})
+}
+
+// TestKeysAndValuesCorrespond checks the contract that matters rather than the
+// one that is easy to check. Equal lengths are not enough: if Values ever
+// misplaced an entry Keys had reported, every value after the gap would be
+// attributed to the wrong key, and the lengths alone would not reveal it. The
+// non-zero assertion covers the other way of getting the length right and the
+// contents wrong - padding a gap with a zero value, which is the shape of the
+// defect this repository documents against expirable.LRU.
+func TestKeysAndValuesCorrespond(t *testing.T) {
+	forEachAlgorithm(t, func(t *testing.T, newPolicy build) {
+		t.Helper()
+
+		const size = 32
+		p := newPolicy(t, size)
+
+		// Churn well past capacity so evictions, overwrites and removals have
+		// all happened before the snapshot is taken.
+		for i := 0; i < size*10; i++ {
+			key := "key-" + strconv.Itoa(i%(size*2))
+			p.Add(key, value(i%(size*2)))
+			if i%7 == 0 {
+				p.Get(key)
+			}
+			if i%11 == 0 {
+				p.Remove("key-" + strconv.Itoa((i*3)%(size*2)))
+			}
+		}
+
+		keys, values := p.Keys(), p.Values()
+		require.Len(t, values, len(keys),
+			"Keys and Values must describe the same set of entries")
+
+		for i, key := range keys {
+			want, ok := p.Peek(key)
+			require.True(t, ok, "Keys returned %q, which the cache does not hold", key)
+			assert.Equal(t, want, values[i],
+				"Values[%d] belongs to key %q but holds another entry's value", i, key)
+			assert.NotZero(t, values[i],
+				"no stored value is zero here, so a zero at index %d is a padded placeholder", i)
+		}
+	})
 }
