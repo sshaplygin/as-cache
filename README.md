@@ -41,10 +41,12 @@ numbers are there so you do not have to take "experimental" or
 Three things are worth knowing before adopting it.
 
 **No single policy wins everywhere, and that is the point.** On real traces the
-best fixed policy changes: 2Q wins on the Twitter and OLTP traces, W-TinyLFU on
-the ARC P3 and LIRS traces -- and on OLTP, W-TinyLFU is second-*worst*. Tuned
-sensibly, adaptive selection lands within about a point of the best fixed
-policy on most traces and beats it on one, without being told which to pick.
+best fixed policy changes, and **four different policies win across six
+traces**: SIEVE on Twitter, S3-FIFO on Meta, 2Q on OLTP, W-TinyLFU on ARC P3
+and the LIRS ones. Tuned sensibly, adaptive selection lands within 1.4 points
+of the best fixed policy on four of six traces and **beats every fixed policy
+on the other two**, without being told which to pick. It does not manage that
+on any of the synthetic workloads.
 
 **It is sensitive to configuration.** The same traces with a too-short epoch
 lose up to 7 points and cost 30x the per-operation time, because the cache
@@ -54,9 +56,10 @@ your own numbers.
 
 **Memory costs less than the obvious guess.** Running N policies in parallel
 does not multiply memory by N, because shadow policies hold keys and eviction
-bookkeeping but never real values -- 2.65x for six policies, 1.32x with
-sampling on. Per-operation cost is 32 ns/op for a single LRU against 82 sampled
-and 618 unsampled; the [full tables](docs/evidence.md#memory-and-per-operation-cost)
+bookkeeping but never real values -- 3.92x for eight policies, 1.40x with
+sampling on, and each shadow costs 0.42x what a full cache of the same entries
+does. Per-operation cost is 32 ns/op for a single LRU against 90 sampled and
+856 unsampled; the [full tables](docs/evidence.md#memory-and-per-operation-cost)
 have the details.
 
 ### When to use it
@@ -124,6 +127,8 @@ example with an HTTP server and a Thompson Sampling adapter (via
 | TTL | `policies.NewTTL` | expiry as well as recency |
 | ARC | `policies/arc.NewPolicy` | separate module — patented by IBM |
 | W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; the strongest baseline |
+| S3-FIFO | `policies/fifo.NewS3FIFOPolicy` | separate module; three FIFO queues, no recency list, deterministic |
+| SIEVE | `policies/fifo.NewSievePolicy` | same module; one FIFO queue and a sweeping hand |
 
 Details and caveats in [docs/policies.md](docs/policies.md).
 

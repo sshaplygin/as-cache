@@ -32,6 +32,8 @@ cache, err := ascache.NewAdaptiveCache(
 | TTL | `policies.NewTTL` | expiry as well as recency |
 | ARC | `policies/arc.NewPolicy` | separate module — see below |
 | W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; the strongest baseline |
+| S3-FIFO | `policies/fifo.NewS3FIFOPolicy` | separate module; three FIFO queues, and deterministic |
+| SIEVE | `policies/fifo.NewSievePolicy` | same module; one FIFO queue and a sweeping hand |
 
 `Random` is worth keeping in the mix precisely because it assumes nothing: a
 policy that cannot beat random on your traffic is not earning its bookkeeping.
@@ -81,6 +83,140 @@ comparison is sound.
 
 It is also the one arm that is not deterministic, which matters for
 [reproducible replays](benchmarking.md).
+
+## S3-FIFO and SIEVE
+
+Both constructors reject a size of zero or less, as `NewLRU`, `NewLFU` and
+`NewTwoQueue` do: a cache built at zero would accept nothing and report no hits
+for as long as it existed, which as a bandit arm is a silent no-op rather than
+a policy. Resizing an existing cache to zero is still legal, which is a
+different case — `AdaptiveCache.Resize` passes its own new capacity through to
+every arm, so resizing the whole cache to zero resizes each of them to zero.
+(`Random` and `TTL` still accept a zero size at construction; the inconsistency
+is theirs to resolve, not something these two should copy.)
+
+**S3-FIFO can drop about a tenth of the cache in a single `Add`**, and that
+interacts with the capacity gate. Upstream's eviction promotes entries out of
+the small queue rather than discarding them, and each promotion that overflows
+the main queue evicts from it — so when the whole small queue holds entries
+worth promoting, one write drains it and takes `size/10` entries with it.
+Measured at capacity 1000: `Len()` went 1000 → 901 on one `Add`, recovering on
+the next refill. SIEVE is unaffected.
+
+That matters because `EvictPartialCapacityFilling: false` (the default) holds
+off policy switching until `Len() == Cap()` exactly, so an arm sitting below
+its capacity has its epochs skipped entirely. The same caveat already applies
+to W-TinyLFU for a different reason. It is hard to reach from ordinary traffic
+— over 200k requests of zipf-ish and cyclic workloads both FIFO arms held
+`Len() == Cap()` on every sample — but if you construct the state (fill exactly
+to capacity, read everything several times, then write once) it is real. Set
+`EvictPartialCapacityFilling: true` if you would rather not think about it.
+
+```bash
+go get github.com/sshaplygin/as-cache/policies/fifo
+```
+
+```go
+s3, err := fifo.NewS3FIFOPolicy[string, int](10000)
+sv, err := fifo.NewSievePolicy[string, int](10000)
+```
+
+Both are carried in one module, backed by
+[scalalang2/golang-fifo](https://github.com/scalalang2/golang-fifo) (MIT), so
+that dependency stays out of builds that do not use these arms. They share a
+module because they share a dependency and an adapter, not because they are the
+same algorithm.
+
+Neither reorders anything on a cache hit — that omission is what makes both
+cheap and scalable — and both are **deterministic**, which is what a
+[reproducible replay](benchmarking.md) needs and what W-TinyLFU cannot offer.
+
+### S3-FIFO
+
+S3-FIFO is three static FIFO queues and nothing else — no recency list, and no
+reordering on a hit. A new key enters a **small** queue holding a tenth of the
+cache. Reaching the tail of that queue is the admission test: a key requested
+at least twice since it was admitted moves to the **main** queue, and one that
+was not is evicted, with its key kept in a **ghost** queue that holds no
+values. A key that comes back while its ghost entry is live skips probation and
+is admitted straight to the main queue, which evicts by FIFO-reinsertion over a
+counter capped at three.
+
+The observation it is built on is that in real workloads most keys are
+requested exactly once, so a policy that keeps them until they age out spends
+most of its capacity on keys nobody will read again. Its authors report lower
+miss ratios than the LRU-based state of the art across several thousand traces
+(Yang, Zhang, Qiu, Yue & Rashmi, *FIFO Queues are All You Need for Cache
+Eviction*, SOSP '23).
+
+It is in `benchclient.DefaultArms` for that reason.
+
+### SIEVE
+
+SIEVE is simpler still: **one** FIFO queue and a hand that sweeps it from the
+oldest end. Each entry carries a single visited bit, set when it is read. The
+hand walks backwards looking for an entry whose bit is clear, clearing the bit
+of every entry it steps over, and evicts the first one it finds. No ghost
+queue, no counters, no second queue.
+
+The effect is much the same filtering S3-FIFO's small queue performs — a key
+requested once is evicted on the hand's first pass, a key requested again
+survives one more — reached with far less bookkeeping. Its authors report hit
+rates competitive with the state of the art and higher throughput than LRU
+(Zhang, Yang, Yue, Vigfusson & Rashmi, *SIEVE is Simpler than LRU*, NSDI '24).
+
+Carrying it *alongside* S3-FIFO rather than instead of it is the point: both
+filter one-hit keys, but on different evidence, and SIEVE keeps no ghost queue
+at all — so it costs less and sees less. Which of the two wins is a property of
+your traffic, which is the argument this whole library rests on.
+
+### What the adapter has to supply, and what that costs
+
+This applies to both arms; they share the adapter.
+
+`golang-fifo` exposes `Set`/`Get`/`Remove`/`Contains`/`Peek`/`Len`/`Purge`/
+`Close`. `Cacher` also needs `Keys`, `Values`, `Resize` and `Cap`, and needs
+`Add` to report whether it evicted. None of those exist upstream. Three
+consequences are worth knowing before you read either arm's numbers.
+
+**`Resize` rebuilds the cache, discarding everything the algorithm has
+learned.** The rebuilt cache starts with an empty ghost queue and every
+frequency counter at zero: an entry that had earned the main queue must earn it
+again, and a key evicted just before the resize loses its second chance. That
+is the same cost the [2Q and ARC adapters](#adapting-your-own-cache) pay — but
+`AdaptiveCache` resizes a policy every time it is promoted or demoted, so an
+arm that changes role often is an arm that is permanently re-learning, and it
+under-reports its own hit rate while it does.
+
+**The adapter keeps a second copy of the key set.** There is no way to
+enumerate the library's contents, so `Keys` and `Values` are served from an
+index the adapter maintains through the library's eviction callback. Keys are
+stored twice; values are not. The order that index yields is arbitrary and is
+not an eviction order.
+
+**Upstream counts a write as an access.** `Set` on a key already present raises
+S3-FIFO's frequency counter, and sets SIEVE's visited bit. Neither paper counts
+a write that way, and shadow policies here are driven with `Add`, so an arm on
+shadow duty looks more used than it should.
+
+Two smaller notes. The adapter always builds with a TTL of zero, which is
+load-bearing: a non-zero TTL starts a background goroutine that would invoke
+the eviction callback from a goroutine the adapter never entered, and the
+callback deliberately runs without taking the adapter's lock. And the adapter
+answers `Len` from its own index rather than calling upstream's, because
+upstream's S3-FIFO reads its queues in `Len` without taking its mutex. (Its
+SIEVE does lock; answering both the same way keeps the hazard out of reach
+rather than depending on which algorithm is wrapped.)
+
+### S3-FIFO's ghost queue is a hard horizon
+
+A key is promoted out of the small queue only if it is requested again **while
+it is still there or still in the ghost queue**. On a workload whose reuse
+distances are longer than that window, S3-FIFO sends keys round the small queue
+forever and never promotes anything — it serves 0.00% on the LIRS `loop` trace,
+tied with LRU, LFU, 2Q, TTL and ARC. That is the algorithm working as designed,
+and it is why this is not uniformly better than LRU. See
+[evidence](evidence.md).
 
 ## Adapting your own cache
 

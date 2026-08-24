@@ -4,6 +4,124 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and from v0.1.0 the
 project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Bug fix: a gradual migration could serve a shadow's zero value as real
+  data.** While a `MigrationGradual` window is open the source policy is
+  deliberately not demoted - it holds the only copy of every value not yet
+  promoted - but it is also not the active policy, so the shadow read fan-out
+  filled it with zero values on a miss. `promoteLocked` reads those values back
+  with `Peek`, which cannot tell a zero somebody wrote from a real value still
+  pending, so the zero was promoted into the active policy and returned to the
+  caller as a hit. The fan-out now skips the migration source until its window
+  closes. Reachable whenever the working set exceeds the capacity during a
+  window; a test whose working set exactly fits never evicts and so could not
+  catch it, which is why the existing gradual-migration test did not.
+
+- **Bug fix: shadow policies could only acquire keys the active policy had
+  missed**, which made every shadow measurement unreliable whenever the active
+  policy was performing well, and inverted it outright behind a strong one.
+  `AdaptiveCache.get` fanned out only `Get` to the shadows; the sole insert
+  path was the caller's `Add`, which a read-through caller makes only on an
+  active-policy miss. Measured on a cyclic workload with a 94%-hit incumbent,
+  arms that truly serve 0.00% were reported above 90%, and `Advice()`
+  recommended switching from the best arm to the worst. A shadow that misses
+  now fills itself, and the `Add` fan-out skips keys a shadow already holds so
+  the fill is not double-counted as an access.
+  - Every measured number in `docs/evidence.md` was re-run. Adaptive selection
+    now beats the best fixed policy on **two of the six real traces** rather
+    than one: LIRS `loop` moved from -7.45 points to +0.12, while P3's margin
+    shrank from +1.13 to +0.05. The synthetic conclusion is unchanged - on
+    those five workloads it still never beats the best fixed policy.
+  - `TestShadowsMeasureWhatThePolicyWouldActuallyServe` pins the property that
+    was missing: a shadow's measured hit rate must equal the same policy
+    replayed standalone. Every deterministic arm now matches to within 0.005.
+
+- **S3-FIFO and SIEVE arms** (`policies/fifo`, `ascache.S3FIFO` and
+  `ascache.SIEVE`) - a new module adapting
+  [scalalang2/golang-fifo](https://github.com/scalalang2/golang-fifo) v1.2.0
+  (MIT), kept separate so that dependency stays out of builds that do not use
+  these arms.
+  - **S3-FIFO** uses three static FIFO queues: a small queue holding a tenth of
+    the cache filters keys requested only once, a ghost queue remembers what it
+    evicted so a returning key is admitted on its second request rather than
+    its third, and the main queue evicts by FIFO-reinsertion over a counter
+    capped at three. Cite: Yang, Zhang, Qiu, Yue & Rashmi, *FIFO Queues are All
+    You Need for Cache Eviction*, SOSP '23.
+  - **SIEVE** uses one FIFO queue and a hand that sweeps it, evicting the first
+    entry it reaches that has not been visited since the hand last passed and
+    clearing the visited bit of every entry it steps over. No ghost queue, no
+    counters, no second queue. Cite: Zhang, Yang, Yue, Vigfusson & Rashmi,
+    *SIEVE is Simpler than LRU*, NSDI '24.
+
+  Both are deterministic and neither reorders anything on a hit. They share one
+  module and one adapter because they come from one dependency and need the
+  same four missing methods supplied; giving each its own module would have
+  duplicated ~300 lines of deadlock-sensitive glue.
+- **`benchclient.DefaultArms` now includes S3-FIFO.** The set exists to be
+  deterministic and unencumbered, and S3-FIFO is both. This changes the arms a
+  replay through `benchclient` runs, and therefore its numbers. SIEVE is
+  deliberately not in it: arms are not free, each one thins the evidence every
+  other arm gets per epoch, and a default set is the wrong place to add a
+  second policy from the same family.
+- **MSR Cambridge trace loader** (`bench.LoadMSRTrace`). Reads the SNIA IOTTA
+  block I/O layout `Timestamp,Hostname,DiskNumber,Type,Offset,Size,ResponseTime`,
+  expanding each record's byte length into the block accesses it covers and
+  namespacing keys by host and disk. Reads only by default; `IncludeWrites`
+  models a write-back cache instead. `BlockSize` defaults to 512, matching the
+  Caffeine simulator's reader so numbers are comparable with what is published
+  from it.
+- **Meta kvcache trace loader** (`bench.LoadMetaKVTrace`). Reads the CacheBench
+  workloads, locating columns by name so both the 2022 layout
+  (`key,op,size,op_count,key_size`) and the 2024 one (which reordered them and
+  added five) are read correctly. Expands `op_count`, which is a repeat count
+  and not a sequence number.
+- **`scripts/fetch-traces.sh` fetches a slice of the Meta trace** over a plain
+  HTTPS byte-range request - the published files are 5 to 10 GB and need no AWS
+  credentials to read partially. `AS_CACHE_META_BYTES` sets the size.
+- **Trace-loader tests run in `make test`**, not only under `make evidence`.
+  Pinned against fixtures copied from the real files: a format misread is a
+  correctness bug that produces a plausible-looking workload, and every number
+  taken from it is wrong.
+
+### Notes
+
+- **MSR Cambridge cannot be fetched by script.** SNIA serves the files behind a
+  click-through licence and a cookie check, so `fetch-traces.sh` prints how to
+  get them by hand rather than pretending to download them. Any file named
+  `msr_<volume>.csv[.gz]` in the trace directory is picked up automatically.
+- **S3-FIFO's ghost queue and the adapter's index both cost memory.** The ghost
+  queue remembers roughly as many keys as the cache holds, and the adapter
+  keeps its own copy of the key set on top of that. Values are never
+  duplicated. The measured total is in
+  [evidence](docs/evidence.md#memory-and-per-operation-cost).
+- **The S3-FIFO adapter pays for four methods `golang-fifo` does not have**:
+  `Keys`, `Values`, `Resize`, `Cap`, and `Add`'s evicted flag. The costs are
+  documented on the package and worth reading before quoting this arm's
+  numbers. The largest is `Resize`, which rebuilds the cache and therefore
+  discards the ghost queue and every frequency counter - and `AdaptiveCache`
+  resizes a policy on every promotion and demotion. The adapter also keeps a
+  second copy of the key set, because the library cannot enumerate its own
+  contents.
+- **Three upstream behaviours the adapter works around.** The eviction callback
+  runs under the library's mutex, so the adapter's callback must not take its
+  own lock (it would deadlock; this is why the adapter always builds with a TTL
+  of zero and therefore no expiry goroutine). S3-FIFO's `Len()` takes no lock,
+  so the adapter answers `Len` from its own index for both algorithms rather
+  than depending on which is wrapped. And neither can be built at size zero -
+  SIEVE panics, S3-FIFO loops waiting to evict from an empty cache and never
+  returns - so both constructors reject a non-positive size and return an
+  error, matching `NewLRU`, `NewLFU` and `NewTwoQueue`. An arm built at zero
+  would accept nothing and report no hits for its whole life, which is a silent
+  no-op rather than a policy. Resizing an existing cache to zero stays legal,
+  since `AdaptiveCache.Resize` passes its own capacity through to every arm.
+- **Upstream counts a write as an access** for both algorithms - `Set` over a
+  live key raises S3-FIFO's frequency counter and sets SIEVE's visited bit -
+  which neither paper does. Shadow policies are driven with `Add`, so these
+  arms look more used on shadow duty than they should.
+
 ## [0.3.1]
 
 A packaging release: the library gains a project site. No Go code changed;

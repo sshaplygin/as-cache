@@ -306,3 +306,79 @@ func TestDemotion_ResetsStats(t *testing.T) {
 	assert.Equal(t, PolicyStats{}, lru.GetStats(),
 		"a demoted policy must start its shadow tenure with no carried-over measurements")
 }
+
+// switchesOnceBandit moves the cache to LFU on its first decision and leaves it
+// there, which is enough to open one gradual migration window.
+type switchesOnceBandit struct{ decisions int }
+
+func (b *switchesOnceBandit) RecordStats(_ ShadowStats) {}
+
+func (b *switchesOnceBandit) SelectPolicy() PolicyType {
+	b.decisions++
+	if b.decisions == 1 {
+		return LFU
+	}
+
+	return Undefined
+}
+
+// TestGradualMigration_NeverServesAZeroFromTheSource guards the interaction
+// between the shadow read fan-out and a gradual migration window.
+//
+// While the window is open the source policy is deliberately not demoted: it
+// still holds the only copy of every value not yet promoted, and promoteLocked
+// reads those values back out with Peek. It is also, however, not the active
+// policy - so anything that treats "not active" as "is a shadow" will fill it
+// with zero values, and Peek cannot distinguish a zero somebody wrote from a
+// real value still pending. The zero is then promoted into the active policy
+// and served to the caller as a hit, breaking the invariant the whole library
+// rests on.
+//
+// The precondition is that the source evicts during the window, which needs a
+// working set larger than the capacity. A test whose working set exactly fits
+// never evicts, so it cannot catch this however many switches it drives.
+func TestGradualMigration_NeverServesAZeroFromTheSource(t *testing.T) {
+	const (
+		capacity = 4
+		epoch    = 40
+	)
+
+	cache, err := NewAdaptiveCache([]Policy[string, int]{
+		newEvictingPolicy[string, int](LRU, capacity),
+		newEvictingPolicy[string, int](LFU, capacity),
+	}, &switchesOnceBandit{}, &Settings{
+		EpochRequests:               epoch,
+		MigrationStrategy:           MigrationGradual,
+		EvictPartialCapacityFilling: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = cache.Close() })
+
+	// Values are never zero, so a zero read back is unambiguously a leak.
+	for i := 1; i <= capacity; i++ {
+		cache.Add("real"+strconv.Itoa(i), i*100)
+	}
+
+	// Cross the epoch boundary, which switches and opens the window.
+	for i := range epoch {
+		cache.Get("warm" + strconv.Itoa(i))
+	}
+
+	// Keys nobody stored. Each one is a miss everywhere, so each drives the
+	// shadow fan-out - and pushes the source past its capacity.
+	for i := range capacity * 3 {
+		cache.Get("fresh" + strconv.Itoa(i))
+	}
+
+	for i := 1; i <= capacity; i++ {
+		key := "real" + strconv.Itoa(i)
+		value, found := cache.Get(key)
+		if !found {
+			continue
+		}
+
+		assert.NotZero(t, value,
+			"Get(%q) returned a zero as a hit; nothing ever stored a zero, so this is a "+
+				"shadow placeholder promoted out of the migration source", key)
+	}
+}

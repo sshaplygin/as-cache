@@ -95,7 +95,10 @@ func (b *Thompson) SelectPolicy() ascache.PolicyType {
 		// no evidence yet is sampled across the whole range rather than being
 		// pinned at zero and never tried.
 		sample := betaSample(b.rng, 1+b.hits[policy], 1+b.misses[policy])
-		if sample > bestSample || (sample == bestSample && policy < best) {
+		// No tie-break clause is needed here, unlike Greedy below: b.order is
+		// sorted ascending, so a strict > already leaves the lowest PolicyType
+		// holding a tie. Greedy ranges a map and does need one.
+		if sample > bestSample {
 			best, bestSample = policy, sample
 		}
 	}

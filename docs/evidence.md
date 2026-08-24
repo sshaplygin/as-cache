@@ -8,30 +8,48 @@ workload. Reproduce with `make evidence`; the generators are in
 
 Hit rate by policy and workload:
 
-| Workload | LRU | LFU | 2Q | ARC | Random | W-TinyLFU |
-| --- | --- | --- | --- | --- | --- | --- |
-| zipf (skewed popularity) | 66.9% | **73.5%** | 72.0% | 73.2% | 62.6% | 73.3% |
-| uniform (no structure) | 10.0% | 10.0% | 10.0% | 10.0% | 10.1% | **12.3%** |
-| loop (cycle just over capacity) | 0.0% | 0.0% | 68.6% | 0.1% | 82.1% | **94.0%** |
-| scan (hot set + sweeps) | 30.0% | **40.0%** | **40.0%** | **40.0%** | 32.0% | 39.7% |
-| phase-shift (alternating regimes) | 34.5% | 69.7% | 61.5% | 39.9% | 68.2% | **82.1%** |
+| Workload | LRU / TTL | LFU | 2Q | ARC | Random | W-TinyLFU | S3-FIFO | SIEVE |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| zipf (skewed popularity) | 66.9% | 73.5% | 72.0% | 73.2% | 62.5% | 72.7% | 73.5% | **73.6%** |
+| uniform (no structure) | 10.0% | 10.0% | 10.0% | 10.0% | 10.0% | **12.3%** | 10.0% | 10.0% |
+| loop (cycle just over capacity) | 0.0% | 0.0% | 68.6% | 0.1% | 82.2% | **92.8%** | 79.7% | 0.0% |
+| scan (hot set + sweeps) | 30.0% | **40.0%** | **40.0%** | **40.0%** | 32.0% | 39.8% | **40.0%** | **40.0%** |
+| phase-shift (alternating regimes) | 34.5% | 69.7% | 61.5% | 39.9% | 68.2% | **82.4%** | 71.6% | 69.7% |
+
+TTL shares a column with LRU because these workloads carry no notion of
+staleness and its TTL is longer than any run, so it measures its LRU behaviour
+exactly -- identically, to the hundredth of a point, on all five.
+
+Every arm here reproduces to the hundredth of a point between runs except
+W-TinyLFU, which does not: on `loop` it has measured 88.7% and 94.5% within a
+single process. Read its column, and any delta computed against it, with that
+in mind — the cause is in [reproducible replays](benchmarking.md).
 
 Two things stand out. LRU and LFU both score **exactly zero** on `loop`, where a
 cyclic scan just over capacity evicts every key immediately before it is needed
 again -- that is the textbook pathology, and it is worth knowing your workload
-is not that shape. And W-TinyLFU wins or ties nearly everywhere here.
+is not that shape. **SIEVE joins them at exactly zero** for a different reason:
+it has no ghost queue, so a key evicted on the hand's first pass leaves no
+trace at all, and a cyclic workload never gets a second chance. S3-FIFO, whose
+ghost queue does give one, serves 79.7% on the same workload. That is the
+clearest single difference between the two FIFO policies in this repository.
+
+Otherwise W-TinyLFU wins or ties nearly everywhere here, with the two FIFO
+policies close behind and SIEVE ahead of everything on `zipf`. These synthetic
+workloads understate both; the real traces below correct that, which is the
+same lesson LFU teaches in the opposite direction.
 
 ## Memory and per-operation cost
 
 Running N policies in parallel does not multiply memory by N, because shadow
 policies hold keys and eviction bookkeeping but never real values. Measured
-with six policies over 50k entries of 256-byte values:
+with eight policies over 50k entries of 256-byte values:
 
 | Configuration | Memory | Multiplier |
 | --- | --- | --- |
 | single LRU | 18.5 MiB | 1.00x |
-| adaptive, 6 policies | 48.9 MiB | 2.65x |
-| adaptive, 6 policies, `ShadowSampleRate: 0.05` | 24.5 MiB | 1.32x |
+| adaptive, 8 policies | 72.3 MiB | 3.92x |
+| adaptive, 8 policies, `ShadowSampleRate: 0.05` | 25.8 MiB | 1.40x |
 
 Per-operation cost on a warm cache, same configurations (`Get`, 0 allocs/op
 throughout):
@@ -39,8 +57,32 @@ throughout):
 | Configuration | ns/op | allocs/op |
 | --- | --- | --- |
 | single LRU | 32 | 0 |
-| adaptive, 6 policies | 618 | 0 |
-| adaptive, 6 policies, sampled | 82 | 0 |
+| adaptive, 8 policies | 856 | 0 |
+| adaptive, 8 policies, sampled | 90 | 0 |
+
+**What an arm costs, measured.** The same test at six policies -- the set
+before the FIFO arms joined it -- reported 48.9 MiB (2.65x) and 24.5 MiB
+(1.33x) sampled. The two FIFO arms added 23.4 MiB between them, against an
+average of 6.1 MiB for the five shadows already there: **each is close to
+double an ordinary arm**. Two things account for it, and both are consequences
+of wrapping a library rather than of the algorithms. The adapter keeps its own
+copy of the key set, because `golang-fifo` cannot enumerate its own contents,
+and S3-FIFO's ghost queue remembers roughly a further cache's worth of keys.
+Values are never duplicated by either.
+
+The property that actually matters is per-shadow, and it holds: each shadow
+costs 7.7 MiB against the 18.5 MiB a full cache of the same entries costs --
+0.42x. That is what "shadows hold keys and bookkeeping but never values" buys,
+and it is what the test asserts, rather than a total multiplier that would
+simply move every time an arm was added.
+
+That is less than S3-FIFO's key count suggests. It tracks up to two keys per
+entry of capacity, because the library sizes its ghost queue at the whole cache
+capacity -- and a third, because this adapter keeps its own key index to supply
+the methods upstream lacks. But a ghost entry is a *reference* to a key the caller already
+allocated plus a pair of list pointers, never a copy of the key and never a
+value. Counting ghost keys as though they cost what cached entries cost would
+overstate this arm substantially.
 
 The shadow fan-out is broken down further in
 [configuration](configuration.md#reducing-shadow-overhead).
@@ -54,18 +96,26 @@ would actually reach for, at capacity 500, `make evidence`.
 
 | Workload | otter v2 | theine | ristretto | sturdyc | as-cache |
 | --- | --- | --- | --- | --- | --- |
-| zipf | **73.19%** | 72.38% | 69.54% | 62.00% | 71.92% |
-| uniform | 9.99% | **10.48%** | 9.97% | 9.52% | 10.23% |
-| loop | 87.06% | 88.48% | **88.62%** | 45.42% | 68.78% |
-| scan | **39.88%** | **39.88%** | 39.45% | 30.01% | 39.24% |
-| phase-shift | 78.34% | **78.46%** | 72.53% | 53.19% | 75.06% |
+| zipf | **73.25%** | 72.84% | 69.47% | 62.01% | 67.88% |
+| uniform | 10.01% | **10.53%** | 9.94% | 9.50% | 10.00% |
+| loop | 86.73% | 88.56% | **88.85%** | 44.94% | 86.61% |
+| scan | 39.85% | **39.88%** | 39.20% | 30.01% | 39.44% |
+| phase-shift | **78.62%** | 77.67% | 72.27% | 53.18% | 77.70% |
 
-**Adaptive selection does not win here.** It is within a point of the best
-library on three of five workloads, loses phase-shift by 3.4 points, and loses
-`loop` by nearly 20. It is also 4 to 15 times slower per operation, as the cost
-table above describes. If you are choosing a cache library and have no
-particular reason to expect your traffic to change shape, otter or theine is
-the better answer, and this repository is the wrong place to pretend otherwise.
+**Adaptive selection does not win here, but it is now competitive.** It is
+within half a point of the best library on `uniform` and `scan`, within 2.3 on
+`loop`, and takes **second place on `phase-shift`** — ahead of theine and
+ristretto, 0.9 behind otter. It loses `zipf` by 5.4. It is also 4 to 23 times
+slower per operation, as the cost table above describes. If you are choosing a
+cache library and have no particular reason to expect your traffic to change
+shape, otter or theine is still the better answer, and this repository is the
+wrong place to pretend otherwise.
+
+Two of these numbers moved a long way when the shadow-insert defect described
+under [real traces](#real-traces) was fixed: `loop` from 64.10% to 86.61% and
+phase-shift from 71.51% to 77.70%. Both are workloads where the arms differ
+sharply, which is exactly where feeding the shadows from the incumbent's miss
+stream did the most damage.
 
 What the comparison does not show is any workload where a fixed library is
 catastrophic, because these five are kind: `loop` is the one designed to defeat
@@ -95,16 +145,22 @@ On these workloads: **no, and this is the honest result.**
 
 | Workload | Adaptive | Best fixed | Worst fixed | Adaptive vs best |
 | --- | --- | --- | --- | --- |
-| zipf | 73.3% | LFU 73.5% | 62.6% | -0.2 pts |
+| zipf | 66.2% | SIEVE 73.6% | 62.6% | -7.4 pts |
 | uniform | 10.0% | W-TinyLFU 12.3% | 10.0% | -2.3 pts |
-| loop | 77.5% | W-TinyLFU 94.0% | 0.0% | -16.5 pts |
-| scan | 38.9% | LFU/2Q/ARC 40.0% | 30.0% | -1.1 pts |
-| phase-shift | 78.8% | W-TinyLFU 82.1% | 34.5% | -3.3 pts |
+| loop | 87.1% | W-TinyLFU 93.2% | 0.0% | -6.1 pts |
+| scan | 35.5% | LFU 40.0% | 30.0% | -4.4 pts |
+| phase-shift | 71.8% | W-TinyLFU 82.6% | 34.5% | -10.9 pts |
 
 Adaptive selection reliably beats the *worst* fixed choice, sometimes hugely
-(77.5% against LRU's 0.0% on `loop`). It never meaningfully beats the *best*
+(87.1% against LRU's 0.0% on `loop`). It never meaningfully beats the *best*
 one. Even on `phase-shift` -- the workload built specifically to need adaptation
--- a fixed W-TinyLFU wins by 3.8 points.
+-- a fixed W-TinyLFU wins by 10.9 points.
+
+**Arms are not free**, and that is worth sitting with. Every arm added thins
+the evidence each of the others gets per epoch, and the exploration is charged
+against the hit rate. The real-trace figures below are far tighter than this
+table, because those replays use a tuned 50ms epoch rather than the 2ms one
+held fixed across every workload here.
 
 The timeline explains why. Replaying `phase-shift` and sampling `ActivePolicy()`
 throughout:
@@ -112,17 +168,26 @@ throughout:
 ```text
 phase      Z------L------Z------L------Z------L------Z------L------   (Z = zipf, L = loop)
 LRU        ###
-TwoQueue      #######
-ARC                  ##
-TinyLFU          #########################################################
+TwoQueue      #####
+SIEVE           ###
+LFU                ##      ###        #####
+S3FIFO               ##      ##
+TinyLFU                #############################################
 
-share of time active: LRU 2%, TwoQueue 6%, ARC 1%, TinyLFU 90%
+share of time active: LRU 2%, LFU 6%, TwoQueue 3%, TinyLFU 82%, S3FIFO 2%, SIEVE 3%
+hit rate 77.05%
 ```
 
 The bandit works exactly as designed: it explores, identifies W-TinyLFU, and
-holds it for 90% of the run. It does not oscillate at phase boundaries, because
+holds it for 82% of the run. It does not oscillate at phase boundaries, because
 there is no crossover to exploit -- W-TinyLFU is the best arm in *both* regimes.
 The remaining gap is the price of exploring and of migrating between arms.
+
+That timeline is one draw, not a fixed result: this test uses a wall-clock
+epoch, so the number of epochs in a run varies with machine load and which
+also-ran arms collect a sliver of exploration varies with it. Across six
+consecutive unmodified runs S3-FIFO appeared in four and SIEVE in five. Read
+the 82% as the finding and the slivers as noise.
 
 So the case for this library is not "it beats the best policy." It is:
 
@@ -137,26 +202,146 @@ synthetic, and the section below shows real traces overturning the conclusion.
 
 ## Real traces
 
-`./scripts/fetch-traces.sh` downloads five published traces (nothing is
-committed), then `AS_CACHE_TRACES=... make evidence` replays them. Adaptive here
-runs a 50ms epoch with warm migration and `ShadowSampleRate: 0.05`:
+`./scripts/fetch-traces.sh` downloads published traces (nothing is committed),
+then `AS_CACHE_TRACES=... make evidence` replays them. Adaptive here runs a 50ms
+epoch with warm migration and `ShadowSampleRate: 0.05`:
 
 | Trace | Requests | Best fixed | Worst fixed | Adaptive | Delta |
 | --- | --- | --- | --- | --- | --- |
-| Twitter Twemcache cluster052 | 1.0M | 2Q 59.6% | LFU 41.4% | 59.4% | -0.25 pts |
-| ARC OLTP (FAST '03) | 0.9M | 2Q 68.3% | LFU 45.4% | 67.1% | -1.19 pts |
-| ARC P3 (FAST '03) | 2.0M | W-TinyLFU 11.7% | LRU 1.9% | **12.7%** | **+0.92 pts** |
-| LIRS 2_pools | 100k | W-TinyLFU 54.8% | Random 50.1% | 54.4% | -0.36 pts |
-| LIRS loop | 505k | W-TinyLFU 45.9% | LRU/LFU 0.0% | 42.5%* | -3.43 pts |
+| Twitter Twemcache cluster052 | 1.0M | SIEVE 59.8% | LFU 41.4% | 58.6% | -1.15 pts |
+| Meta kvcache 202206 | 2.0M | S3-FIFO 69.1% | Random 65.2% | 67.7% | -1.35 pts |
+| ARC OLTP (FAST '03) | 0.9M | 2Q 68.3% | LFU 45.4% | 67.7% | -0.51 pts |
+| ARC P3 (FAST '03) | 2.0M | W-TinyLFU 11.4% | LRU 1.9% | **11.4%** | **+0.05 pts** |
+| LIRS 2_pools | 100k | W-TinyLFU 54.8% | Random 50.0% | 54.4% | -0.35 pts |
+| LIRS loop | 505k | W-TinyLFU 45.1%* | seven arms at 0.0% | **45.2%** | **+0.12 pts** |
 
-\* `loop` needs a 2ms epoch: it is short and changes character quickly, so a
-50ms epoch gives the bandit too few epochs to react and it drops to 33.3%.
+\* `loop` is the one row measured at a 2ms epoch. It is short and changes
+character quickly, so the tuned 50ms setting gives the bandit too few chances
+to react and it drops to 38.1%. Read the W-TinyLFU figure on this row with care
+besides: it is the one arm here whose result is not reproducible, and on this
+trace it has measured anywhere from 43.1% to 46.2%.
 
-Note that the best fixed policy is **not the same policy across traces**. On
-OLTP, W-TinyLFU -- the strongest general-purpose baseline -- comes second to
-last at 63.2% while 2Q wins at 68.3%. That is the case for not committing to a
-policy in advance, and it does not show up on synthetic workloads, where
-W-TinyLFU wins nearly everything.
+**Adaptive selection beats the best fixed policy on two of the six traces**,
+by small margins, and lands within 1.4 points on the other four.
+
+These numbers replace an earlier set measured with a defect in the shadow
+mechanism: a shadow policy could only ever acquire a key the *active* policy
+had missed, so behind a strong incumbent the shadows went static and reported
+policies that serve nothing as though they served everything. The bandit was
+choosing on inverted evidence. See [design](design.md) for the mechanism.
+
+Be precise about what changed, because it is less dramatic than it sounds. This
+document already reported adaptive selection beating the best fixed policy on
+P3; that has not been overturned, though the margin shrank from +1.13 to +0.05.
+What changed is `loop`, which went from **-7.45 to +0.12** — from the worst
+result in the table to the second win. The overall picture is one trace better
+than it was, and the *synthetic* conclusion below is unchanged: on those five
+workloads adaptive selection still never beats the best fixed policy.
+
+Note also that the best fixed policy is **not the same policy across traces**:
+SIEVE on Twitter, S3-FIFO on Meta, 2Q on OLTP, W-TinyLFU on P3 and the LIRS
+traces. Four different winners across six traces. On OLTP, W-TinyLFU -- the
+strongest general-purpose baseline -- comes near the bottom. That is the case
+for not committing to a policy in advance, and it does not show up on synthetic
+workloads, where W-TinyLFU wins nearly everything.
+
+### One `loop` row, two answers, one run
+
+The clearest demonstration in this repository of why an arm has to be
+reproducible. Replaying LIRS `loop` at capacity 500 against a bare W-TinyLFU
+policy, **twice in the same `go test` invocation**, gave 45.24% and 46.16%.
+Same trace, same capacity, same process, no bandit involved. otter admits on the calling goroutine and evicts on a maintenance
+pass, so what it retains depends on how the run was scheduled, and on a cyclic
+workload sitting exactly at the capacity boundary that decides almost every
+request. Across runs the spread on this trace is wider still: an earlier run of
+the same suite reported 43.13% and 94.94%.
+
+Every other arm here replays identically. This is why `benchclient.DefaultArms`
+excludes W-TinyLFU, why `ArmsWithWindowTinyLFU` makes including it an explicit
+choice, and why S3-FIFO -- which is deterministic -- is in the default set.
+(`Random` in that set is not deterministic either; see
+[benchmarking](benchmarking.md).)
+
+### The two FIFO policies: near-identical on key-value traffic, far apart elsewhere
+
+S3-FIFO and SIEVE finish within 0.15 points of each other on four of the six
+traces -- and SIEVE does it at roughly **half the per-operation cost**, because
+it maintains one queue and a visited bit where S3-FIFO maintains three queues
+and a counter:
+
+| Trace | S3-FIFO | ns/op | SIEVE | ns/op |
+| --- | --- | --- | --- | --- |
+| Twitter | 59.73% | 500 | **59.78%** | 284 |
+| Meta kvcache | **69.05%** | 371 | 68.92% | 204 |
+| ARC OLTP | **67.79%** | 414 | 67.72% | 238 |
+| LIRS 2_pools | **54.37%** | 371 | 54.36% | 216 |
+| ARC P3 | **10.75%** | 770 | 4.82% | 496 |
+| LIRS loop | 0.00% | 550 | 0.00% | 340 |
+
+Then P3 separates them by six points, and the synthetic `loop` separates them
+by eighty. Both gaps have the same cause: **S3-FIFO has a ghost queue and SIEVE
+does not.** A key SIEVE evicts leaves no trace, so a workload whose reuse
+arrives after eviction is invisible to it; S3-FIFO gets one more chance to
+notice, within the window its ghost queue spans.
+
+So they are not redundant, and neither dominates. On production key-value
+traffic SIEVE is the better buy -- the same hit rate for half the work. On
+block-I/O traces S3-FIFO is worth its extra bookkeeping. That is the argument
+for measuring rather than choosing, made between two policies from the same
+paper family.
+
+Then there is `loop`, where it serves **0.00%** -- tied with LRU, LFU, 2Q, TTL,
+ARC and SIEVE, and beaten by random eviction. That is the algorithm behaving
+exactly as designed. `loop` cycles through 1011 keys with a 500-entry cache, so
+every reuse distance is 1011 requests. A key has to be requested again while it
+is still in the small queue (50 entries) or still in the ghost queue to be
+promoted. The library sizes that ghost queue at the *whole* cache capacity --
+500 here, not the main queue's 450 -- so the horizon is roughly 1000 requests
+wide, and a reuse distance of 1011 falls just outside it. Every key goes round
+the small queue forever and nothing is ever promoted. Only two arms survive the
+trace at all: W-TinyLFU's sketch, which ages rather than expiring, and random
+eviction, which has no order to defeat.
+
+The lesson is not that S3-FIFO is fragile. It is that **its ghost window is a
+hard horizon**: reuse further away than that window is invisible to it. On the
+synthetic `loop`, whose cycle is 550 keys against the same 500-entry cache, it
+serves 79.7%. The difference between those two numbers is entirely the reuse
+distance.
+
+### What the library adapter costs
+
+This arm wraps [scalalang2/golang-fifo](https://github.com/scalalang2/golang-fifo)
+rather than implementing the algorithm here, and the wrapper is not free. The
+adapter has to supply `Keys`, `Values`, `Resize` and `Cap`, none of which exist
+upstream, which means a second copy of the key set maintained through the
+library's eviction callback and a full rebuild on every resize. Measured
+against a from-scratch implementation of the same algorithm, replaying the same
+traces at the same capacities.
+
+**Read the right-hand columns as history, not as a measurement you can repeat.**
+The from-scratch implementation was written first, measured against the library
+here, and then deleted when the library replaced it — so nothing in `make
+evidence` reproduces that side of this table, and no test guards it. It is kept
+because it is the evidence behind choosing the dependency. The `via the
+library` columns are reproducible and are re-measured with everything else.
+
+| Trace | via the library | ns/op | from scratch | ns/op |
+| --- | --- | --- | --- | --- |
+| Twitter | 59.73% | 450 | 61.47% | 162 |
+| Meta kvcache | 69.05% | 351 | 69.75% | 137 |
+| ARC OLTP | 67.79% | 385 | 68.32% | 157 |
+| ARC P3 | 10.75% | 709 | 9.98% | 291 |
+
+**Two to three times the per-operation cost**, and between half a point worse
+and three quarters of a point better on hit rate. The time goes on the index
+the adapter maintains alongside the library and on the library's linked-list
+allocations; the hit-rate differences come from the two implementations sizing
+the ghost queue differently and from upstream counting a write as an access.
+
+The trade bought is not owning an eviction algorithm. That is worth something:
+the from-scratch version shipped with a real bug in its ghost queue, found only
+by differential testing against a second implementation, and every property
+test passed while it was there.
 
 LFU is the sharpest illustration of why synthetic workloads mislead. It is the
 **best** policy on synthetic `zipf` (73.5%) and the **worst** on both large real
@@ -178,27 +363,40 @@ shadows would. Measured directly across four sample rates, against full-size
 shadows as ground truth:
 
 ```text
-zipf   full-size  ARC=81.4% 2Q=81.2% LFU=81.0% TTL=79.2% LRU=79.2% W-TinyLFU=79.1% Random=22.5%
-       rate 0.05  ARC=66.1% 2Q=66.0% LFU=65.6% W-TinyLFU=64.4% LRU=62.5% TTL=61.6% Random=22.2%
-       rate 0.10  ARC=85.4% 2Q=85.4% LFU=85.2% W-TinyLFU=84.1% TTL=83.8% LRU=83.7% Random=38.1%
-       rate 0.30  ARC=77.7% 2Q=77.5% LFU=77.4% W-TinyLFU=76.5% LRU=75.3% TTL=75.0% Random=20.8%
-       rate 0.50  ARC=84.7% 2Q=84.6% LFU=84.4% W-TinyLFU=82.9% LRU=82.9% TTL=82.9% Random=22.3%
+zipf   full-size  ARC=81.6% 2Q=81.3% SIEVE=81.2% LFU=81.2% W-TinyLFU=81.2% S3-FIFO=81.1% TTL=79.2% LRU=79.2% Random=76.6%
+       rate 0.05  ARC=63.5% W-TinyLFU=63.3% 2Q=63.2% SIEVE=63.0% LFU=63.0% S3-FIFO=62.4% TTL=59.2% LRU=59.2% Random=54.5%
+       rate 0.10  ARC=67.5% 2Q=67.0% W-TinyLFU=67.0% S3-FIFO=66.9% SIEVE=66.8% LFU=66.8% LRU=63.8% TTL=63.3% Random=58.9%
+       rate 0.30  ARC=79.0% W-TinyLFU=78.8% 2Q=78.6% LFU=78.4% SIEVE=78.4% S3-FIFO=78.4% LRU=76.2% TTL=76.2% Random=73.2%
+       rate 0.50  ARC=84.7% 2Q=84.4% LFU=84.3% SIEVE=84.3% W-TinyLFU=84.3% S3-FIFO=84.3% LRU=82.7% TTL=82.7% Random=80.5%
 
-scan   full-size  2Q=28.3% ARC=28.3% LFU=28.3% W-TinyLFU=27.2% TTL=21.4% LRU=21.4% Random=17.0%
-       rate 0.05  2Q=26.4% ARC=26.4% LFU=26.4% W-TinyLFU=24.0% TTL=19.9% LRU=19.9% Random=16.2%
-       rate 0.10  2Q=29.6% ARC=29.6% LFU=29.6% W-TinyLFU=28.9% LRU=22.4% TTL=22.4% Random=17.7%
-       rate 0.30  2Q=28.9% ARC=28.9% LFU=28.9% W-TinyLFU=27.8% LRU=21.8% TTL=21.8% Random=17.3%
-       rate 0.50  2Q=28.2% ARC=28.2% LFU=28.2% W-TinyLFU=25.8% TTL=21.4% LRU=21.4% Random=17.0%
+scan   full-size  2Q=28.3% ARC=28.3% S3-FIFO=28.3% LFU=28.3% SIEVE=28.3% W-TinyLFU=28.1% LRU=21.4% TTL=21.4% Random=18.9%
+       rate 0.05  LFU=28.4% 2Q=28.4% ARC=28.4% S3-FIFO=28.4% SIEVE=28.4% W-TinyLFU=28.3% TTL=21.5% LRU=21.5% Random=19.0%
+       rate 0.10  S3-FIFO=26.0% LFU=26.0% ARC=26.0% SIEVE=26.0% 2Q=26.0% W-TinyLFU=25.3% LRU=19.6% TTL=19.6% Random=17.7%
+       rate 0.30  S3-FIFO=28.5% 2Q=28.5% SIEVE=28.5% LFU=28.5% ARC=28.5% W-TinyLFU=28.3% TTL=21.6% LRU=21.6% Random=19.0%
+       rate 0.50  LFU=28.6% SIEVE=28.6% 2Q=28.6% ARC=28.6% S3-FIFO=28.6% W-TinyLFU=28.4% LRU=21.6% TTL=21.6% Random=19.0%
 ```
 
-**Sampling picks the same best policy at every rate**, on both workloads --
-zero regret, including at the aggressive 5%. Every clearly separated pair of
-arms is ranked the same way sampled as full-size: 0 inversions out of 3 pairs
-on zipf and 6 on scan, at all four rates.
+**Sampling costs zero regret at every rate**, on both workloads, including at
+the aggressive 5%. Note that "picks the same arm" is the wrong way to say this:
+on `scan` five arms tie to the hundredth of a point, so which one is nominally
+best is decided by map iteration order and moves run to run. What is stable is
+that the arm sampling picks is never actually worse — the regret column is 0.00
+throughout.
+
+The ordering check runs on `loop` and `scan`: 0 inversions out of 8 clearly
+separated pairs on each, at all four rates. `zipf` is deliberately not in that
+check any more. It used to supply separated pairs, but only because the shadow
+defect described above held Random at 32.8% there when it truly serves 76.6% —
+a 44-point artifact. With shadows measuring honestly, the nine arms on `zipf`
+land within 5.0 points of each other, so the workload separates nothing and can
+prove nothing about ordering. Both FIFO policies hold their rank under
+sampling like the rest, which was not a foregone conclusion: S3-FIFO's ghost
+queue is sized in absolute terms, so a miniature shrinks the window it can see
+reuse through, and their shared adapter rebuilds the cache on every resize.
 
 What sampling does *not* give you is an estimate of the absolute hit rate. Read
-the zipf rows down the rate column: ARC measures 66% at rate 0.05 and 85% at
-rate 0.10, against 81% full-size. The estimate depends on which slice of the
+the zipf rows down the rate column: ARC measures 63% at rate 0.05 and 85% at
+rate 0.50, against 82% full-size. The estimate depends on which slice of the
 keyspace the seed happened to select, and a different slice has different
 reuse, so a sampled rate can land either side of the true one. Do not read a
 shadow's absolute number as a prediction of what that policy would achieve.
@@ -214,6 +412,13 @@ handful of keys -- `MinShadowCapacity` guards the degenerate end by raising the
 effective rate rather than letting a miniature shrink into noise.
 
 ## Does pooling across a fleet help?
+
+> **These figures predate two changes and have not been re-measured.** They were
+> taken before S3-FIFO and SIEVE joined the arm set, and before the shadow
+> measurement defect described under [real traces](#real-traces) was fixed —
+> and pooling works by sharing exactly the evidence that defect distorted. Treat
+> the direction as indicative and the numbers as stale until `make evidence` is
+> re-run against this section.
 
 **Only in the regime it was built for, and it is worth checking you are in that
 regime before turning it on.** All figures are 8 replicas, cache capacity 300

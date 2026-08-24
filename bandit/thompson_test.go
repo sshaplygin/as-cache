@@ -1,6 +1,7 @@
 package bandit
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -137,4 +138,69 @@ func TestGreedy_TieBreaksDeterministically(t *testing.T) {
 
 		assert.Equal(t, ascache.LRU, b.SelectPolicy())
 	}
+}
+
+// TestThompson_OrderStaysSortedWhateverTheArrivalSequence pins the invariant
+// SelectPolicy's tie-break rests on.
+//
+// SelectPolicy iterates b.order and takes the strictly highest sample, with no
+// clause to break a tie. That leaves the lowest PolicyType holding a tie only
+// because b.order is ascending, so an arm already chosen was necessarily
+// visited earlier. Nothing but recordLocked maintains that ordering, and arms
+// arrive in whatever order the cache reports them, so the property is worth a
+// test rather than a comment.
+func TestThompson_OrderStaysSortedWhateverTheArrivalSequence(t *testing.T) {
+	arrivals := [][]ascache.PolicyType{
+		{ascache.SIEVE, ascache.LRU, ascache.TinyLFU, ascache.LFU},
+		{ascache.TinyLFU, ascache.S3FIFO, ascache.ARC, ascache.LRU, ascache.TTL},
+		{ascache.Random, ascache.TwoQueue},
+	}
+
+	for _, order := range arrivals {
+		b := NewThompson(0.9, 1)
+
+		for _, policy := range order {
+			// Twice each, so the "already seen" branch is exercised too.
+			for range 2 {
+				b.RecordStats(ascache.ShadowStats{Policy: policy, Hits: 1, Misses: 1})
+				assert.True(t, slices.IsSorted(b.order),
+					"b.order must stay ascending; after %s it was %v", policy, b.order)
+			}
+		}
+
+		assert.Len(t, b.order, len(order), "each arm must be recorded exactly once")
+	}
+}
+
+// TestThompson_TiesGoToTheLowestPolicyType is the behaviour that ordering
+// buys. With no evidence at all every arm has the same Beta(1,1) posterior, so
+// the draws differ but the tie-break rule must not: whichever arm wins, the
+// same seed must produce the same answer, and an exact tie must resolve
+// downwards rather than by iteration order.
+func TestThompson_TiesGoToTheLowestPolicyType(t *testing.T) {
+	build := func() *Thompson {
+		b := NewThompson(0.9, 7)
+		for _, policy := range []ascache.PolicyType{
+			ascache.SIEVE, ascache.LRU, ascache.S3FIFO, ascache.LFU,
+		} {
+			b.RecordStats(ascache.ShadowStats{Policy: policy})
+		}
+
+		return b
+	}
+
+	first := build()
+	second := build()
+	for range 200 {
+		assert.Equal(t, first.SelectPolicy(), second.SelectPolicy(),
+			"two identically seeded bandits fed identical evidence must agree")
+	}
+
+	// Force the tie the removed clause existed for: identical posteriors and a
+	// zero-variance draw is not reachable, so assert the ordering property the
+	// tie-break depends on instead.
+	b := build()
+	assert.True(t, slices.IsSorted(b.order))
+	assert.Equal(t, ascache.LRU, b.order[0],
+		"the lowest PolicyType must come first, since that is what holds a tie")
 }

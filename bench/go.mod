@@ -10,6 +10,7 @@ require (
 	github.com/sshaplygin/as-cache/bandit v0.3.1
 	github.com/sshaplygin/as-cache/policies v0.3.1
 	github.com/sshaplygin/as-cache/policies/arc v0.3.1
+	github.com/sshaplygin/as-cache/policies/fifo v0.3.1
 	github.com/sshaplygin/as-cache/policies/tinylfu v0.3.1
 	github.com/stretchr/testify v1.11.1
 	github.com/viccon/sturdyc v1.1.5
@@ -24,6 +25,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/scalalang2/golang-fifo v1.2.0 // indirect
 	github.com/sshaplygin/as-cache/lfu v0.3.1 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	golang.org/x/sys v0.36.0 // indirect
@@ -35,6 +37,8 @@ replace github.com/sshaplygin/as-cache => ..
 replace github.com/sshaplygin/as-cache/lfu => ../lfu
 
 replace github.com/sshaplygin/as-cache/policies => ../policies
+
+replace github.com/sshaplygin/as-cache/policies/fifo => ../policies/fifo
 
 replace github.com/sshaplygin/as-cache/policies/arc => ../policies/arc
 

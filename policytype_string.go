@@ -16,11 +16,13 @@ func _() {
 	_ = x[Random-5]
 	_ = x[TTL-6]
 	_ = x[TinyLFU-7]
+	_ = x[S3FIFO-8]
+	_ = x[SIEVE-9]
 }
 
-const _PolicyType_name = "UndefinedLRULFUTwoQueueARCRandomTTLTinyLFU"
+const _PolicyType_name = "UndefinedLRULFUTwoQueueARCRandomTTLTinyLFUS3FIFOSIEVE"
 
-var _PolicyType_index = [...]uint8{0, 9, 12, 15, 23, 26, 32, 35, 42}
+var _PolicyType_index = [...]uint8{0, 9, 12, 15, 23, 26, 32, 35, 42, 48, 53}
 
 func (i PolicyType) String() string {
 	idx := int(i) - 0

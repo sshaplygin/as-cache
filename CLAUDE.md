@@ -91,6 +91,11 @@ as-cache/
 │   ├── go.mod / go.sum          # depends on hashicorp/golang-lru/arc/v2
 │   └── arc.go                   # ARC adapter via policies.Adapt
 │
+├── policies/fifo/               # Separate module: keeps golang-fifo isolated
+│   ├── go.mod / go.sum          # root + policies + scalalang2/golang-fifo
+│   ├── fifo.go                  # S3-FIFO and SIEVE over one shared adapter
+│   └── index.go                 # the key index upstream cannot enumerate for us
+│
 ├── policies/tinylfu/            # Separate module: keeps otter's deps isolated
 │   ├── go.mod / go.sum          # depends on maypok86/otter/v2
 │   └── tinylfu.go               # W-TinyLFU adapter (natively resizable)
@@ -130,6 +135,9 @@ as-cache/
 │   ├── fleet_test.go            # does pooling beat deciding alone?
 │   ├── timeline_test.go         # ActivePolicy() plot over a phase-shift run
 │   ├── trace.go                 # real-trace loaders (Twitter/LIRS/ARC formats)
+│   ├── trace_msr.go             # MSR Cambridge block I/O: byte ranges -> block keys
+│   ├── trace_meta.go            # Meta kvcache: header-mapped columns, op_count expansion
+│   ├── trace_formats_test.go    # fixture tests for both, run by `make test`
 │   ├── memory_test.go           # memory multiplier + allocations
 │   └── tuning_test.go           # epoch/migration configuration sweep
 │
@@ -153,9 +161,12 @@ as-cache/
 │                                # deployed by .github/workflows/pages.yml
 │
 └── examples/
-    └── basic/
+    ├── basic/
+    │   ├── go.mod / go.sum
+    │   └── main.go              # HTTP server demo (GET/SET endpoints)
+    └── migration/
         ├── go.mod / go.sum
-        └── main.go              # HTTP server demo (GET/SET endpoints)
+        └── main.go              # the three migration strategies, side by side
 ```
 
 ---
@@ -206,7 +217,7 @@ SelectPolicy() PolicyType
 |---|---|---|
 | `AdaptiveCache[K,V]` | cache.go | Main adaptive cache orchestrator |
 | `CacheWrapper[K,V]` | wrapper.go | Wraps any Cacher, adds hit/miss tracking |
-| `PolicyType` | models.go | Enum: Undefined, LRU, LFU, TwoQueue, ARC, Random, TTL, TinyLFU |
+| `PolicyType` | models.go | Enum: Undefined, LRU, LFU, TwoQueue, ARC, Random, TTL, TinyLFU, S3FIFO, SIEVE |
 | `MigrationStrategy` | models.go | Enum: MigrationCold, MigrationWarm, MigrationGradual |
 | `PolicyStats` | models.go | Hits + Misses counters |
 | `ShadowStats` | models.go | Per-epoch policy performance |
@@ -220,6 +231,7 @@ SelectPolicy() PolicyType
 |---|---|---|
 | `hashicorp/golang-lru/v2` | v2.0.6 | LRU/2Q/expirable (policies module). v2.0.7 also builds; the pin is inertia, not a defect |
 | `stitchfix/mab` | v0.1.1 | Multi-Armed Bandit (Thompson Sampling) |
+| `scalalang2/golang-fifo` | v1.2.0 | S3-FIFO and SIEVE (`policies/fifo` module only). MIT |
 | `redis/go-redis/v9` | v9.21.0 | Valkey/Redis client (`bandit/redis` module only) |
 | `alicebob/miniredis/v2` | v2.38.0 | Fake Redis for `bandit/redis` tests (test-only) |
 | `gonum.org/v1/gonum` | v0.8.2 | Numerical computing (used by mab) |
@@ -403,6 +415,12 @@ cd examples/basic && go mod tidy
     stability gates cost 37 points on `loop`, which must re-adapt constantly.
   - Memory: six policies cost 2.65x a single LRU, not 6x (shadows hold keys,
     never values); 1.32x with sampling. The old README claim was wrong.
+    (Re-measured at eight policies once the FIFO arms joined the set: 3.92x
+    and 1.40x. Each is close to double an ordinary arm, because the adapter
+    keeps its own copy of the key set and S3-FIFO's ghost queue remembers
+    roughly a further cache's worth. The test now asserts the per-shadow
+    property - each shadow costs 0.42x a full cache - rather than a total
+    multiplier that moves every time an arm is added.)
 - [x] Roadmap Milestone 5 (advisor mode). `Settings.ObserveOnly` measures every
   arm while guaranteeing the cache behaves exactly like the policy it was built
   with; `Advice()` reports which policy wins and by how much. The bandit may be
@@ -660,6 +678,231 @@ cd examples/basic && go mod tidy
     five methods and Go interfaces are structural, so a local `contract`
     interface plus a `var _` assertion pins it without a dependency, and breaks
     the build rather than the registration if it ever drifts.
+
+- [x] **S3-FIFO and SIEVE arms** (`policies/fifo`, `ascache.S3FIFO` and
+  `ascache.SIEVE`), one module adapting scalalang2/golang-fifo v1.2.0 (MIT).
+  Yang, Zhang, Qiu, Yue & Rashmi, "FIFO Queues are All You Need for Cache
+  Eviction", SOSP '23; Zhang, Yang, Yue, Vigfusson & Rashmi, "SIEVE is Simpler
+  than LRU", NSDI '24.
+  - **One module, one adapter, two algorithms.** They come from one dependency
+    and need the same four missing methods supplied, so duplicating ~300 lines
+    of deadlock-sensitive glue to give each its own module would have been the
+    wrong split. `Cache` is parameterised by a constructor returning
+    `types.Cache`; `NewS3FIFOPolicy` and `NewSievePolicy` choose which. The
+    module is `policies/fifo`, not `policies/s3fifo`, for that reason.
+  - **The two fail differently at size zero**, which is why the adapter guards
+    rather than trusting either: SIEVE's `New` panics outright, S3-FIFO's `Set`
+    loops "while len >= size, evict" with nothing to evict and never returns.
+  - **Only S3-FIFO's `Len` is racy** (it reads its queues without locking);
+    SIEVE's locks. The adapter answers `Len` from its own index for both, so
+    the hazard is out of reach rather than dependent on which is wrapped.
+  - **Both arms are driven through a real AdaptiveCache, not just measured.**
+    `TestArmsDriveAnAdaptiveCacheThroughSwitches` forces a switch every half
+    round through all four migration strategies, which is the only thing that
+    exercises what the adaptive layer does to this adapter specifically:
+    demotion walks `Keys()` and rewrites every sampled key to the zero value
+    (removing the unsampled ones), promotion resizes back to full capacity, and
+    warm migration copies out through `Keys()` + `Peek()`. All three lean on
+    the adapter's own key index and on its rebuild-to-resize. The invariant
+    under test is the repository's central one: a caller must never read a
+    shadow's zero value as data, so stored values are `i+1` and any zero read
+    back is unambiguously a leak.
+    - **That test must use `EpochRequests`, not `EpochDuration`.** Written with
+      a 1ms wall-clock epoch it passed alone and failed under `-race` in the
+      full suite: the race detector slows the epoch goroutine enough that the
+      run switched too few times to reach both arms. Request-counted epochs
+      make the number of switches identical on any machine. Anything asserting
+      "a switch happened" needs them.
+  - **`bench.TestEveryArmDrivesAnAdaptiveCache`** asserts the whole arm set
+    builds, reports distinct `PolicyType`s and constructs a real cache. A
+    duplicate type takes out every adaptive measurement at once (the
+    constructor rejects the set), and an arm in `FixedPolicies` that is not
+    reachable through `AdaptiveArms` would be measured alone and silently left
+    out of the comparison it exists for.
+    - Its capacity assertion is deliberately loose (1.5x). W-TinyLFU is in the
+      set and runs over its limit while otter's maintenance catches up; a tight
+      bound here fails intermittently and measures that arm rather than the
+      wiring.
+  - **It is the best fixed policy on one of the six real traces** -- Meta
+    kvcache, at 69.05% -- and within 0.05 points of the winner on Twitter
+    (SIEVE 59.78%) and 0.46 of it on OLTP (2Q 68.25%). It is among the cheapest
+    per operation, because it never reorders anything on a hit. An earlier note
+    here claimed three of six; that was read off a run predating SIEVE. It also serves **0.00% on LIRS
+    `loop`**, tied with LRU, LFU, 2Q, TTL, ARC and SIEVE. That is the number worth
+    remembering about it: **the ghost queue is a hard horizon.** `loop` cycles
+    1011 keys through a 500-entry cache, so every reuse distance is 1011; a key
+    must return while it is still in the small queue or still in the ghost
+    queue to be promoted, and at 1011 it is neither. On the synthetic `loop`,
+    whose cycle is 550, it serves ~80%. The entire difference is reuse distance.
+  - **Written from scratch first, then replaced with the library on request.**
+    The from-scratch version is gone; what it taught is not:
+    - **A differential test against a second implementation found a bug nothing
+      else did.** The hand-rolled ghost queue used the paper's §4.2
+      virtual-timestamp approximation, whose window is *positional*, so an
+      entry removed from it left a dead position - and a ghost hit removes one
+      on every second-chance admission. The queue steadily held fewer keys than
+      its capacity claimed and dropped them just before they came back. Every
+      property test passed: promotion threshold, freq cap, reinsertion, ghost
+      re-admission, capacity, resize, invariants. Each property held in
+      isolation; the hit stream did not. **If a policy is ever hand-written
+      here again, write the differential test first.**
+    - The paper's `evict()` (`S.size >= 0.1 * cache size`) and the reference
+      implementation's (main when it overruns or small is empty) agree on every
+      case a differential run exercised.
+  - **The adapter has to supply four methods upstream does not have**: `Keys`,
+    `Values`, `Resize`, `Cap`, plus `Add`'s evicted flag. Four hazards came out
+    of that, all of them load-bearing:
+    - **`Resize` rebuilds, discarding the ghost queue and every counter.**
+      Upstream cannot resize. AdaptiveCache resizes a policy on every promotion
+      and demotion, so this arm is permanently re-learning if it changes role
+      often - the exact cost `AdaptedCache.Resize` documents for 2Q and ARC,
+      now paid by the strongest cheap arm too. This is the single biggest
+      difference from the from-scratch version, which resized in place.
+    - **The eviction callback runs under the library's mutex.** golang-fifo
+      calls it from inside `removeEntry` with its own lock held, on paths this
+      adapter entered with its own lock held. `onEvicted` therefore must NOT
+      take the adapter's mutex - a `sync.Mutex` is not reentrant and it would
+      deadlock on the first eviction. That reasoning holds only because the
+      cache is built with a TTL of zero and so has no background expiry
+      goroutine. Do not add a TTL to this adapter.
+    - **Upstream's `Len()` takes no lock**, so calling it concurrently with a
+      write is a data race the detector will report. The adapter answers `Len`
+      from its own index and never calls it.
+    - **Upstream cannot be built at size zero**: `Set` loops "while len >=
+      size, evict" with nothing to evict, and never returns. The adapter holds
+      no cache at all in that state and answers every method itself.
+  - **Upstream counts a write as an access** (`Set` on a live key raises its
+    counter), which the paper's algorithm does not. Shadow policies here are
+    driven with `Add`, so this arm's counters rise faster on shadow duty than
+    the algorithm specifies.
+  - **Adding a strong arm made adaptive selection look worse, not better.**
+    Arms are not free: each thins the evidence every other arm gets per epoch.
+    It also showed up as a test failure -
+    `TestFleet_HeterogeneousShardsAreWherePoolingShouldHurt` asserted that
+    leader election leaves the fleet on exactly one policy, which held 8 runs
+    out of 8 with seven arms and fails about 1 run in 5 once S3-FIFO and SIEVE
+    brought the set to nine. The
+    assertion now covers the property the test is named for (pooling loses to
+    deciding alone on a heterogeneous fleet) and bounds the convergence claim
+    instead of pinning it. Do not add arms to the default sets without
+    re-running the evidence suite.
+  - It is in `benchclient.DefaultArms`: that set's criteria are deterministic
+    and unencumbered, and this arm is both.
+
+- [x] **MSR Cambridge and Meta kvcache trace loaders** (`bench/trace_msr.go`,
+  `bench/trace_meta.go`), plus a shared `openTraceScanner` the older loaders
+  now use.
+  - **Both layouts expand, and that is the whole difficulty.** MSR carries a
+    byte offset and a byte length and stands for as many block accesses as fit
+    in the length (a 64 KiB read is 128 accesses at the default 512-byte block,
+    not one). Meta collapses runs of identical operations into one row and an
+    `op_count` that CacheBench replays that many times: on the 2M-request
+    slice, 942,355 read rows expand to 2,000,000 requests. Read either as
+    one-record-one-request and you get the same keys, far less reuse, and hit
+    rates that are wrong and entirely plausible. Same trap as `LoadARCTrace`.
+  - **MSR keys are namespaced by host and disk.** The set covers thirteen
+    servers whose volumes are numbered from zero independently, so block 40
+    means a different thing on each and pooling by block number alone invents
+    reuse that never happened. Block size defaults to 512 to match Caffeine's
+    `CambridgeTraceReader`, which makes the numbers comparable with what is
+    published from that simulator; changing it changes the workload.
+  - **Meta columns are located by name, not position.** The 2022 release is
+    `key,op,size,op_count,key_size` and the 2024 one is
+    `op_time,key,key_size,op,op_count,size,cache_hits,ttl,usecase,sub_usecase`.
+    Read at the 2022 offsets, the 2024 file's key column is the key size and
+    every row is discarded as an unrecognised op -- a failure that looks
+    exactly like an empty trace, which is why an unknown header is an error
+    rather than a skip.
+  - **`GET` and `GET_LEASE` are the reads.** SETs are excluded by default:
+    almost every SET in these files is immediately followed by a GET of the
+    same key, so replaying both hands every policy a free hit per write.
+  - **SNIA is not scriptable and the script says so.** `iotta.snia.org` serves
+    the MSR files behind a click-through licence and a cookie check (and was
+    unreachable from this machine entirely while this was written), so
+    `fetch-traces.sh` prints how to fetch them by hand instead of pretending.
+    Any `msr_<volume>.csv[.gz]` in the trace directory is picked up by a glob,
+    so which volumes somebody takes is their choice.
+  - **The Meta files are 5-10 GB, and a byte-range request over plain HTTPS is
+    enough.** No AWS credentials and no CLI: the bucket answers `Range`. The
+    slice ends mid-line, so every loader here skips a row it cannot parse
+    rather than failing -- which is also what makes a truncated download
+    usable.
+  - **The loader tests run in `make test`, not under `make evidence`.** A
+    format misread is a correctness bug, not evidence. They are pinned against
+    fixtures copied out of the real files.
+
+- [x] **Bug found and fixed: a gradual migration window served shadow zeros as
+  real data.** Introduced by the shadow-insert fix above and caught by an
+  adversarial review agent, not by the suite.
+  - While a `MigrationGradual` window is open, `switchLocked` deliberately does
+    NOT demote the source: it holds the only copy of everything not yet
+    promoted. But it is not the active policy either, so `fanOutReadLocked`
+    treated it as a shadow and filled it with the zero value on a miss.
+    `promoteLocked` then `Peek`s the source and cannot tell that zero from a
+    real pending value, so it promoted the zero into the active policy and the
+    caller got it as a hit.
+  - **"Not active" is not the same as "is a shadow."** That is the general
+    lesson: for the duration of a gradual window there are three roles, not
+    two, and anything iterating `c.policies` and skipping only `activePolicy`
+    has to decide what it means to do to `migrateFrom`.
+  - `Add`'s fan-out writes to the source too, but compensates by deleting the
+    key from `migrationRealKeys`, so the poisoned entry is never promoted. Only
+    the read path was wrong.
+  - **The precondition is eviction from the source during the window**, so a
+    test whose working set fits inside the capacity cannot catch it however
+    many switches it drives - which is exactly why
+    `TestArmsDriveAnAdaptiveCacheThroughSwitches/gradual` (500 keys, capacity
+    500) passed throughout. `TestGradualMigration_NeverServesAZeroFromTheSource`
+    uses a working set three times the capacity and fails without the guard.
+
+- [x] **Bug found and fixed: a shadow policy could only ever acquire a key the
+  active policy had missed**, which made every shadow measurement meaningless
+  whenever the active policy was performing well.
+  - `AdaptiveCache.get` fanned out only `policy.Get(key)` to the shadows. The
+    single shadow-insert path was `AdaptiveCache.Add` - and a read-through
+    caller calls `Add` only when the *active* policy missed. So a shadow was
+    fed from the incumbent's miss stream rather than from the traffic, its
+    contents went static behind a strong incumbent, and a static cache covering
+    most of a small keyspace scores extremely well.
+  - **Measured on `loop` with W-TinyLFU active (94% standalone): LFU, LRU,
+    SIEVE and TTL all serve 0.00% and were reported at over 90%.** `Advice()`
+    ranked the arm serving 0% above the arm serving 94% and recommended
+    switching to it. The distortion's sign and size depend on which arm is
+    incumbent - Random on zipf went the other way, truly 62.6% and reported at
+    3.3% - so it never cancelled in the comparison.
+  - The fix is `fanOutReadLocked`: a shadow that misses fills itself. After it,
+    every deterministic arm's shadow figure equals its standalone replay to
+    within 0.005. `TestShadowsMeasureWhatThePolicyWouldActuallyServe` pins that,
+    deliberately with the strongest arm active, since that is the only
+    condition under which the defect appears.
+  - **The `Add` fan-out now skips a key the shadow already holds.** A shadow's
+    value is always the zero value, so re-adding a key it has carries no
+    information - but it is not free: a write counts as an access in several
+    policies, and SIEVE would mark every freshly filled key as visited,
+    defeating precisely the one-hit-wonder filtering it is carried for.
+    `Peek` rather than `Contains`/`Get` so the check disturbs nothing.
+  - `docs/design.md` had stated the opposite ("Selected keys go to every shadow
+    as `Add(key, zeroValue)`"), which was true of writes and false of reads.
+  - It was found by an independent review agent, not by the test suite. Nothing
+    in the suite compared a shadow's measured rate against the same policy
+    replayed on its own - the one property a shadow exists to have.
+
+### Release blocker for the S3-FIFO/SIEVE work
+
+`benchclient/go.mod` requires `github.com/sshaplygin/as-cache/policies/fifo
+v0.3.1`, and **no `policies/fifo/*` tag has ever existed** - the module is new
+on this branch. `policies/fifo/go.mod` likewise requires root `v0.3.1`, which
+does not contain `ascache.S3FIFO`. Both are correct as pre-release placeholders
+under the bottom-up procedure below, which rewrites every `require` at tag
+time; neither is safe to tag as-is.
+
+**`release-check` reports green on both, and should not.** Its version filter
+only rejects `^v0\.0\.0`, so a require naming a plausible-but-nonexistent tag
+passes. That is precisely the "builds here, unusable by a stranger" failure the
+script exists to catch, reached through a hole in it. Verified: resolving
+`benchclient` from the proxy fails with "module ... found, but does not contain
+package .../policies/fifo". Fix the check to confirm each intra-repo require
+resolves to a tag that exists before tagging anything.
 
 ### Releasing 0.2.0
 

@@ -142,12 +142,7 @@ func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 	c.mu.RLock()
 	if !c.migrating {
 		if sampled {
-			for _, policy := range c.policies {
-				if policy.GetType() == c.activePolicy {
-					continue
-				}
-				policy.Get(key)
-			}
+			c.fanOutReadLocked(key)
 		}
 
 		val, found := c.policies[c.activePolicy].Get(key)
@@ -168,12 +163,7 @@ func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 	defer c.mu.Unlock()
 
 	if sampled {
-		for _, policy := range c.policies {
-			if policy.GetType() == c.activePolicy {
-				continue
-			}
-			policy.Get(key)
-		}
+		c.fanOutReadLocked(key)
 	}
 
 	// Re-check: the window may have closed between the RUnlock and this Lock.
@@ -196,6 +186,21 @@ func (c *AdaptiveCache[K, V]) Add(key K, value V) bool {
 			if policy.GetType() == c.activePolicy {
 				continue
 			}
+
+			// Only a key the shadow does not already hold. A shadow's value is
+			// always the zero value, so re-adding a key it has carries no
+			// information - but it is not free: for a policy whose eviction
+			// state is a counter or a single bit, a write counts as an access.
+			// SIEVE would mark every freshly filled key as visited, defeating
+			// exactly the one-hit-wonder filtering it is carried for, and
+			// S3-FIFO's counter would run ahead of the algorithm.
+			//
+			// Peek rather than Contains or Get, because it must not disturb
+			// that state either.
+			if _, held := policy.Peek(key); held {
+				continue
+			}
+
 			var zeroValue V
 			_ = policy.Add(key, zeroValue)
 		}
@@ -203,9 +208,9 @@ func (c *AdaptiveCache[K, V]) Add(key K, value V) bool {
 
 	if c.migrating {
 		// The key is about to be written to the active policy with its real
-		// value, so it needs no promotion; and if the shadow pass above ran,
-		// it just overwrote the value held by the migration source. Either
-		// way the key must not be promoted later.
+		// value, so promoting the source's copy later would at best duplicate
+		// work and at worst overwrite this write with a staler value. Drop it
+		// from the pending set either way.
 		delete(c.migrationRealKeys, key)
 		if len(c.migrationRealKeys) == 0 {
 			c.closeMigrationLocked()

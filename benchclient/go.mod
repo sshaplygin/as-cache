@@ -6,6 +6,7 @@ require (
 	github.com/sshaplygin/as-cache v0.3.1
 	github.com/sshaplygin/as-cache/bandit v0.3.1
 	github.com/sshaplygin/as-cache/policies v0.3.1
+	github.com/sshaplygin/as-cache/policies/fifo v0.3.1
 	github.com/sshaplygin/as-cache/policies/tinylfu v0.3.1
 	github.com/stretchr/testify v1.11.1
 )
@@ -15,6 +16,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.6 // indirect
 	github.com/maypok86/otter/v2 v2.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/scalalang2/golang-fifo v1.2.0 // indirect
 	github.com/sshaplygin/as-cache/lfu v0.3.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
@@ -24,6 +26,8 @@ replace github.com/sshaplygin/as-cache => ..
 replace github.com/sshaplygin/as-cache/bandit => ../bandit
 
 replace github.com/sshaplygin/as-cache/policies => ../policies
+
+replace github.com/sshaplygin/as-cache/policies/fifo => ../policies/fifo
 
 replace github.com/sshaplygin/as-cache/policies/tinylfu => ../policies/tinylfu
 

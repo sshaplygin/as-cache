@@ -71,6 +71,61 @@ func (f TraceFormat) field(line string) (string, bool) {
 	return key, true
 }
 
+// openTraceScanner opens a trace file, transparently decompressing a .gz, and
+// returns a scanner over its lines together with the function that releases
+// both handles.
+//
+// The scanner's buffer is raised well above the default because trace lines
+// are occasionally long, and a line that overflows the buffer would stop the
+// scan silently in the middle of a file - producing a shorter workload that
+// still looks like a valid one.
+func openTraceScanner(path string) (*bufio.Scanner, func(), error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open trace: %w", err)
+	}
+
+	closers := []func() error{file.Close}
+
+	var reader io.Reader = file
+	if strings.HasSuffix(path, ".gz") {
+		gz, gzErr := gzip.NewReader(file)
+		if gzErr != nil {
+			_ = file.Close()
+
+			return nil, nil, fmt.Errorf("decompress trace: %w", gzErr)
+		}
+		closers = append([]func() error{gz.Close}, closers...)
+		reader = gz
+	}
+
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
+
+	return scanner, func() {
+		for _, release := range closers {
+			_ = release()
+		}
+	}, nil
+}
+
+// truncatedTrace reports whether a scan ended because the file simply stops
+// mid-record, which is what a partial download looks like.
+//
+// The loaders here are documented as tolerating that - these traces are tens of
+// gigabytes and are fetched as byte ranges, so the last line is normally cut -
+// and for a plain file they do: the truncated line fails to parse and is
+// skipped. A gzip stream cut mid-block is different. It surfaces as an error
+// from the scanner, and treating that as a failure throws away every record
+// that was read successfully, turning a usable partial download into an empty
+// workload.
+//
+// Only these two errors qualify. Anything else is a real read failure and must
+// still be reported.
+func truncatedTrace(err error) bool {
+	return errors.Is(err, io.ErrUnexpectedEOF)
+}
+
 // LoadTrace reads up to limit requests from a trace file, transparently
 // decompressing a .gz file. A limit of zero or less reads the whole file.
 //
@@ -78,24 +133,11 @@ func (f TraceFormat) field(line string) (string, bool) {
 // requests, so sharing one string per distinct key is the difference between a
 // workload that fits in memory and one that does not.
 func LoadTrace(path string, format TraceFormat, limit int) (Workload, error) {
-	file, err := os.Open(path)
+	scanner, closeTrace, err := openTraceScanner(path)
 	if err != nil {
-		return Workload{}, fmt.Errorf("open trace: %w", err)
+		return Workload{}, err
 	}
-	defer file.Close()
-
-	var reader io.Reader = file
-	if strings.HasSuffix(path, ".gz") {
-		gz, gzErr := gzip.NewReader(file)
-		if gzErr != nil {
-			return Workload{}, fmt.Errorf("decompress trace: %w", gzErr)
-		}
-		defer gz.Close()
-		reader = gz
-	}
-
-	scanner := bufio.NewScanner(reader)
-	scanner.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
+	defer closeTrace()
 
 	intern := map[string]string{}
 	keys := make([]string, 0, 1024)
@@ -127,7 +169,7 @@ func LoadTrace(path string, format TraceFormat, limit int) (Workload, error) {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := scanner.Err(); err != nil && (!truncatedTrace(err) || len(keys) == 0) {
 		return Workload{}, fmt.Errorf("read trace: %w", err)
 	}
 
@@ -165,24 +207,11 @@ var (
 // different length and different locality from the one every published result
 // refers to, so the numbers would not be comparable to the literature.
 func LoadARCTrace(path string, limit int) (Workload, error) {
-	file, err := os.Open(path)
+	scanner, closeTrace, err := openTraceScanner(path)
 	if err != nil {
-		return Workload{}, fmt.Errorf("open trace: %w", err)
+		return Workload{}, err
 	}
-	defer file.Close()
-
-	var reader io.Reader = file
-	if strings.HasSuffix(path, ".gz") {
-		gz, gzErr := gzip.NewReader(file)
-		if gzErr != nil {
-			return Workload{}, fmt.Errorf("decompress trace: %w", gzErr)
-		}
-		defer gz.Close()
-		reader = gz
-	}
-
-	scanner := bufio.NewScanner(reader)
-	scanner.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
+	defer closeTrace()
 
 	intern := map[uint64]string{}
 	keys := make([]string, 0, 1024)
@@ -221,7 +250,7 @@ func LoadARCTrace(path string, limit int) (Workload, error) {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := scanner.Err(); err != nil && (!truncatedTrace(err) || len(keys) == 0) {
 		return Workload{}, fmt.Errorf("read trace: %w", err)
 	}
 

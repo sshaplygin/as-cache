@@ -1,5 +1,53 @@
 package ascache
 
+// fanOutReadLocked feeds one lookup to every shadow policy, which is what
+// makes a shadow's measurement mean anything.
+//
+// A shadow that misses is filled, exactly as the caller would fill a
+// read-through cache that missed. That fill is the whole point: without it a
+// shadow can only ever acquire a key on a request the ACTIVE policy also
+// missed, because a read-through caller calls Add only then - so the better
+// the incumbent performs, the less the shadows are allowed to learn, and their
+// hit rates stop describing the policies at all.
+//
+// The distortion that causes is not a small bias. Measured on a cyclic
+// workload with a 94%-hit incumbent, shadows holding policies that truly serve
+// 0.00% reported over 90%: starved of inserts, their contents go static, and a
+// static cache covering most of a small keyspace looks excellent. The sign and
+// size depend on which arm is incumbent, so it does not cancel in the
+// comparison - it inverts it, and Advice() recommended switching away from the
+// best arm to the worst.
+//
+// Shadows store the zero value, never the caller's, so filling one costs a key
+// and its eviction bookkeeping and no more.
+//
+// It must be called while at least the read lock is held. Each policy is
+// independently synchronised, so mutating one here is safe: the shadow Get
+// above already mutates recency and frequency state the same way.
+func (c *AdaptiveCache[K, V]) fanOutReadLocked(key K) {
+	for _, policy := range c.policies {
+		if policy.GetType() == c.activePolicy {
+			continue
+		}
+
+		// The source of an open gradual migration is not a shadow yet. It is
+		// the only holder of every value not promoted so far, and promoteLocked
+		// reads those values back out with Peek. Filling it with a zero here
+		// would put a value nobody stored where a real one is still pending,
+		// and Peek cannot tell the two apart - so the zero would be promoted
+		// into the active policy and served to a caller as a hit. It is fed
+		// like any other shadow again once the window closes and it is demoted.
+		if c.migrating && policy.GetType() == c.migrateFrom {
+			continue
+		}
+
+		if _, hit := policy.Get(key); !hit {
+			var zeroValue V
+			_ = policy.Add(key, zeroValue)
+		}
+	}
+}
+
 // demoteLocked puts a policy that has just stopped being active onto shadow
 // duty: it releases the policy's hold on real values and shrinks it to the
 // miniature capacity it simulates at.
@@ -15,6 +63,20 @@ package ascache
 //
 // Keys outside the sample are removed outright, so what remains is the
 // substream every other shadow is measuring.
+//
+// The ordering claim above does not hold for every policy, and the exception
+// is worth knowing. It assumes a write is either an ordering event (recency)
+// or a counted access (frequency). For the FIFO-queue policies it is neither
+// of those things cleanly: SIEVE treats a write as setting the entry's visited
+// bit, and that bit is its whole eviction criterion, so rewriting every key
+// sets it on every key and erases the ordering rather than preserving it;
+// S3-FIFO's counter saturates at three, so a key already at the cap gains
+// nothing while a key at zero gains one, compressing the ordering instead of
+// shifting it uniformly. The effect is a bias in the demoted policy's first
+// shadow epochs, not a standing loss - the queues themselves are untouched and
+// the bits are rewritten by ordinary traffic soon after - but a policy whose
+// eviction state is a single saturating bit per entry should not be demoted
+// this way without measuring what it costs.
 //
 // It must be called while the write lock is held, and only after the new state
 // has been published, so a reader holding a stale view cannot observe a value
