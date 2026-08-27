@@ -40,9 +40,8 @@ been exercised under the race detector and adversarially reviewed. It is all in
 | [Configuration](docs/configuration.md) | Every `Settings` field, migration strategies, sampling, stability gates, tuning |
 | [Policies](docs/policies.md) | The nine ready-made arms, their caveats, adapting your own cache |
 | [Advisor mode](docs/advisor-mode.md) | `ObserveOnly`, `Advice()`, and the `metrics` module |
-| [Evidence](docs/evidence.md) | Every measured claim: policy tables, competing libraries, real traces, sampling fidelity, fleets |
+| [Evidence](docs/evidence.md) | Every measured claim: policy tables, competing libraries, real traces, sampling fidelity |
 | [Benchmarking](docs/benchmarking.md) | Reproducible replays, `benchclient`, `make evidence` |
-| [Running a fleet](docs/fleet.md) | Pooling evidence across replicas through Valkey or Redis |
 | [Project site](https://sshaplygin.github.io/as-cache/) | Landing page, plus an interactive explorer of the bandit's decisions on a phase-shift run |
 
 Past releases are recorded in the [changelog](CHANGELOG.md) and on the

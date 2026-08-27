@@ -84,4 +84,3 @@ full interface definitions are in [design](design.md#implementing-the-bandit-int
 - [maypok86/otter](https://github.com/maypok86/otter) — the W-TinyLFU arm
 - [scalalang2/golang-fifo](https://github.com/scalalang2/golang-fifo) — the S3-FIFO and SIEVE arms
 - [dgraph-io/ristretto](https://github.com/dgraph-io/ristretto) — an early influence on the idea of measuring admission rather than assuming it
-- [redis/go-redis](https://github.com/redis/go-redis) and [Valkey](https://valkey.io/) — the client and store behind the distributed bandit
