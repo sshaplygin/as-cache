@@ -32,9 +32,9 @@ Do not use it when:
 - You cannot give it enough traffic per epoch to measure anything. Arms within
   noise of each other reorder run to run, so a cache seeing a handful of
   requests per epoch picks essentially at random. `Advice()` reports `Epochs`
-  so you can tell whether it has seen enough. If the cause is that your traffic
-  is spread across replicas rather than genuinely thin, see [running a
-  fleet](fleet.md).
+  so you can tell whether it has seen enough. Traffic spread thin across many
+  replicas is the same problem seen from further away, and this library does
+  not solve it: each replica measures only what it serves.
 - Your keyspace fits in the cache. Every policy scores the same when nothing is
   ever evicted, and you are paying for shadows that can never tell you anything.
 
@@ -76,8 +76,7 @@ Then once per epoch:
 2. The [bandit](#implementing-the-bandit-interface) receives that evidence and
    names the arm for the next epoch. Beta posteriors updated with each arm's
    hits and misses, drawn from by Thompson sampling, is the usual choice —
-   `bandit.NewThompson` is one — but the interface is yours to implement, and
-   `bandit.NewDistributed` pools the evidence across a fleet.
+   `bandit.NewThompson` is one — but the interface is yours to implement.
 3. If the named arm is not the active one, [stability
    gates](configuration.md#keeping-switches-stable) decide whether the
    improvement is worth a switch. On a switch, data moves according to the
@@ -121,9 +120,8 @@ Both methods are called under the cache's write lock, so **an implementation
 must not block**. Go's `RWMutex` queues new readers behind a waiting writer, so
 a slow bandit stalls every `Get` in the process for its duration.
 
-Ready-made bandits live in the `bandit` module: `bandit.NewThompson` for a
-single process, [`bandit.NewDistributed`](fleet.md) for a fleet. Both examples
-use the first of those.
+Ready-made bandits live in the `bandit` module: `bandit.NewThompson`, and
+`bandit.NewGreedy` as a control. Both examples use the first.
 
 ### Plugging in a third-party bandit
 

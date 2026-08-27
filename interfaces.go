@@ -50,8 +50,7 @@ type Policy[K comparable, V any] interface {
 // This package ships no implementation, because the choice of strategy is the
 // interesting part and depends on how quickly the traffic changes. Ready-made
 // ones live in the companion github.com/sshaplygin/as-cache/bandit module:
-// a local Thompson sampler, and a distributed bandit that pools evidence
-// across a fleet through Valkey or Redis.
+// a local Thompson sampler and a greedy control.
 //
 // # Implementations must not block
 //
