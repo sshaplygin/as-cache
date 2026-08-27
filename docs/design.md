@@ -121,10 +121,40 @@ Both methods are called under the cache's write lock, so **an implementation
 must not block**. Go's `RWMutex` queues new readers behind a waiting writer, so
 a slow bandit stalls every `Get` in the process for its duration.
 
-A full Thompson Sampling adapter using `stitchfix/mab` is provided in
-[examples/basic/main.go](../examples/basic/main.go). Ready-made bandits live in
-the `bandit` module: `bandit.NewThompson` for a single process,
-[`bandit.NewDistributed`](fleet.md) for a fleet.
+Ready-made bandits live in the `bandit` module: `bandit.NewThompson` for a
+single process, [`bandit.NewDistributed`](fleet.md) for a fleet. Both examples
+use the first of those.
+
+### Plugging in a third-party bandit
+
+The interface is two methods, so wrapping an outside implementation is an
+adapter of about this size. Illustration only -- it names no real library and
+is not compiled:
+
+```go
+type adapter struct {
+    arms []ascache.PolicyType
+    ext  *externalBandit // your library's type
+}
+
+func (a *adapter) RecordStats(s ascache.ShadowStats) {
+    // Deliver one arm's epoch result. Called once per arm per epoch.
+    a.ext.Observe(s.Policy, s.Hits, s.Misses)
+}
+
+func (a *adapter) SelectPolicy() ascache.PolicyType {
+    // Must return promptly and must not block: see the note above.
+    // Returning Undefined -- or any policy the cache does not hold --
+    // means "no change", which is the right answer before the first epoch.
+    return a.ext.Choose(a.arms)
+}
+```
+
+Two things catch people out. Ranging a map while drawing random numbers makes
+the result depend on map iteration order, so a seeded run stops being
+reproducible -- keep arms in a slice. And an arm that saw no requests in an
+epoch is not an arm that scored zero; decide deliberately which one your
+implementation reports.
 
 ## What is not done
 
