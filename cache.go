@@ -73,12 +73,11 @@ type AdaptiveCache[K comparable, V any] struct {
 	// after each report, so an answer about the traffic has to be accumulated
 	// somewhere.
 	//
-	// It is cleared for both policies involved in a switch. Pooling a policy's
-	// active tenure with its shadow tenure would mix two different measurement
-	// regimes - full capacity over all traffic against miniature capacity over
-	// a sample - and, worse, would leave the just-demoted policy's long good
-	// history outweighing the promoted one's short history, so Advice would
-	// recommend reverting a switch the cache had just made correctly.
+	// It is cleared for both policies in a switch. Pooling a policy's active
+	// tenure with its shadow tenure mixes full capacity over all traffic with
+	// a miniature over a sample, and leaves the demoted policy's long history
+	// outweighing the promoted one's short one -- so Advice would recommend
+	// reverting a switch the cache had just made correctly.
 	tenureStats map[PolicyType]PolicyStats
 
 	// reportingEpochs counts only the epochs that actually measured something.
@@ -125,10 +124,9 @@ func (c *AdaptiveCache[K, V]) recordActiveSample(sampled, hit bool) {
 // Get returns the value stored for key by the active policy, feeding the same
 // lookup to every shadow policy that samples the key.
 //
-// When Settings.EpochRequests is set, the call that completes an epoch runs it
-// here, after every lock this method took has been released - runEpoch needs
-// the write lock, and a Get still holding the read lock would deadlock against
-// it.
+// With Settings.EpochRequests set, the call completing an epoch runs it here,
+// after every lock this method took is released: runEpoch needs the write lock
+// and would deadlock against a Get still holding the read lock.
 func (c *AdaptiveCache[K, V]) Get(key K) (V, bool) {
 	value, found := c.get(key)
 	c.countRequest()
@@ -153,12 +151,10 @@ func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 	}
 	c.mu.RUnlock()
 
-	// Gradual migration window: resolve the whole lookup under the write lock,
-	// promoting an eligible key into the active policy BEFORE its Get is
-	// counted. The active policy then records a hit for a request the cache
-	// serves; promoting after the Get would leave a spurious miss in the
-	// active arm's stats for a served request, skewing both Stats() and the
-	// bandit's posterior toward the demoted policy.
+	// Gradual window: resolve the lookup under the write lock, promoting an
+	// eligible key BEFORE its Get is counted. Promoting after would record a
+	// miss for a request the cache served, skewing Stats() and the bandit's
+	// posterior toward the demoted policy.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -187,16 +183,11 @@ func (c *AdaptiveCache[K, V]) Add(key K, value V) bool {
 				continue
 			}
 
-			// Only a key the shadow does not already hold. A shadow's value is
-			// always the zero value, so re-adding a key it has carries no
-			// information - but it is not free: for a policy whose eviction
-			// state is a counter or a single bit, a write counts as an access.
-			// SIEVE would mark every freshly filled key as visited, defeating
-			// exactly the one-hit-wonder filtering it is carried for, and
-			// S3-FIFO's counter would run ahead of the algorithm.
-			//
-			// Peek rather than Contains or Get, because it must not disturb
-			// that state either.
+			// Only a key the shadow does not hold: its value is always zero, so
+			// re-adding carries no information but does count as an access for
+			// a policy whose eviction state is a counter or a bit. SIEVE would
+			// mark every filled key visited, defeating the one-hit-wonder
+			// filtering it is carried for. Peek, so the check disturbs nothing.
 			if _, held := policy.Peek(key); held {
 				continue
 			}
@@ -275,10 +266,10 @@ func (c *AdaptiveCache[K, V]) Purge() {
 // miniature capacity that corresponds to size rather than to size itself, so
 // they stay faithful simulations of a cache of the requested capacity.
 //
-// The sample rate itself is fixed for the life of the cache: changing it would
-// change which keys are sampled, invalidating every shadow's accumulated state.
-// The miniature capacity therefore follows the rate directly here, without the
-// MinShadowCapacity floor that construction applies - see scaledCapacity.
+// The sample rate is fixed for the life of the cache -- changing it would
+// change which keys are sampled and invalidate every shadow's state -- so the
+// miniature capacity follows the rate directly, without the MinShadowCapacity
+// floor construction applies. See scaledCapacity.
 func (c *AdaptiveCache[K, V]) Resize(size int) int {
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -113,15 +113,11 @@ func (c *AdaptiveCache[K, V]) drainOneKey() {
 // (promotion here or an earlier Remove). It must be called while the write
 // lock is held during a gradual migration window.
 //
-// A note on why the source is trustworthy here. It is not the active policy,
-// so anything walking c.policies and skipping only activePolicy would treat it
-// as a shadow and fill it with zero values - and the Peek below cannot tell
-// such a zero from a real value still pending, so it would promote the zero
-// and serve it to a caller as a hit. fanOutReadLocked therefore skips the
-// source while a window is open. "Not active" is not the same as "is a
-// shadow": for the duration of a gradual window there are three roles, not
-// two, and anything iterating the policies has to say what it means to do to
-// this one.
+// The Peek below cannot tell a zero written by a shadow fill from a real value
+// still pending, so fanOutReadLocked skips the source while a window is open.
+// "Not active" is not "is a shadow": during a gradual window there are three
+// roles, and anything iterating c.policies has to say what it does to this
+// one.
 func (c *AdaptiveCache[K, V]) promoteLocked(key K) {
 	// Skip keys the caller has since written directly, or already promoted.
 	if _, ok := c.migrationRealKeys[key]; ok {
