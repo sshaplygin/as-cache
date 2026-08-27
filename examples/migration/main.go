@@ -29,97 +29,11 @@ import (
 	"time"
 
 	hlru "github.com/hashicorp/golang-lru/v2"
-	"github.com/stitchfix/mab"
 
 	ascache "github.com/sshaplygin/as-cache"
+	"github.com/sshaplygin/as-cache/bandit"
 	slfu "github.com/sshaplygin/as-cache/lfu"
 )
-
-// ─── Thompson Sampling reward source ─────────────────────────────────────────
-
-type armStats struct {
-	Hits   float64
-	Misses float64
-}
-
-// cacheRewardSource implements mab.RewardSource. It accumulates per-policy
-// hit/miss counters pushed by the AdaptiveCache bandit hooks.
-type cacheRewardSource struct {
-	mu    sync.RWMutex
-	arms  []ascache.PolicyType
-	stats map[ascache.PolicyType]*armStats
-}
-
-func newCacheRewardSource(arms []ascache.PolicyType) *cacheRewardSource {
-	crs := &cacheRewardSource{
-		arms:  arms,
-		stats: make(map[ascache.PolicyType]*armStats, len(arms)),
-	}
-	for _, a := range arms {
-		crs.stats[a] = &armStats{}
-	}
-	return crs
-}
-
-// GetRewards returns Beta distributions for each arm in arm-index order.
-func (crs *cacheRewardSource) GetRewards(_ context.Context, _ interface{}) ([]mab.Dist, error) {
-	crs.mu.RLock()
-	defer crs.mu.RUnlock()
-
-	dists := make([]mab.Dist, len(crs.arms))
-	for i, arm := range crs.arms {
-		s := crs.stats[arm]
-		dists[i] = mab.Beta(s.Hits+1, s.Misses+1)
-	}
-	return dists, nil
-}
-
-func (crs *cacheRewardSource) update(p ascache.PolicyType, hits, misses int64) {
-	crs.mu.Lock()
-	defer crs.mu.Unlock()
-
-	if s, ok := crs.stats[p]; ok {
-		s.Hits += float64(hits)
-		s.Misses += float64(misses)
-	}
-}
-
-// ─── Bandit adapter ───────────────────────────────────────────────────────────
-
-// stitchfixAdapter wraps the stitchfix/mab Thompson Sampling bandit and
-// implements the ascache.Bandit interface.
-type stitchfixAdapter struct {
-	bandit      *mab.Bandit
-	rewardStore *cacheRewardSource
-	arms        []ascache.PolicyType
-	unitID      string
-}
-
-func newStitchfixAdapter(arms []ascache.PolicyType) *stitchfixAdapter {
-	rs := newCacheRewardSource(arms)
-	return &stitchfixAdapter{
-		bandit: &mab.Bandit{
-			RewardSource: rs,
-			Strategy:     mab.NewThompson(nil),
-			Sampler:      mab.NewSha1Sampler(),
-		},
-		rewardStore: rs,
-		arms:        arms,
-		unitID:      "migration-example",
-	}
-}
-
-func (a *stitchfixAdapter) RecordStats(stats ascache.ShadowStats) {
-	a.rewardStore.update(stats.Policy, stats.Hits, stats.Misses)
-}
-
-func (a *stitchfixAdapter) SelectPolicy() ascache.PolicyType {
-	result, err := a.bandit.SelectArm(context.Background(), a.unitID, a.arms)
-	if err != nil {
-		return a.arms[0]
-	}
-	return a.arms[result.Arm]
-}
 
 // ─── Controllable bandit ──────────────────────────────────────────────────────
 
@@ -128,7 +42,7 @@ func (a *stitchfixAdapter) SelectPolicy() ascache.PolicyType {
 type controllableBandit struct {
 	mu     sync.Mutex
 	forced ascache.PolicyType
-	inner  *stitchfixAdapter
+	inner  ascache.Bandit
 }
 
 func (b *controllableBandit) RecordStats(stats ascache.ShadowStats) {
@@ -405,6 +319,7 @@ func main() {
 	strategyFlag := flag.String("strategy", "warm", "migration strategy: cold | warm | gradual")
 	epochSec := flag.Int("epoch", 5, "epoch duration in seconds")
 	addr := flag.String("addr", ":8081", "listen address")
+	smoke := flag.Bool("smoke", false, "exercise the cache and exit, without serving")
 	flag.Parse()
 
 	logger := log.New(os.Stdout, "[migration] ", log.LstdFlags)
@@ -433,9 +348,11 @@ func main() {
 		logger.Fatalf("LFU init: %v", err)
 	}
 
-	arms := []ascache.PolicyType{ascache.LRU, ascache.LFU}
-	inner := newStitchfixAdapter(arms)
-	bandit := &controllableBandit{inner: inner}
+	// Thompson Sampling over LRU and LFU. The discount keeps roughly the last
+	// ten epochs in view so the bandit can follow a change in traffic; the seed
+	// makes a run reproducible. The demo wraps it so /switch can force the next
+	// selection.
+	selector := &controllableBandit{inner: bandit.NewThompson(0.9, 1)}
 
 	policies := []ascache.Policy[string, string]{
 		ascache.NewCache(lruCache, ascache.LRU, 100),
@@ -444,7 +361,7 @@ func main() {
 
 	cache, err := ascache.NewAdaptiveCache(
 		policies,
-		bandit,
+		selector,
 		&ascache.Settings{
 			EpochDuration:               epochDur,
 			EvictPartialCapacityFilling: true,
@@ -460,10 +377,15 @@ func main() {
 
 	s := &server{
 		cache:    cache,
-		bandit:   bandit,
+		bandit:   selector,
 		epochDur: epochDur,
 		strategy: migrationStrategy,
 		logger:   logger,
+	}
+
+	if *smoke {
+		s.runSmoke()
+		return
 	}
 
 	mux := http.NewServeMux()
@@ -504,4 +426,33 @@ func main() {
 		logger.Panicf("shutdown: %v", err)
 	}
 	logger.Println("stopped")
+}
+
+// runSmoke exercises the cache through a forced policy switch, so CI can prove
+// this example runs -- and that the configured migration strategy carries keys
+// across a switch -- rather than only that it compiles.
+func (s *server) runSmoke() {
+	const n = 100
+	for i := range n {
+		key := fmt.Sprintf("key-%d", i)
+		s.cache.Add(key, "value-"+key)
+	}
+
+	before := policyName(s.cache.ActivePolicy())
+	target := ascache.LFU
+	if s.cache.ActivePolicy() == ascache.LFU {
+		target = ascache.LRU
+	}
+	s.bandit.forceNext(target)
+	time.Sleep(s.epochDur + 500*time.Millisecond)
+
+	readable := 0
+	for i := range n {
+		if _, ok := s.cache.Get(fmt.Sprintf("key-%d", i)); ok {
+			readable++
+		}
+	}
+
+	s.logger.Printf("smoke: strategy=%s  %s -> %s  %d/%d keys readable after the switch",
+		strategyName(s.strategy), before, policyName(s.cache.ActivePolicy()), readable, n)
 }

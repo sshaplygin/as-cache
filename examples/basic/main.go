@@ -2,19 +2,19 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"time"
 
 	ascache "github.com/sshaplygin/as-cache"
+	"github.com/sshaplygin/as-cache/bandit"
 	slfu "github.com/sshaplygin/as-cache/lfu"
 
 	hlru "github.com/hashicorp/golang-lru/v2"
-	"github.com/stitchfix/mab"
 )
 
 type UserProfile struct {
@@ -24,6 +24,9 @@ type UserProfile struct {
 }
 
 func main() {
+	smoke := flag.Bool("smoke", false, "exercise the cache and exit, without serving")
+	flag.Parse()
+
 	lruCache, err := hlru.New[string, *UserProfile](100)
 	if err != nil {
 		panic(err)
@@ -39,15 +42,15 @@ func main() {
 		ascache.NewCache(lfuCache, ascache.LFU, 100),
 	}
 
-	armNames := []ascache.PolicyType{ascache.LRU, ascache.LFU}
-
-	myBandit := NewThompsonBanditAdapter(
-		armNames,
-	)
+	// Thompson Sampling over the two arms above. The first argument discounts
+	// older epochs (0.9 keeps roughly the last ten in view) so the bandit can
+	// change its mind when traffic changes; the second seeds its draws, which
+	// makes a run reproducible.
+	selector := bandit.NewThompson(0.9, 1)
 
 	cache, err := ascache.NewAdaptiveCache(
 		policiesList,
-		myBandit,
+		selector,
 		&ascache.Settings{
 			EpochDuration: 5 * time.Minute,
 		},
@@ -56,6 +59,11 @@ func main() {
 		panic(err)
 	}
 	defer cache.Close()
+
+	if *smoke {
+		runSmoke(cache)
+		return
+	}
 
 	mux := http.NewServeMux()
 
@@ -133,103 +141,23 @@ func main() {
 	log.Println("server stopped")
 }
 
-func NewThompsonBanditAdapter(armNames []ascache.PolicyType) *StitchFixBanditAdapter {
-	rewardStore := NewCacheRewardSource(armNames)
-
-	return &StitchFixBanditAdapter{
-		bandit: &mab.Bandit{
-			RewardSource: rewardStore,
-			Strategy:     mab.NewThompson(nil),
-			Sampler:      mab.NewSha1Sampler(),
-		},
-		rewardStore: rewardStore,
-		armNames:    armNames,
-		unitID:      "adaptive-selection-cache",
-	}
-}
-
-type armStats struct {
-	// Beta distribution parameters: Alpha = Hits + 1, Beta = Misses + 1.
-	Hits   float64
-	Misses float64
-}
-
-// CacheRewardSource implements the mab.RewardSource interface.
-// It stores per-arm statistics supplied by the MAB adapter.
-type CacheRewardSource struct {
-	mu    sync.RWMutex
-	stats map[ascache.PolicyType]*armStats
-}
-
-func NewCacheRewardSource(armNames []ascache.PolicyType) *CacheRewardSource {
-	crs := &CacheRewardSource{
-		stats: make(map[ascache.PolicyType]*armStats, len(armNames)),
-	}
-	for _, name := range armNames {
-		crs.stats[name] = &armStats{}
-	}
-	return crs
-}
-
-// GetRewards is the "Pull" method called by stitchfix/mab when it needs to
-// make an arm-selection decision.
-func (crs *CacheRewardSource) GetRewards(ctx context.Context, banditContext interface{}) ([]mab.Dist, error) {
-	crs.mu.RLock()
-	defer crs.mu.RUnlock()
-
-	distributions := make([]mab.Dist, len(crs.stats))
-	for i, arm := range crs.stats {
-		distributions[i] = mab.Beta(arm.Hits+1, arm.Misses+1)
+// runSmoke exercises the cache the way the HTTP handlers do, so CI can prove
+// this example runs rather than only that it compiles.
+func runSmoke(cache *ascache.AdaptiveCache[string, *UserProfile]) {
+	const n = 100
+	for i := range n {
+		key := fmt.Sprintf("user-%d", i)
+		cache.Add(key, &UserProfile{Name: key, Email: key + "@example.com", CreatedAt: time.Now()})
 	}
 
-	return distributions, nil
-}
-
-// updateStats is the "Push" method called by the MAB adapter to record
-// observed hits and misses for a given policy.
-func (crs *CacheRewardSource) updateStats(policy ascache.PolicyType, hits, misses int64) {
-	crs.mu.Lock()
-	defer crs.mu.Unlock()
-
-	s, ok := crs.stats[policy]
-	if !ok {
-		return
+	hits := 0
+	for i := range n {
+		if _, ok := cache.Get(fmt.Sprintf("user-%d", i)); ok {
+			hits++
+		}
 	}
 
-	s.Hits += float64(hits)
-	s.Misses += float64(misses)
-}
-
-// =====================================================================
-// 2. ADAPTER IMPLEMENTING THE `Bandit` INTERFACE
-// =====================================================================
-
-// StitchFixBanditAdapter wraps the stitchfix bandit and implements the
-// ascache.Bandit interface.
-type StitchFixBanditAdapter struct {
-	bandit      *mab.Bandit
-	rewardStore *CacheRewardSource
-	armNames    []ascache.PolicyType
-	// unitID is a stable identifier for the single shared cache instance,
-	// used by stitchfix/mab for deterministic arm selection.
-	unitID string
-}
-
-// RecordStats implements the ascache.Bandit "Push" interface.
-// It forwards shadow-cache statistics into the reward store.
-func (s *StitchFixBanditAdapter) RecordStats(stats ascache.ShadowStats) {
-	s.rewardStore.updateStats(stats.Policy, stats.Hits, stats.Misses)
-}
-
-// SelectPolicy implements the ascache.Bandit "Pull" interface.
-// It asks the stitchfix bandit to select the best arm by sampling from
-// the Beta distributions stored in the reward source.
-func (s *StitchFixBanditAdapter) SelectPolicy() ascache.PolicyType {
-	selectedArm, err := s.bandit.SelectArm(context.Background(), s.unitID, s.armNames)
-	if err != nil {
-		// Fall back to the first arm on any error.
-		return s.armNames[0]
-	}
-
-	return s.armNames[selectedArm.Arm]
+	stats := cache.Stats()
+	log.Printf("smoke: %d/%d keys readable, active policy %s, hits %d misses %d",
+		hits, n, cache.ActivePolicy(), stats.Hits, stats.Misses)
 }

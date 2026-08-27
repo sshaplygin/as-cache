@@ -51,6 +51,22 @@ jobs:
         working-directory: ${{ matrix.module }}
         run: go test -race -short -count=1 ./...
 
+      # The examples carry no tests, so without this they are checked only for
+      # compiling. Both ship a -smoke mode that drives the cache and exits, so
+      # a runtime fault in example code fails CI instead of the first reader.
+      - name: run the example
+        if: startsWith(matrix.module, 'examples/')
+        working-directory: ${{ matrix.module }}
+        run: go run . -smoke
+
+      - name: run the example across every migration strategy
+        if: matrix.module == 'examples/migration'
+        working-directory: ${{ matrix.module }}
+        run: |
+          for strategy in cold warm gradual; do
+            go run . -strategy=$strategy -epoch=1 -smoke
+          done
+
   # Two things block a release and show up in no other check: a module missing
   # its licence, and a sibling required at a placeholder version. The second is
   # invisible locally, because a replace directive resolves it - and replace

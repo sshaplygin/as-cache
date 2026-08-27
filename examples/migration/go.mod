@@ -6,14 +6,12 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.6
 	github.com/sshaplygin/as-cache v0.3.1
 	github.com/sshaplygin/as-cache/lfu v0.3.1
-	github.com/stitchfix/mab v0.1.1
 )
 
-require (
-	golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6 // indirect
-	gonum.org/v1/gonum v0.8.2 // indirect
-)
+require github.com/sshaplygin/as-cache/bandit v0.3.1
 
 replace github.com/sshaplygin/as-cache => ../..
 
 replace github.com/sshaplygin/as-cache/lfu => ../../lfu
+
+replace github.com/sshaplygin/as-cache/bandit => ../../bandit
