@@ -43,9 +43,10 @@ TTL shares a column with LRU because these workloads carry no notion of
 staleness and its TTL is longer than any run, so it measures its LRU behaviour
 exactly -- identically, to the hundredth of a point, on all five.
 
-Every arm here reproduces to the hundredth of a point between runs except
-W-TinyLFU, which does not: on `loop` it has measured 88.7% and 94.5% within a
-single process. Read its column, and any delta computed against it, with that
+Every arm here reproduces to the hundredth of a point between runs except two.
+W-TinyLFU does not: on `loop` it has measured 88.7% and 94.5% within a single
+process. Neither does `Random`, which seeds itself from the global source —
+that is what a control arm is for, but it means its column moves too. Read its column, and any delta computed against it, with that
 in mind — the cause is in [reproducible replays](benchmarking.md).
 
 Two things stand out. LRU and LFU both score **exactly zero** on `loop`, where a
@@ -185,32 +186,31 @@ against the hit rate. The real-trace figures below are far tighter than this
 table, because those replays use a tuned 50ms epoch rather than the 2ms one
 held fixed across every workload here.
 
-The timeline explains why. Replaying `phase-shift` and sampling `ActivePolicy()`
-throughout:
+The timeline says why, and it is not the answer this section used to give.
+Replaying `phase-shift` and sampling `ActivePolicy()` throughout:
 
 ```text
-phase      Z------L------Z------L------Z------L------Z------L------   (Z = zipf, L = loop)
-LRU        ###
-TwoQueue      #####
-SIEVE           ###
-LFU                ##      ###        #####
-S3FIFO               ##      ##
-TinyLFU                #############################################
-
-share of time active: LRU 2%, LFU 6%, TwoQueue 3%, TinyLFU 82%, S3FIFO 2%, SIEVE 3%
-hit rate 77.05%
+share of time active: LRU 6%, LFU 4%, TwoQueue 15%, ARC 14%, TTL 4%,
+                      TinyLFU 27%, S3FIFO 15%, SIEVE 16%
+hit rate 63.77%
 ```
 
-The bandit works exactly as designed: it explores, identifies W-TinyLFU, and
-holds it for 82% of the run. It does not oscillate at phase boundaries, because
-there is no crossover to exploit -- W-TinyLFU is the best arm in *both* regimes.
-The remaining gap is the price of exploring and of migrating between arms.
+**The bandit does not settle.** Eight of the nine arms take a turn, the best of
+them holds only 27% of the run, and the cache spends the rest of it changing
+its mind. That is not a defect in the bandit; it is what honest evidence looks
+like on this workload. `phase-shift` alternates between two regimes every
+20,000 requests, several arms sit within a couple of points of each other in
+both, and Thompson sampling explores exactly as it should when the posteriors
+overlap. The cost of that exploration is the gap between 63.77% here and a
+fixed W-TinyLFU's 82.6%.
 
-That timeline is one draw, not a fixed result: this test uses a wall-clock
-epoch, so the number of epochs in a run varies with machine load and which
-also-ran arms collect a sliver of exploration varies with it. Across six
-consecutive unmodified runs S3-FIFO appeared in four and SIEVE in five. Read
-the 82% as the finding and the slivers as noise.
+Two things are worth saying plainly about this block. Earlier versions of this
+document showed W-TinyLFU holding 82-90% of the same run and concluded that the
+bandit "identifies W-TinyLFU and holds it"; that was measured while the shadow
+mechanism was reporting rivals at rates they could not achieve, and it does not
+reproduce. And the run still uses a wall-clock epoch, so the number of epochs
+varies with machine load — read the shape (no arm dominates) as the finding and
+the individual percentages as one draw.
 
 So the case for this library is not "it beats the best policy." It is:
 
@@ -317,11 +317,13 @@ Then there is `loop`, where it serves **0.00%** -- tied with LRU, LFU, 2Q, TTL,
 ARC and SIEVE, and beaten by random eviction. That is the algorithm behaving
 exactly as designed. `loop` cycles through 1011 keys with a 500-entry cache, so
 every reuse distance is 1011 requests. A key has to be requested again while it
-is still in the small queue (50 entries) or still in the ghost queue to be
-promoted. The library sizes that ghost queue at the *whole* cache capacity --
-500 here, not the main queue's 450 -- so the horizon is roughly 1000 requests
-wide, and a reuse distance of 1011 falls just outside it. Every key goes round
-the small queue forever and nothing is ever promoted. Only two arms survive the
+is still resident or still in the ghost queue to be promoted. The library sizes
+that ghost queue at the *whole* cache capacity -- 500 here -- so the horizon is
+roughly 1000 requests wide, and a reuse distance of 1011 falls just outside it.
+Nothing is ever promoted to the main queue, so the small queue holds the whole
+cache and every key cycles through it forever. (`size/10` is not a cap on that
+queue: upstream uses it only to decide which of the two queues an eviction
+comes from.) Only two arms survive the
 trace at all: W-TinyLFU's sketch, which ages rather than expiring, and random
 eviction, which has no order to defeat.
 
@@ -333,51 +335,23 @@ distance.
 
 ### What the library adapter costs
 
-This arm wraps [scalalang2/golang-fifo](https://github.com/scalalang2/golang-fifo)
-rather than implementing the algorithm here, and the wrapper is not free. The
+These arms wrap [scalalang2/golang-fifo](https://github.com/scalalang2/golang-fifo)
+rather than implementing the algorithms here, and the wrapper is not free. The
 adapter has to supply `Keys`, `Values`, `Resize` and `Cap`, none of which exist
 upstream, which means a second copy of the key set maintained through the
-library's eviction callback and a full rebuild on every resize. Measured
-against a from-scratch implementation of the same algorithm, replaying the same
-traces at the same capacities.
+library's eviction callback and a full rebuild on every resize. The per-operation
+columns in the table above are what that costs: 371 to 770 ns/op for S3-FIFO
+against 80 to 130 for a bare LRU on the same traces.
 
-**Read the right-hand columns as history, not as a measurement you can repeat.**
-The from-scratch implementation was written first, measured against the library
-here, and then deleted when the library replaced it — so nothing in `make
-evidence` reproduces that side of this table, and no test guards it. It is kept
-because it is the evidence behind choosing the dependency. The `via the
-library` columns are reproducible and are re-measured with everything else.
-
-| Trace | via the library | ns/op | from scratch | ns/op |
-| --- | --- | --- | --- | --- |
-| Twitter | 59.73% | 450 | 61.47% | 162 |
-| Meta kvcache | 69.05% | 351 | 69.75% | 137 |
-| ARC OLTP | 67.79% | 385 | 68.32% | 157 |
-| ARC P3 | 10.75% | 709 | 9.98% | 291 |
-
-**Two to three times the per-operation cost**, and between half a point worse
-and three quarters of a point better on hit rate. The time goes on the index
-the adapter maintains alongside the library and on the library's linked-list
-allocations; the hit-rate differences come from the two implementations sizing
-the ghost queue differently and from upstream counting a write as an access.
-
-The trade bought is not owning an eviction algorithm. That is worth something:
-the from-scratch version shipped with a real bug in its ghost queue, found only
-by differential testing against a second implementation, and every property
-test passed while it was there.
-
-LFU is the sharpest illustration of why synthetic workloads mislead. It is the
-**best** policy on synthetic `zipf` (73.5%) and the **worst** on both large real
-traces (41.4% on Twitter, 45.4% on OLTP). Synthetic Zipf holds popularity
-*stationary*, which is exactly the assumption classic LFU makes; real traffic
-shifts, and an entry that was hot once keeps a frequency count that holds it
-resident long after it stops being useful. That is the failure W-TinyLFU's aged
-frequency sketch exists to avoid, and it is invisible until you replay real
-traffic.
-
-How much configuration moves these numbers is in
-[configuration](configuration.md#tuning-measured); the short version is that a
-too-short epoch costs up to 7 points and 30x the per-operation time.
+The trade bought is not owning an eviction algorithm, and that is worth
+something. An earlier from-scratch S3-FIFO in this repository shipped with a
+real bug in its ghost queue -- the paper's virtual-timestamp approximation
+leaves a dead slot behind whenever an entry is removed early, so the queue
+steadily held fewer keys than its capacity claimed and dropped them just before
+they came back. Every property test passed; only a differential run against a
+second implementation found it. That implementation is gone, so its numbers are
+not quoted here: nothing in `make evidence` reproduces them and no test guards
+them.
 
 ## Does sampling distort the comparison?
 
@@ -437,8 +411,9 @@ effective rate rather than letting a miniature shrink into noise.
 ## Does pooling across a fleet help?
 
 **Only in the regime it was built for, and it is worth checking you are in that
-regime before turning it on.** All figures are 8 replicas, cache capacity 300
-to 500, `make evidence`. The mechanism is described in [running a
+regime before turning it on.** Figures are 8 replicas at cache capacity 300 to
+500 unless the row says otherwise -- the mixed-fleet row below is 6 replicas at
+400 -- and all come from `make evidence`. The mechanism is described in [running a
 fleet](fleet.md).
 
 The case it exists for is a replica that sees too little traffic per epoch to
