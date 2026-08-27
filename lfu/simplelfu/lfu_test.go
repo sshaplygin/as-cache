@@ -585,7 +585,7 @@ func TestRemove_RepairsMinFreqWhenBucketEmpties(t *testing.T) {
 // The bucket index is an internal invariant that the code above is responsible
 // for upholding. These white-box cases corrupt it deliberately to prove the
 // lookup helpers degrade to a miss rather than dereferencing a nil bucket,
-// keeping the package free of panics (CLAUDE.md rule 5).
+// keeping the package free of panics outside initialisation.
 func TestCorruptedIndex_DegradesToMissInsteadOfPanic(t *testing.T) {
 	t.Run("minFreq addresses a missing bucket", func(t *testing.T) {
 		c, err := NewLFU[string, int](2, nil)
