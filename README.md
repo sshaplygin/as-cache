@@ -45,9 +45,8 @@ been exercised under the race detector and adversarially reviewed. It is all in
 | [Running a fleet](docs/fleet.md) | Pooling evidence across replicas through Valkey or Redis |
 | [Project site](https://sshaplygin.github.io/as-cache/) | Landing page, plus an interactive explorer of the bandit's decisions on a phase-shift run |
 
-Past releases are recorded in the [changelog](CHANGELOG.md) and in
-[docs/release-notes-*.md](docs/), which are kept as published rather than
-updated.
+Past releases are recorded in the [changelog](CHANGELOG.md) and on the
+[releases page](https://github.com/sshaplygin/as-cache/releases).
 
 ## License
 
