@@ -14,25 +14,13 @@ type Settings struct {
 	// applies both, and whichever comes first ends the epoch.
 	EpochDuration time.Duration
 
-	// EpochRequests ends an epoch every N Get calls instead of on a clock.
-	//
-	// Wall-clock epochs make a cache's behaviour depend on how fast the
-	// machine runs it: replaying one trace twice re-evaluates a different
-	// number of times, so the hit rate moves between runs and cannot be
-	// compared with anything. Counting requests removes the clock from the
-	// measurement entirely - the same trace produces the same epochs, the
-	// same switches and the same hit rate on any machine, which is what a
-	// benchmark or a regression test needs.
-	//
-	// Get is the unit because Get is what produces evidence: hits and misses
-	// are recorded there and nowhere else, so this counts exactly the
-	// requests the bandit is shown. A workload that only writes never ends an
-	// epoch, which is correct - there is nothing to compare policies on.
-	//
-	// The epoch runs on the goroutine that happens to make the Nth Get, so
-	// that one call pays for the switch and any migration it triggers. In
-	// production prefer EpochDuration, which keeps that work on the
-	// background goroutine. Zero (the default) disables request counting.
+	// EpochRequests ends an epoch every N Get calls instead of on a clock,
+	// which is what makes a replay reproducible on any machine. Get is the
+	// unit because hits and misses are recorded there and nowhere else, so a
+	// write-only workload never ends an epoch. The epoch runs on the
+	// goroutine making the Nth Get, so that call pays for any switch it
+	// triggers; production should prefer EpochDuration. Zero disables it.
+	// See docs/benchmarking.md.
 	EpochRequests int64
 	// EvictPartialCapacityFilling allows policy switching even when the cache
 	// is not yet full.
@@ -55,49 +43,31 @@ type Settings struct {
 	SwitchCooldownEpochs int64
 
 	// MinEpochRequests is the number of requests (hits plus misses) both the
-	// active policy and the candidate must have observed in the measured
-	// epoch before a switch is allowed, so the cache does not react to a
-	// handful of samples. Zero (the default) imposes no minimum.
-	//
-	// The requests counted are the ones the bandit sees, which under
-	// ShadowSampleRate means sampled requests: at a rate of 0.05 a threshold
-	// of 100 is reached after roughly 2000 real requests.
+	// active policy and the candidate must have observed in the measured epoch
+	// before a switch is allowed. These are the requests the bandit sees, so
+	// under ShadowSampleRate they are sampled ones. Zero imposes no minimum.
 	MinEpochRequests int64
 
 	// ShadowSampleRate is the fraction of the keyspace, in (0,1], that shadow
-	// policies track. Shadows exist only to estimate a hit rate, and a hit
-	// rate can be estimated from a sample: at 0.05 a shadow skips 95% of the
-	// operations it would otherwise mirror, which is where the bulk of the
-	// adaptive layer's overhead goes.
-	//
-	// Shadows shrink with the rate so each remains a faithful miniature of a
-	// full-size cache, and every shadow samples the same keys so their hit
-	// rates stay comparable. The active policy still serves every key; only
-	// the measurement is sampled, and it is sampled for the active policy too
-	// so that all arms carry equally weighted evidence.
-	//
-	// Zero (the default) means 1: shadows mirror every key, which is the
-	// behaviour of earlier versions.
+	// policies track, and where most of the adaptive layer's overhead goes.
+	// Shadows shrink with the rate to stay faithful miniatures, and every
+	// shadow samples the same keys so their hit rates stay comparable. The
+	// active policy still serves every key; only its measurement is sampled,
+	// so all arms carry equally weighted evidence. Zero means 1, no sampling.
+	// See docs/configuration.md.
 	ShadowSampleRate float64
 
 	// ObserveOnly runs the cache as a measurement instrument: every policy is
-	// still measured each epoch and reported to the bandit, but the active
-	// policy never changes and no migration ever happens.
-	//
-	// This is the zero-risk way to adopt the library. The cache behaves
-	// exactly like the single policy you gave it first, while Advice() answers
-	// the question that is otherwise expensive to ask: would a different
-	// eviction policy serve this traffic better, and by how much. Once the
-	// answer is in, either switch to that policy directly or turn this off and
-	// let the bandit do it.
+	// measured and reported each epoch, but the active policy never changes
+	// and no migration happens, so the cache behaves exactly like the policy
+	// it was built with. Advice() reports what the others would have served.
+	// See docs/advisor-mode.md.
 	ObserveOnly bool
 
-	// MinShadowCapacity is the floor on a shadow's miniature capacity. A
-	// miniature of a handful of entries measures noise rather than a policy,
-	// so when the sample rate would shrink a shadow below this floor the
-	// effective rate is raised instead, up to the point where sampling
-	// disables itself entirely. Zero (the default) applies
-	// DefaultMinShadowCapacity.
+	// MinShadowCapacity is the floor on a shadow's miniature capacity. When
+	// the sample rate would shrink a shadow below it the effective rate is
+	// raised instead, up to the point where sampling disables itself. Zero
+	// applies DefaultMinShadowCapacity.
 	MinShadowCapacity int
 }
 

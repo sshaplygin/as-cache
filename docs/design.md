@@ -59,9 +59,14 @@ On each request:
    anything: a read-through caller only calls `Add` when the *active* policy
    missed, so without it a shadow could never acquire a key the incumbent was
    already serving, and the better the incumbent performed the less its rivals
-   were allowed to learn. Shadows hold keys and eviction bookkeeping, never
-   data, which is why N policies do not cost N times the memory — and why no
-   caller can ever be handed a shadow's zero.
+   were allowed to learn. The drift that causes is not a small bias: measured
+   on a cyclic workload behind a 94%-hit incumbent, arms that truly serve 0.00%
+   reported over 90%, because a starved shadow's contents go static and a
+   static cache covering most of a small keyspace looks excellent. Its sign
+   depends on which arm is incumbent, so it does not cancel — `Advice()`
+   recommended switching from the best arm to the worst. Shadows hold keys and
+   eviction bookkeeping, never data, which is why N policies do not cost N
+   times the memory — and why no caller can ever be handed a shadow's zero.
 
 Then once per epoch:
 

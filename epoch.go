@@ -25,15 +25,13 @@ func (c *AdaptiveCache[K, V]) runAdaptiveSelect() {
 }
 
 // countRequest advances the request-driven epoch clock and runs the epoch on
-// the call that completes it.
+// the call that completes it. Caller must hold no lock: runEpoch takes the
+// write lock.
 //
-// It must be called with no lock held: runEpoch takes the write lock.
-//
-// Exactly one caller per epoch observes the count equal to the limit, so
-// exactly one epoch runs however many goroutines are in Get at once. The limit
-// is then subtracted rather than the counter reset, so requests that arrived
-// during the crossing are still counted towards the next epoch instead of
-// being dropped.
+// Exactly one caller per epoch sees the count equal the limit, so exactly one
+// epoch runs however many goroutines are in Get. The limit is subtracted
+// rather than the counter reset, so requests arriving mid-crossing still
+// count towards the next epoch.
 func (c *AdaptiveCache[K, V]) countRequest() {
 	limit := c.settings.EpochRequests
 	if limit <= 0 {
@@ -108,16 +106,17 @@ func (c *AdaptiveCache[K, V]) tryChangePolicy() PolicyType {
 	return c.selectPolicyLocked()
 }
 
-// selectPolicyLocked reports every policy's stats to the bandit — the active
-// policy included, so its posterior does not go stale — and returns the
-// bandit's chosen policy for the next epoch. When
-// EvictPartialCapacityFilling is false and the active policy is not yet full,
-// it returns early without reporting or resetting anything; counters then
-// accumulate until the next reporting epoch. On a reporting epoch counters
-// are reset after delivery; the active policy's counts are folded into
-// globalStats first so Stats() stays cumulative and no active-tenure counts
-// leak into a policy's first shadow epoch after demotion. It must be called
-// while the write lock is held.
+// selectPolicyLocked reports every policy's stats to the bandit -- the active
+// policy included, so its posterior does not go stale -- and returns the arm
+// chosen for the next epoch.
+//
+// With EvictPartialCapacityFilling false and the active policy not yet full it
+// returns early, reporting and resetting nothing; counters accumulate until
+// the next reporting epoch. Otherwise counters reset after delivery, the
+// active policy's folded into globalStats first so Stats() stays cumulative
+// and no active-tenure count leaks into a first shadow epoch after demotion.
+//
+// Caller must hold the write lock.
 func (c *AdaptiveCache[K, V]) selectPolicyLocked() PolicyType {
 	currentPolicy := c.activePolicy
 

@@ -208,6 +208,21 @@ fan-out skips a key the shadow already holds, so the counters no longer run
 ahead on shadow duty. It still applies to a caller whose own traffic rewrites
 live keys.
 
+**Demotion disturbs their eviction state more than it disturbs the others'.**
+When a policy stops being active it is rewritten to zero values in `Keys()`
+order, which for a recency policy re-establishes the same order and for a
+frequency policy adds one access to every surviving key, leaving the relative
+order alone. Neither holds here. SIEVE treats a write as setting the visited
+bit, and that bit is its whole eviction criterion, so rewriting every key sets
+it on every key and erases the ordering rather than preserving it. S3-FIFO's
+counter saturates at three, so a key already at the cap gains nothing while a
+key at zero gains one, compressing the ordering instead of shifting it
+uniformly. The effect is a bias in the demoted policy's first shadow epochs
+rather than a standing loss — the queues are untouched and ordinary traffic
+rewrites the bits soon after — but a policy whose eviction state is a single
+saturating bit per entry should not be demoted this way without measuring what
+it costs.
+
 Two smaller notes. The adapter always builds with a TTL of zero, which is
 load-bearing: a non-zero TTL starts a background goroutine that would invoke
 the eviction callback from a goroutine the adapter never entered, and the
@@ -243,3 +258,21 @@ Note that `Resize` on an adapted cache rebuilds it, discarding whatever
 adaptation the algorithm had learned. `AdaptiveCache` resizes shadow policies
 when its own capacity changes, so adapted policies are heavier arms to carry
 than natively resizable ones.
+
+Three rules an arm has to honour, each of which a real implementation has
+broken here:
+
+- **Never return a zero value with `true`.** A `Get` or `Peek` that reports a
+  hit for an entry it no longer holds hands the caller a value nobody stored.
+  This library's central invariant is that a shadow's zero is never observable,
+  and one arm returning `(zeroValue, true)` for an expired-but-unreaped entry
+  defeats it from below. `hashicorp/golang-lru/v2/expirable` does exactly that,
+  which is why `policies.NewTTL` is written over a plain LRU with lazy expiry
+  rather than wrapping it.
+- **`Keys()` and `Values()` must line up.** A `Values()` padded to full length
+  with trailing zeros does not correspond to `Keys()`, and warm migration
+  copies through both.
+- **Size 0 means empty, not unlimited.** Shadows are resized automatically, so
+  an arm reading 0 as "no limit" turns a bounded miniature into an unbounded
+  cache. It must also not start a goroutine it gives you no way to stop: a
+  reaper per cache with no `Close` leaks the goroutine and the cache with it.

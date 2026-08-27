@@ -1,42 +1,22 @@
 package ascache
 
-// fanOutReadLocked feeds one lookup to every shadow policy, which is what
-// makes a shadow's measurement mean anything.
+// fanOutReadLocked feeds one lookup to every shadow policy. A shadow that
+// misses fills itself with the zero value, which is what makes its hit rate
+// describe the policy rather than the incumbent's miss stream -- see
+// docs/design.md, which records how far that measurement drifts without it.
 //
-// A shadow that misses is filled, exactly as the caller would fill a
-// read-through cache that missed. That fill is the whole point: without it a
-// shadow can only ever acquire a key on a request the ACTIVE policy also
-// missed, because a read-through caller calls Add only then - so the better
-// the incumbent performs, the less the shadows are allowed to learn, and their
-// hit rates stop describing the policies at all.
-//
-// The distortion that causes is not a small bias. Measured on a cyclic
-// workload with a 94%-hit incumbent, shadows holding policies that truly serve
-// 0.00% reported over 90%: starved of inserts, their contents go static, and a
-// static cache covering most of a small keyspace looks excellent. The sign and
-// size depend on which arm is incumbent, so it does not cancel in the
-// comparison - it inverts it, and Advice() recommended switching away from the
-// best arm to the worst.
-//
-// Shadows store the zero value, never the caller's, so filling one costs a key
-// and its eviction bookkeeping and no more.
-//
-// It must be called while at least the read lock is held. Each policy is
-// independently synchronised, so mutating one here is safe: the shadow Get
-// above already mutates recency and frequency state the same way.
+// Caller must hold at least the read lock. Each policy is independently
+// synchronised, so mutating one here is safe.
 func (c *AdaptiveCache[K, V]) fanOutReadLocked(key K) {
 	for _, policy := range c.policies {
 		if policy.GetType() == c.activePolicy {
 			continue
 		}
 
-		// The source of an open gradual migration is not a shadow yet. It is
-		// the only holder of every value not promoted so far, and promoteLocked
-		// reads those values back out with Peek. Filling it with a zero here
-		// would put a value nobody stored where a real one is still pending,
-		// and Peek cannot tell the two apart - so the zero would be promoted
-		// into the active policy and served to a caller as a hit. It is fed
-		// like any other shadow again once the window closes and it is demoted.
+		// The source of an open gradual window is not a shadow: it still holds
+		// every value not yet promoted, and promoteLocked reads those back with
+		// Peek, which cannot tell a real pending value from a zero written
+		// here. Filling it would promote that zero and serve it as a hit.
 		if c.migrating && policy.GetType() == c.migrateFrom {
 			continue
 		}
@@ -49,38 +29,17 @@ func (c *AdaptiveCache[K, V]) fanOutReadLocked(key K) {
 }
 
 // demoteLocked puts a policy that has just stopped being active onto shadow
-// duty: it releases the policy's hold on real values and shrinks it to the
-// miniature capacity it simulates at.
+// duty: entries are rewritten to the zero value, keys outside the sample are
+// removed, and the policy shrinks to its miniature capacity. Keys survive
+// because they are the eviction bookkeeping its hit-rate estimate rests on.
 //
-// Values are dropped rather than kept because a demoted policy no longer
-// serves anyone. Its keys still matter - they are the eviction bookkeeping
-// that makes its hit-rate estimate meaningful - so entries are rewritten to
-// the zero value instead of being purged. Rewriting in Keys() order preserves
-// the ordering the policy maintains: for a recency policy the oldest-to-newest
-// walk re-establishes the same recency order, and for a frequency policy every
-// surviving key gains exactly one access, which leaves the relative ordering
-// untouched.
+// The rewrite walks Keys() so a recency policy re-establishes the same order
+// and a frequency policy gains one access on every surviving key, leaving the
+// relative order intact. That reasoning does not hold for the FIFO-queue
+// policies; docs/policies.md records what demotion costs them.
 //
-// Keys outside the sample are removed outright, so what remains is the
-// substream every other shadow is measuring.
-//
-// The ordering claim above does not hold for every policy, and the exception
-// is worth knowing. It assumes a write is either an ordering event (recency)
-// or a counted access (frequency). For the FIFO-queue policies it is neither
-// of those things cleanly: SIEVE treats a write as setting the entry's visited
-// bit, and that bit is its whole eviction criterion, so rewriting every key
-// sets it on every key and erases the ordering rather than preserving it;
-// S3-FIFO's counter saturates at three, so a key already at the cap gains
-// nothing while a key at zero gains one, compressing the ordering instead of
-// shifting it uniformly. The effect is a bias in the demoted policy's first
-// shadow epochs, not a standing loss - the queues themselves are untouched and
-// the bits are rewritten by ordinary traffic soon after - but a policy whose
-// eviction state is a single saturating bit per entry should not be demoted
-// this way without measuring what it costs.
-//
-// It must be called while the write lock is held, and only after the new state
-// has been published, so a reader holding a stale view cannot observe a value
-// being dropped and mistake the zero for real data.
+// Caller must hold the write lock, and must have published the new state
+// first, so no reader can observe a value being dropped.
 func (c *AdaptiveCache[K, V]) demoteLocked(policyType PolicyType) {
 	policy, ok := c.policies[policyType]
 	if !ok {
@@ -100,17 +59,14 @@ func (c *AdaptiveCache[K, V]) demoteLocked(policyType PolicyType) {
 		policy.Resize(capacity)
 	}
 
-	// Whatever this policy measured in its previous role was measured at a
-	// different capacity, and over all traffic rather than the sample. Carrying
-	// those counts into its first shadow epoch would misreport it to the bandit.
+	// The previous role measured a different capacity over different traffic.
 	policy.ResetStats()
 }
 
-// promoteLockedCapacity restores a policy to its full nominal capacity as it
-// takes over active duty. The caller purges it afterwards - a policy arriving
-// from shadow duty holds only zero values - so no real data is resized away.
-//
-// It must be called while the write lock is held.
+// promoteLockedCapacity restores a policy to its nominal capacity as it takes
+// over active duty. The caller purges it afterwards -- a policy arriving from
+// shadow duty holds only zero values -- so no real data is resized away.
+// Caller must hold the write lock.
 func (c *AdaptiveCache[K, V]) promoteLockedCapacity(policyType PolicyType) {
 	policy, ok := c.policies[policyType]
 	if !ok {
@@ -122,32 +78,21 @@ func (c *AdaptiveCache[K, V]) promoteLockedCapacity(policyType PolicyType) {
 	}
 }
 
-// switchLocked applies a policy change end to end: it restores the incoming
-// policy to full capacity, migrates data according to the configured strategy,
-// makes it active, and puts the outgoing policy onto shadow duty.
+// switchLocked applies a policy change end to end: restore the incoming
+// policy's capacity, migrate data into it, make it active, put the outgoing
+// policy onto shadow duty.
 //
-// The order of those steps is load-bearing, and the rule generalises:
+// The order is load-bearing, and the rule generalises:
 //
 //	Every mutation of a policy must happen while that policy is not the
 //	active one.
 //
-// So the incoming policy is resized and migrated into before it is made
-// active, and the outgoing policy has its values dropped only after it has
-// stopped being active. Reversing either half would let a caller observe a
-// policy mid-rewrite - most damagingly, read a dropped value and take the zero
-// for real data. The rule is what keeps that impossible, and it is what any
-// future move to lock-free reads would rest on: a reader can only ever hold a
-// policy that is not being mutated.
-//
-// The capacity is restored before migrateData runs for the same reason it is
-// restored at all: a warm migration must copy into a full-size policy rather
+// Reverse either half and a caller can read a policy mid-rewrite, most
+// damagingly taking a dropped value's zero for real data. Capacity is restored
+// before migrateData so a warm migration copies into a full-size policy rather
 // than a miniature that would evict most of what it is handed.
 //
-// Demotion of the outgoing policy is deferred when a gradual window opens,
-// because that window serves promotions out of the outgoing policy's real
-// values; closeMigrationLocked performs it once the window closes.
-//
-// It must be called while the write lock is held.
+// Caller must hold the write lock.
 func (c *AdaptiveCache[K, V]) switchLocked(from, to PolicyType) {
 	// Abandon any window still open from a previous switch, demoting its
 	// source now that nothing will promote out of it again.
@@ -157,8 +102,7 @@ func (c *AdaptiveCache[K, V]) switchLocked(from, to PolicyType) {
 	c.migrateData(from, to)
 	c.activePolicy = to
 
-	// Both policies just changed role, so what they measured in the previous
-	// one no longer describes them. Advice compares them from here.
+	// Both changed role, so neither's previous measurements describe it now.
 	delete(c.tenureStats, from)
 	delete(c.tenureStats, to)
 
@@ -167,11 +111,9 @@ func (c *AdaptiveCache[K, V]) switchLocked(from, to PolicyType) {
 	}
 }
 
-// closeMigrationLocked ends a gradual migration window and puts the source
-// policy onto shadow duty, the demotion that was deferred while the window
-// still needed the source's real values.
-//
-// It must be called while the write lock is held.
+// closeMigrationLocked ends a gradual migration window and demotes the source,
+// which switchLocked deferred while the window still needed its real values.
+// Caller must hold the write lock.
 func (c *AdaptiveCache[K, V]) closeMigrationLocked() {
 	source, wasMigrating := c.migrateFrom, c.migrating
 	c.clearMigrationState()
@@ -189,9 +131,9 @@ func (c *AdaptiveCache[K, V]) initShadowDutyLocked(rate float64, minCapacity int
 	c.nominalCap = make(map[PolicyType]int, len(c.policies))
 	c.shadowCap = make(map[PolicyType]int, len(c.policies))
 
-	// The sample must be identical for every shadow or their hit rates are not
-	// comparable, so one effective rate is derived from the smallest policy:
-	// that is the capacity most at risk of shrinking into noise.
+	// One rate for every shadow, or their hit rates are not comparable. It is
+	// derived from the smallest policy, the one most at risk of shrinking into
+	// noise.
 	minNominal := 0
 	for policyType, policy := range c.policies {
 		capacity := policy.Cap()

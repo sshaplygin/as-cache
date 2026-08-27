@@ -90,7 +90,10 @@ is close to free. That is what makes carrying nine arms practical.
 
 Reproduce with `go test -run '^$' -bench . -benchtime=300ms .`
 
-Sampling is off by default. Very small caches disable it automatically, since a
+Sampling is off by default. `MinShadowCapacity` (256 unless you set it) is the
+floor on a miniature: when the rate would shrink a shadow below it, the
+*effective rate* is raised rather than the capacity alone, and on a cache small
+enough that the floor exceeds its nominal size, sampling disables itself. A
 miniature of a handful of entries measures noise rather than a policy.
 
 Sampling does not distort which policy wins — that was measured directly, see
@@ -110,6 +113,11 @@ migration. Three settings damp that, all inactive at their zero value:
     MinEpochRequests:      500,  // and ignore epochs with thin evidence
 }
 ```
+
+`MinEpochRequests` counts the requests **the bandit sees**, which under
+`ShadowSampleRate` are sampled requests: at a rate of 0.05 a threshold of 100
+is reached after roughly 2000 real ones. Set it against the sampled stream, not
+against your traffic.
 
 ## Tuning, measured
 

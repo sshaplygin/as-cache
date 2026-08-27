@@ -11,25 +11,19 @@ import (
 const maxUint64AsFloat = float64(1 << 64)
 
 // keySampler decides whether a key belongs to the deterministic subset of the
-// keyspace that shadow policies track. Sampling lets a shadow estimate its hit
-// rate from a small fraction of traffic instead of mirroring every operation.
+// keyspace that shadow policies track.
 //
-// The decision is a pure function of the key and the seed, so a given key is
-// either always sampled or never sampled for the lifetime of the sampler. That
-// matters twice over: a sampled shadow sees a coherent access pattern for the
-// keys it does track (rather than a random scatter that would destroy any
-// notion of reuse), and every shadow sharing one sampler measures the same
-// sub-workload, which is what makes their hit rates comparable to each other.
+// The decision is a pure function of key and seed, so a key is either always
+// sampled or never sampled. That matters twice: a shadow sees a coherent
+// access pattern for the keys it tracks rather than a random scatter with no
+// reuse, and every shadow sharing one sampler measures the same sub-workload,
+// which is what makes their hit rates comparable.
 //
-// The seed is drawn per cache rather than fixed, so the sampled subset differs
-// between processes and cannot be predicted or targeted by a caller.
+// The seed is per cache, so the subset cannot be predicted or targeted.
 //
-// Sampled counts are never scaled back up to full-traffic magnitude before
-// reaching the bandit. Scaling would restore magnitude while inventing
-// confidence, handing a Beta posterior twenty times the evidence that was
-// actually collected. Instead every arm, the active policy included, is
-// measured over this same sampled substream, so the arms carry equal and
-// honest evidence and remain directly comparable.
+// Sampled counts are never scaled back up before reaching the bandit: that
+// would restore magnitude while inventing confidence. Every arm, the active
+// policy included, is measured over this same substream instead.
 type keySampler[K comparable] struct {
 	seed maphash.Seed
 	// threshold is the exclusive upper bound on a key's hash for it to be in
@@ -70,18 +64,14 @@ func (s *keySampler[K]) sampled(key K) bool {
 }
 
 // scaledCapacity returns the miniature capacity corresponding to sampling rate
-// of a cache of the given size, holding the identity capacity/size == rate.
+// of a cache of the given size, holding capacity/size == rate.
 //
-// Unlike shadowCapacity it applies no floor. The floor exists to stop a cache
-// from being built with a miniature too small to measure, and it works by
-// raising the sample rate to match. After construction the rate can no longer
-// move, so applying the floor alone would leave shadows running at a capacity
-// larger than their share of the traffic - and a shadow of capacity C fed an
-// r-sampled stream simulates a cache of C/r. Every shadow would then simulate a
-// larger cache than the active policy actually is and report a better hit rate
-// for that reason alone, which is a systematic bias against whichever policy is
-// active. A miniature that is merely small is noisy; one that is inconsistent
-// with its rate is wrong, so the identity wins.
+// Unlike shadowCapacity it applies no floor. A shadow of capacity C fed an
+// r-sampled stream simulates a cache of C/r, so raising the capacity without
+// raising the rate would have every shadow simulate a larger cache than the
+// active policy is and report a better hit rate for that reason alone. A
+// miniature that is merely small is noisy; one inconsistent with its rate is
+// wrong.
 func scaledCapacity(size int, rate float64) int {
 	if size <= 0 || rate >= 1 {
 		return size
@@ -98,16 +88,14 @@ func scaledCapacity(size int, rate float64) int {
 	return capacity
 }
 
-// shadowCapacity returns the capacity a shadow policy should run at to
-// simulate a full-size cache of nominalCap over the sampled substream, and the
-// effective rate that capacity corresponds to.
+// shadowCapacity returns the capacity a shadow should run at to simulate a
+// full-size cache of nominalCap over the sampled substream, and the effective
+// rate that capacity corresponds to.
 //
-// A cache of capacity rate*N fed an rate-sampled stream approximates a cache
-// of capacity N fed the full stream, so the capacity has to shrink with the
-// rate for the estimate to mean anything. A floor guards the degenerate end:
-// a five-entry miniature measures noise, so when rate*nominalCap falls below
-// minCapacity the rate itself is raised (not just the capacity) to keep the
-// simulation identity intact, up to the point where sampling disables itself.
+// The capacity shrinks with the rate for the estimate to mean anything. When
+// rate*nominalCap falls below minCapacity the rate itself is raised, not just
+// the capacity, keeping the identity intact -- up to the point where sampling
+// disables itself.
 func shadowCapacity(nominalCap int, rate float64, minCapacity int) (capacity int, effectiveRate float64) {
 	if nominalCap <= 0 || rate >= 1 {
 		return nominalCap, 1
