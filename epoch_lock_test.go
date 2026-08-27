@@ -56,17 +56,18 @@ func TestEpoch_SlowBanditDoesNotBlockReaders(t *testing.T) {
 	lfu := newEvictingPolicy[string, int](LFU, 4)
 	bandit := newSlowBandit(LFU)
 
+	// The ticker drives epochs, so the goroutine that parks in the bandit is
+	// not one of the readers. (With EpochRequests the caller completing an
+	// epoch runs it, and that one caller does wait for the bandit -- by
+	// design, and documented on the setting. Every other caller must not.)
 	cache, err := NewAdaptiveCache[string, int](
 		[]Policy[string, int]{lru, lfu},
 		bandit,
-		&Settings{EpochRequests: 1, EvictPartialCapacityFilling: true},
+		&Settings{EpochDuration: time.Millisecond, EvictPartialCapacityFilling: true},
 	)
 	require.NoError(t, err)
 	defer cache.Close()
 	defer close(bandit.release)
-
-	// One Get ends an epoch, and that caller runs it. It parks in the bandit.
-	go func() { cache.Get("trigger") }()
 
 	select {
 	case <-bandit.entered:
@@ -201,14 +202,16 @@ type steppedBandit struct {
 	release chan struct{}
 	once    sync.Once
 	picks   atomic.Int64
-	pick    PolicyType
+	first   PolicyType
+	rest    PolicyType
 }
 
-func newSteppedBandit(pick PolicyType) *steppedBandit {
+func newSteppedBandit(first, rest PolicyType) *steppedBandit {
 	return &steppedBandit{
 		entered: make(chan struct{}),
 		release: make(chan struct{}),
-		pick:    pick,
+		first:   first,
+		rest:    rest,
 	}
 }
 
@@ -218,9 +221,11 @@ func (b *steppedBandit) SelectPolicy() PolicyType {
 	if b.picks.Add(1) == 1 {
 		b.once.Do(func() { close(b.entered) })
 		<-b.release
+
+		return b.first
 	}
 
-	return b.pick
+	return b.rest
 }
 
 // TestEpoch_StaleSelectionIsDiscarded pins the re-check that releasing the
@@ -234,7 +239,9 @@ func TestEpoch_StaleSelectionIsDiscarded(t *testing.T) {
 
 	lru := newEvictingPolicy[string, int](LRU, 4)
 	lfu := newEvictingPolicy[string, int](LFU, 4)
-	bandit := newSteppedBandit(LFU)
+	// The first selection asks for a switch; every later one asks for no
+	// change. If the stale decision is applied the cache ends on LFU.
+	bandit := newSteppedBandit(LFU, LRU)
 
 	cache, err := NewAdaptiveCache[string, int](
 		[]Policy[string, int]{lru, lfu},
@@ -246,7 +253,7 @@ func TestEpoch_StaleSelectionIsDiscarded(t *testing.T) {
 
 	require.Equal(t, LRU, cache.ActivePolicy())
 
-	// Epoch one parks inside the bandit holding no cache lock.
+	// Epoch one collects, then parks inside the bandit holding no cache lock.
 	go func() { cache.Get("first") }()
 	select {
 	case <-bandit.entered:
@@ -254,21 +261,23 @@ func TestEpoch_StaleSelectionIsDiscarded(t *testing.T) {
 		require.FailNow(t, "the bandit was never consulted")
 	}
 
-	// Epoch two runs to completion while epoch one is still parked. It is not
-	// blocked by epoch one, which is itself the point of the arrangement.
-	cache.Get("second")
+	// Epoch two collects while epoch one is still parked -- it takes only the
+	// cache lock to do so, which epoch one is not holding. From here epoch
+	// one's decision describes a state two epochs old.
+	go func() { cache.Get("second") }()
+	require.Eventually(t, func() bool {
+		cache.mu.RLock()
+		defer cache.mu.RUnlock()
 
-	require.Eventually(t, func() bool { return bandit.picks.Load() >= 2 },
-		5*time.Second, 5*time.Millisecond, "the second epoch never reached the bandit")
+		return cache.epochsCollected >= 2
+	}, 5*time.Second, time.Millisecond, "the second epoch never collected")
 
-	// Releasing epoch one lets its stale decision arrive last. It must not be
-	// applied on top of the newer epoch's.
+	// Now let epoch one's decision arrive. It must be dropped.
 	close(bandit.release)
 
-	assert.Eventually(t, func() bool { return cache.ActivePolicy() == LFU },
-		5*time.Second, 5*time.Millisecond, "the newer epoch's decision should stand")
+	require.Eventually(t, func() bool { return bandit.picks.Load() >= 2 },
+		5*time.Second, time.Millisecond, "the second epoch never reached the bandit")
 
-	epochsRun := bandit.picks.Load()
-	assert.GreaterOrEqual(t, epochsRun, int64(2),
-		"both epochs ran; the stale one contributed its evidence and dropped its decision")
+	assert.Equal(t, LRU, cache.ActivePolicy(),
+		"a selection superseded by a later epoch must not be applied")
 }

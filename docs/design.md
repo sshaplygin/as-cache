@@ -121,9 +121,17 @@ type Bandit interface {
 }
 ```
 
-Both methods are called under the cache's write lock, so **an implementation
-must not block**. Go's `RWMutex` queues new readers behind a waiting writer, so
-a slow bandit stalls every `Get` in the process for its duration.
+Both methods are called with **no cache lock held**. A bandit that takes its
+time delays the switch it is deciding, and the epoch after it, but not the
+cache's own operations — concurrent `Get` and `Add` are unaffected. The epoch
+snapshots every arm's counters under the write lock, releases it, consults the
+bandit, and takes the lock again to apply the result; a selection superseded by
+a later epoch in the meantime is dropped rather than applied late.
+
+Two consequences worth knowing. Under `EpochRequests` the `Get` that completes
+an epoch runs it, so that one caller does wait for the bandit — under
+`EpochDuration` nobody does. And calls are serialised: no implementation is
+entered from two goroutines at once.
 
 Ready-made bandits live in the `bandit` module: `bandit.NewThompson`, and
 `bandit.NewGreedy` as a control. Both examples use the first.
@@ -146,7 +154,7 @@ func (a *adapter) RecordStats(s ascache.ShadowStats) {
 }
 
 func (a *adapter) SelectPolicy() ascache.PolicyType {
-    // Must return promptly and must not block: see the note above.
+    // No cache lock is held here; taking time delays the switch, not Get.
     // Returning Undefined -- or any policy the cache does not hold --
     // means "no change", which is the right answer before the first epoch.
     return a.ext.Choose(a.arms)
