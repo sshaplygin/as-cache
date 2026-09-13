@@ -24,8 +24,10 @@ func (s *Settings) switchGated() bool {
 // place; the bandit still keeps the posterior it learned this epoch, so a
 // genuinely better policy wins again on a later epoch.
 //
-// It must be called while the write lock is held, immediately after
-// selectPolicyLocked, which populates epochStats.
+// It must be called while the write lock is held, from applySelection. The
+// epochStats it reads were populated by snapshotEpochLocked, and
+// applySelection's staleness check guarantees no later epoch has overwritten
+// them in the meantime.
 func (c *AdaptiveCache[K, V]) allowSwitchLocked(candidate PolicyType) bool {
 	if !c.settings.switchGated() {
 		return true
@@ -40,7 +42,7 @@ func (c *AdaptiveCache[K, V]) allowSwitchLocked(candidate PolicyType) bool {
 	cand, okCandidate := c.epochStats[candidate]
 	if !okActive || !okCandidate {
 		// The epoch produced no comparable measurement (see the
-		// EvictPartialCapacityFilling gate in selectPolicyLocked). Hold the
+		// EvictPartialCapacityFilling gate in snapshotEpochLocked). Hold the
 		// current policy rather than switch on no evidence.
 		return false
 	}

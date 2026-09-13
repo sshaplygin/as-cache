@@ -1140,8 +1140,9 @@ func TestAdaptiveCache_Close_WaitsForInFlightEpoch(t *testing.T) {
 		&Settings{
 			EpochDuration: time.Millisecond,
 			// Load-bearing: with partial filling disallowed the not-yet-full
-			// cache would make selectPolicyLocked return before ever calling
-			// bandit.SelectPolicy, and the goroutine would never park.
+			// cache would make snapshotEpochLocked report nothing, consultBandit
+			// would return without calling bandit.SelectPolicy, and the
+			// goroutine would never park.
 			EvictPartialCapacityFilling: true,
 			MigrationStrategy:           MigrationCold,
 		},
@@ -1149,7 +1150,7 @@ func TestAdaptiveCache_Close_WaitsForInFlightEpoch(t *testing.T) {
 	require.NoError(t, err)
 
 	// If an assertion below fails, unblock the bandit so the epoch goroutine
-	// (parked while holding the cache mutex) does not leak, then Close.
+	// (parked inside the bandit, holding banditMu) does not leak, then Close.
 	var releaseOnce sync.Once
 	t.Cleanup(func() {
 		releaseOnce.Do(func() { close(bandit.release) })
