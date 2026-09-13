@@ -108,6 +108,14 @@ func (c *AdaptiveCache[K, V]) switchLocked(from, to PolicyType) {
 	delete(c.tenureStats, from)
 	delete(c.tenureStats, to)
 
+	// The active arm's samples are counted on the cache rather than on a
+	// policy, and everything counted since the last collection was served by
+	// from -- including every Get that arrived while the bandit was deciding.
+	// Left in place, the next epoch would report it as to's evidence. It is
+	// dropped, as demotion drops from's own counters.
+	c.activeSampledHits.Store(0)
+	c.activeSampledMisses.Store(0)
+
 	if !c.migrating {
 		c.demoteLocked(from)
 	}

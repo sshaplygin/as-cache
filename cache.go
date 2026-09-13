@@ -129,6 +129,13 @@ type AdaptiveCache[K comparable, V any] struct {
 // recordActiveSample counts the active policy's result for a key that is part
 // of the measured sample. Unsampled keys are served normally but not counted,
 // so the active arm's evidence covers the same substream as every shadow's.
+//
+// On the read-lock path it runs after the lock is released, so it is not
+// atomic with the Get it records. An epoch collecting in that gap reports the
+// sample one epoch late; a switch landing in it credits the sample to the
+// policy just made active. switchLocked clears the counters, but it cannot
+// reach a Get already past its lookup, so what remains is bounded by the Gets
+// in flight at that instant, not by how long the bandit took to decide.
 func (c *AdaptiveCache[K, V]) recordActiveSample(sampled, hit bool) {
 	if !sampled {
 		return
