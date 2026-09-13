@@ -146,3 +146,39 @@ Any file named `msr_<volume>.csv` (`.gz` is fine) in the trace directory is
 picked up, so other volumes, or files you downloaded from SNIA yourself, need
 no code change. Cite Narayanan, Donnelly and Rowstron, *Write Off-Loading*,
 FAST '08, as the traces' README asks.
+
+## Checking the loaders against libCacheSim
+
+A loader that misreads a format produces a workload that looks entirely
+plausible, and the fixtures above only prove that the loader reads the rows it
+was tested on. `make verify-ref` checks the whole pipeline — loader, replay and
+hit counting — against an independent implementation on every trace the
+evidence suite reads:
+
+```bash
+AS_CACHE_TRACES=$(pwd)/traces make verify-ref
+```
+
+1. Each trace is expanded into one key per request by awk in
+   [scripts/verify-ref.sh](../scripts/verify-ref.sh), straight from the raw
+   file and following the loader's documented rules, so a loader bug cannot
+   cancel itself out.
+2. [libCacheSim](https://github.com/1a1a11a/libCacheSim) replays that through
+   LRU, object sizes ignored, at 0.25, 0.5, 1, 2 and 4 times the capacity the
+   evidence suite uses. The script builds it into `.tools/` at a pinned commit,
+   `1d7415569978330ea95c9cff06a260630406f7e3`; on macOS that needs
+   `brew install glib argp-standalone zstd cmake pkg-config`.
+   `AS_CACHE_LIBCACHESIM` points it at an existing checkout instead.
+3. `TestLRUMatchesReference` loads the same files through the Go loaders,
+   replays this repository's LRU at the same capacities, and requires the same
+   request count and a miss ratio within 0.5 percentage points.
+
+The gate fails when it cannot run: libCacheSim that will not build, a trace
+missing from the directory, or the Go test skipping. On all twelve traces at
+all five capacities, 60 points, the largest difference is 0.005 points, which
+is the rounding of cachesim's four-decimal output, and every request count
+matches.
+
+It checks LRU and the loaders, nothing more. Agreement says the workloads and
+the counting are right; it says nothing about any other policy or about the
+adaptive cache.

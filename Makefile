@@ -50,6 +50,10 @@ release-check: ## Check the repository could actually be released today
 evidence: ## Replay the workload suite and print the policy comparison tables
 	( cd bench && go test -count=1 -timeout 20m -v ./... )
 
+.PHONY: verify-ref
+verify-ref: ## Calibrate the trace loaders and LRU against libCacheSim (needs AS_CACHE_TRACES)
+	@./scripts/verify-ref.sh
+
 .PHONY: tidy
 tidy: ## Run go mod tidy across all modules
 	@set -e; for m in $(MODULES); do \

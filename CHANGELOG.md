@@ -81,6 +81,12 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - **`scripts/fetch-traces.sh` fetches a slice of the Meta trace** over a plain
   HTTPS byte-range request - the published files are 5 to 10 GB and need no AWS
   credentials to read partially. `AS_CACHE_META_BYTES` sets the size.
+- **`make verify-ref` calibrates every trace loader and LRU against
+  libCacheSim.** The script expands each trace independently of the Go
+  loaders, replays it through libCacheSim's LRU at a pinned commit and five
+  capacities, and `TestLRUMatchesReference` requires the Go pipeline to match
+  on request count and within 0.5 points of miss ratio. Twelve traces, 60
+  points: largest difference 0.005 points, every request count equal.
 - **Trace-loader tests run in `make test`**, not only under `make evidence`.
   Pinned against fixtures copied from the real files: a format misread is a
   correctness bug that produces a plausible-looking workload, and every number

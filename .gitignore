@@ -12,6 +12,9 @@ traces/
 cluster0*
 .DS_Store
 
+# libCacheSim, built by scripts/verify-ref.sh at a pinned commit
+.tools/
+
 # Working material that is not part of the library. These files stay on
 # disk -- they are the working notes and the article's exhibits -- but the
 # repository does not ship them. Documentation a reader or an agent should
