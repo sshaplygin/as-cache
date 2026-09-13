@@ -407,3 +407,43 @@ Higher rates cost more and buy no better ranking here, so 0.05 is a reasonable
 default. Raise it if your keyspace is small enough that 5% of it is only a
 handful of keys -- `MinShadowCapacity` guards the degenerate end by raising the
 effective rate rather than letting a miniature shrink into noise.
+
+## What does a switch cost right after it?
+
+Every figure above is a whole-run average, which hides where a switch's cost
+falls: in the requests immediately after it. `TestSwitchWarmupCost` scripts one
+switch, from LRU to LFU at request 100,000 of the zipf workload above (200,000
+requests, cache 500), and reports hit rate in windows measured from the switch.
+The switch is forced rather than chosen, so every strategy switches at the same
+request. The run is deterministic: two runs produce identical tables.
+
+| Configuration | 0-1000 | 1000-5000 | 5000-20000 | 20000-100000 |
+| --- | --- | --- | --- | --- |
+| LFU all along (no warm-up) | 77.00% | 74.28% | 74.59% | 73.90% |
+| LRU, never switched | 70.50% | 67.90% | 67.58% | 66.82% |
+| cold | 59.50% | 69.45% | 72.93% | 73.52% |
+| warm | 70.50% | 70.03% | 72.91% | 73.55% |
+| gradual | 70.40% | 70.12% | 72.88% | 73.52% |
+| gradual, capped at 10 Gets | 59.90% | 69.47% | 72.93% | 73.52% |
+| gradual, capped at 100 Gets | 63.90% | 69.58% | 72.99% | 73.53% |
+| gradual, capped at 1000 Gets | 70.40% | 70.12% | 72.88% | 73.52% |
+
+- **Cold pays for the switch up front.** Its first 1,000 requests serve 59.50%,
+  11.0 points below not switching at all and 17.5 below an LFU that never had to
+  warm up. By the next window it is already ahead of not switching.
+- **Warm and gradual show no dip.** Both serve the first 1,000 requests within
+  0.1 points of LRU's own rate, because the entries LRU held are there to be hit.
+- **None of them becomes the LFU that was there all along.** From 20,000 to
+  100,000 requests after the switch every strategy sits at 73.52-73.55%, against
+  73.90%. Moving the contents does not move the access history an LFU running
+  from the start would have built, and the gap is what that history was worth
+  here.
+- **The window cap costs only when it bites.** At 10 Gets the gradual window
+  closes almost immediately and the first 1,000 requests look like cold
+  (59.90%); at 100 they lose 6.5 points against uncapped gradual. At 1,000 the
+  row is identical to uncapped: under read-through traffic every miss is an
+  `Add`, every `Add` drains a pending key, and the window emptied on its own
+  somewhere between 100 and 1,000 Gets.
+
+Reproduce with `cd bench && go test -run TestSwitchWarmupCost -v .`, or
+`make evidence`.

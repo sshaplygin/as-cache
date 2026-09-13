@@ -58,6 +58,12 @@ miss, the same as it would have been under `MigrationCold`. Only `Get` counts,
 because `Get` is what takes the write lock; `Add` drains a key per call and
 shortens the window anyway. Zero, the default, sets no cap.
 
+Measured on zipf with a switch from LRU to LFU, a cap of 100 cost 6.5 points of
+hit rate over the first 1,000 requests after the switch, a cap of 10 made gradual
+behave like cold, and a cap of 1,000 was never reached because read-through
+traffic had already drained the window. [Evidence](evidence.md#what-does-a-switch-cost-right-after-it)
+has the table, including what each strategy costs.
+
 ## Reducing shadow overhead
 
 Running policies in parallel costs something on every operation: each shadow is
