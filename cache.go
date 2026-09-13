@@ -56,7 +56,16 @@ type AdaptiveCache[K comparable, V any] struct {
 	migrationRealKeys map[K]struct{}
 
 	// --- Control Plane ---
-	bandit Bandit
+
+	// banditMu serialises calls into the bandit. The write lock used to do
+	// that as a side effect of being held across the whole epoch; holding it
+	// there stalled every Get for as long as the bandit ran, so the epoch now
+	// releases it first. A Bandit is caller-supplied and nothing in its
+	// contract says it may be entered twice at once, so the guarantee has to
+	// come from somewhere: this lock is only ever held while no cache lock is,
+	// so a slow bandit delays the next epoch and nothing else.
+	banditMu sync.Mutex
+	bandit   Bandit
 	// epochBandit is bandit again when it implements the optional EpochBandit
 	// extension, and nil otherwise. The assertion is made once at construction
 	// rather than on every epoch, and its nil-ness is what selects between the
@@ -92,6 +101,12 @@ type AdaptiveCache[K comparable, V any] struct {
 
 	// --- Settings ---
 	epochID int64
+	// epochsCollected counts snapshots taken, and exists only so a decision
+	// can tell whether a later epoch has collected since it did. epochID
+	// cannot serve: it advances when an epoch is applied, which is after the
+	// bandit has been consulted, and the stability gates are specified against
+	// it. Two counters, because they answer two questions.
+	epochsCollected int64
 	// epochTicker is nil when the cache ends its epochs on request count
 	// alone, since time.NewTicker rejects a non-positive duration.
 	epochTicker *time.Ticker

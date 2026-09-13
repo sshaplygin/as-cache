@@ -52,15 +52,23 @@ type Policy[K comparable, V any] interface {
 // ones live in the companion github.com/sshaplygin/as-cache/bandit module:
 // a local Thompson sampler and a greedy control.
 //
-// # Implementations must not block
+// # What a slow implementation costs
 //
-// Both methods are called from the epoch goroutine while it holds the cache's
-// write lock, so for as long as either runs, every Get and Add in the process
-// is stalled behind it. A bandit that talks to the network, reads a file, or
-// waits on a channel must do it on its own goroutine and have these methods
-// only exchange buffered state. This is not a performance guideline: Go's
-// RWMutex queues new readers behind a waiting writer, so a multi-second
-// timeout here is a multi-second outage for the whole cache.
+// Both methods are called with no cache lock held, so an implementation that
+// takes its time delays the switch it is deciding and the epoch after it, but
+// not the cache's own operations: concurrent Get and Add are unaffected. A
+// bandit that talks to a network or a disk is therefore allowed, though the
+// selection it produces is applied later than the epoch that asked for it, and
+// is dropped entirely if a further epoch has collected in the meantime.
+//
+// One caller does still wait: under Settings.EpochRequests the Get that
+// completes an epoch runs it, so that one call pays for the bandit as it
+// already pays for the switch and any migration. Under Settings.EpochDuration
+// the work is on the background goroutine and no caller waits at all.
+//
+// Calls are serialised: no implementation is entered from two goroutines at
+// once, and the reports for one epoch arrive before that epoch's selection is
+// asked for.
 type Bandit interface {
 	// RecordStats delivers one policy's performance report. On every
 	// reporting epoch each policy reports — the active policy included — so
