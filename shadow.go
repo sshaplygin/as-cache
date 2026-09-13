@@ -35,8 +35,10 @@ func (c *AdaptiveCache[K, V]) fanOutReadLocked(key K) {
 //
 // The rewrite walks Keys() so a recency policy re-establishes the same order
 // and a frequency policy gains one access on every surviving key, leaving the
-// relative order intact. That reasoning does not hold for the FIFO-queue
-// policies; docs/policies.md records what demotion costs them.
+// relative order intact. For an LRU that depends on Keys() running oldest to
+// newest, which golang-lru does not promise; policies'
+// TestKeysOrder_LRUIsOldestToNewest pins it. The reasoning does not hold for
+// the FIFO-queue policies; docs/policies.md records what demotion costs them.
 //
 // Caller must hold the write lock, and must have published the new state
 // first, so no reader can observe a value being dropped.
