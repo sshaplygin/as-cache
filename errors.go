@@ -30,3 +30,7 @@ var ErrInvalidEpochDuration = errors.New(
 // ErrInvalidEpochRequests is returned by NewAdaptiveCache when
 // Settings.EpochRequests is negative.
 var ErrInvalidEpochRequests = errors.New("epoch requests must not be negative")
+
+// ErrInvalidMigrationMaxRequests is returned by NewAdaptiveCache when
+// Settings.MigrationMaxRequests is negative.
+var ErrInvalidMigrationMaxRequests = errors.New("migration max requests must not be negative")

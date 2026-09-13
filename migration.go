@@ -70,6 +70,7 @@ func (c *AdaptiveCache[K, V]) clearMigrationState() {
 	c.migrateFrom = Undefined
 	c.migrationKeys = nil
 	c.migrationRealKeys = nil
+	c.migrationRequests = 0
 }
 
 // drainOneKey migrates one pending key from the migration source policy into

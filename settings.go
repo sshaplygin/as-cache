@@ -29,6 +29,14 @@ type Settings struct {
 	// changes. Defaults to MigrationCold (zero value).
 	MigrationStrategy MigrationStrategy
 
+	// MigrationMaxRequests caps a MigrationGradual window at this many Get
+	// calls. While a window is open every Get takes the write lock, so the cap
+	// bounds how long reads stay serialised. When it is reached the window
+	// closes and the source is demoted: keys not yet promoted are abandoned,
+	// and a later Get for one is a miss. Zero sets no cap, and the window
+	// closes at the next epoch boundary. The other strategies ignore it.
+	MigrationMaxRequests int64
+
 	// MinHitRateImprovement is the hit-rate advantage, as an absolute
 	// difference in [0,1], that the bandit's selection must hold over the
 	// active policy in the epoch just measured before the switch is applied.
@@ -100,6 +108,9 @@ func NewAdaptiveCache[K comparable, V any](
 	}
 	if settings.EpochRequests < 0 {
 		return nil, fmt.Errorf("%w: got %d", ErrInvalidEpochRequests, settings.EpochRequests)
+	}
+	if settings.MigrationMaxRequests < 0 {
+		return nil, fmt.Errorf("%w: got %d", ErrInvalidMigrationMaxRequests, settings.MigrationMaxRequests)
 	}
 	// An epoch has to be ended by something. Either clock is acceptable and
 	// both together are fine; neither leaves a cache that measures every

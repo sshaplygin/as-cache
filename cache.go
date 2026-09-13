@@ -54,6 +54,10 @@ type AdaptiveCache[K comparable, V any] struct {
 	migrateFrom       PolicyType
 	migrationKeys     []K
 	migrationRealKeys map[K]struct{}
+	// migrationRequests counts Gets served while the current gradual window
+	// is open, against Settings.MigrationMaxRequests. It needs no atomic:
+	// every Get in a window already holds the write lock.
+	migrationRequests int64
 
 	// --- Control Plane ---
 
@@ -185,6 +189,16 @@ func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 
 	val, found := c.policies[c.activePolicy].Get(key)
 	c.recordActiveSample(sampled, found)
+
+	// A window still open after this Get counts it against the cap. Closing
+	// demotes the source, which is safe here: the value above came from the
+	// active policy, and the source is not the active policy.
+	if c.migrating {
+		c.migrationRequests++
+		if limit := c.settings.MigrationMaxRequests; limit > 0 && c.migrationRequests >= limit {
+			c.closeMigrationLocked()
+		}
+	}
 
 	return val, found
 }
