@@ -99,7 +99,7 @@ it. They are pinned against fixtures copied from the real files in
 | LIRS (`loop`, `2_pools`, `multi2`) | `LoadTrace(p, LIRSFormat, n)` | script |
 | ARC paper (`p3`, `oltp`) | `LoadARCTrace(p, n)` | script |
 | Meta kvcache | `LoadMetaKVTrace(p, MetaKVFormat{}, n)` | script, partial download |
-| MSR Cambridge | `LoadMSRTrace(p, MSRFormat{}, n)` | by hand — see below |
+| MSR Cambridge | `LoadMSRTrace(p, MSRFormat{}, n)` | script, six volumes from a mirror — see below |
 
 Three of these layouts expand: **one record is not one request**, and reading
 them as though it were produces a workload with the same keys, far fewer
@@ -126,10 +126,23 @@ of one over a byte-range request — no AWS credentials or CLI needed. The slice
 ends mid-line and the loader skips the truncated row. `AS_CACHE_META_BYTES`
 sets the size; the default of 128 MiB is about 5M rows.
 
-**MSR Cambridge has to be downloaded by hand.** SNIA serves the files behind a
-click-through licence and a cookie check, so the script cannot fetch them and
-does not pretend to: it prints a note instead. Take one or more per-volume CSVs
-from <https://iotta.snia.org/traces/block-io?only=388>, name them
-`msr_<volume>.csv` (`.gz` is fine) and drop them in the trace directory —
-anything matching that pattern is picked up automatically, so which volumes you
-take is your choice.
+**MSR Cambridge comes from a mirror, not from SNIA.** The canonical source is
+[SNIA IOTTA trace 388](https://iotta.snia.org/traces/block-io/388), which hands
+files out only through a browser form (cookies, name, affiliation and email)
+and did not respond at all in September 2026. The script takes the files from
+the [cacheMon](https://github.com/cacheMon/cache_dataset) mirror instead, which
+holds SNIA's original `msr-cambridge1.tar` and `msr-cambridge2.tar`. That is a
+lawful copy: the SNIA Trace Data Files Download License (v2.0) permits use and
+redistribution without restriction.
+
+The two archives total 5.3 GB, so the script fetches six volumes by byte range
+— `hm_0`, `prn_0`, `proj_0`, `src1_2`, `usr_0` and `web_0`, about 210 MB — and
+checks each against the MD5 in the archive's own `MD5.txt`. Those checksums
+travel inside the mirrored archive, so they catch a corrupted or repacked
+download, not a mirror that altered the data deliberately; nobody here has
+compared the mirror against a copy downloaded from SNIA.
+
+Any file named `msr_<volume>.csv` (`.gz` is fine) in the trace directory is
+picked up, so other volumes, or files you downloaded from SNIA yourself, need
+no code change. Cite Narayanan, Donnelly and Rowstron, *Write Off-Loading*,
+FAST '08, as the traces' README asks.

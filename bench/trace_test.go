@@ -74,10 +74,9 @@ func knownTraces() []traceSpec {
 // msrVolumes finds the MSR Cambridge volumes present locally.
 //
 // They are listed by pattern rather than by name because the trace set has
-// thirteen servers and several volumes each, SNIA serves them one file at a
-// time behind a click-through licence, and which of them somebody downloaded
-// is their choice. Anything named msr_<volume>.csv (optionally gzipped) is
-// picked up.
+// thirteen servers and several volumes each: fetch-traces.sh takes six of
+// them, and anyone may add others. Anything named msr_<volume>.csv
+// (optionally gzipped) is picked up.
 func msrVolumes(dir string) []traceSpec {
 	matches, err := filepath.Glob(filepath.Join(dir, "msr_*.csv*"))
 	if err != nil {

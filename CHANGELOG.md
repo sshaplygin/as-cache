@@ -88,9 +88,11 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Notes
 
-- **MSR Cambridge cannot be fetched by script.** SNIA serves the files behind a
-  click-through licence and a cookie check, so `fetch-traces.sh` prints how to
-  get them by hand rather than pretending to download them. Any file named
+- **MSR Cambridge is fetched from a mirror.** SNIA serves the files only
+  through a browser form and its repository did not respond, so
+  `fetch-traces.sh` takes six volumes (about 210 MB) by byte range from the
+  cacheMon mirror of SNIA's original archives, which the SNIA download licence
+  permits, and checks each against the archive's `MD5.txt`. Any file named
   `msr_<volume>.csv[.gz]` in the trace directory is picked up automatically.
 - **S3-FIFO's ghost queue and the adapter's index both cost memory.** The ghost
   queue remembers roughly as many keys as the cache holds, and the adapter
