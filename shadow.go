@@ -35,8 +35,10 @@ func (c *AdaptiveCache[K, V]) fanOutReadLocked(key K) {
 //
 // The rewrite walks Keys() so a recency policy re-establishes the same order
 // and a frequency policy gains one access on every surviving key, leaving the
-// relative order intact. That reasoning does not hold for the FIFO-queue
-// policies; docs/policies.md records what demotion costs them.
+// relative order intact. For an LRU that depends on Keys() running oldest to
+// newest, which golang-lru does not promise; policies'
+// TestKeysOrder_LRUIsOldestToNewest pins it. The reasoning does not hold for
+// the FIFO-queue policies; docs/policies.md records what demotion costs them.
 //
 // Caller must hold the write lock, and must have published the new state
 // first, so no reader can observe a value being dropped.
@@ -105,6 +107,14 @@ func (c *AdaptiveCache[K, V]) switchLocked(from, to PolicyType) {
 	// Both changed role, so neither's previous measurements describe it now.
 	delete(c.tenureStats, from)
 	delete(c.tenureStats, to)
+
+	// The active arm's samples are counted on the cache rather than on a
+	// policy, and everything counted since the last collection was served by
+	// from -- including every Get that arrived while the bandit was deciding.
+	// Left in place, the next epoch would report it as to's evidence. It is
+	// dropped, as demotion drops from's own counters.
+	c.activeSampledHits.Store(0)
+	c.activeSampledMisses.Store(0)
 
 	if !c.migrating {
 		c.demoteLocked(from)

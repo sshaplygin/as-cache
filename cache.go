@@ -54,6 +54,10 @@ type AdaptiveCache[K comparable, V any] struct {
 	migrateFrom       PolicyType
 	migrationKeys     []K
 	migrationRealKeys map[K]struct{}
+	// migrationRequests counts Gets served while the current gradual window
+	// is open, against Settings.MigrationMaxRequests. It needs no atomic:
+	// every Get in a window already holds the write lock.
+	migrationRequests int64
 
 	// --- Control Plane ---
 
@@ -110,8 +114,9 @@ type AdaptiveCache[K comparable, V any] struct {
 	// epochTicker is nil when the cache ends its epochs on request count
 	// alone, since time.NewTicker rejects a non-positive duration.
 	epochTicker *time.Ticker
-	// epochRequests counts Get calls since the last request-driven epoch. It
-	// is mutated on the read path, so it must be atomic.
+	// epochRequests counts every Get since construction; an epoch runs on each
+	// multiple of Settings.EpochRequests (see countRequest). It is mutated on
+	// the read path, so it must be atomic.
 	epochRequests atomic.Int64
 	settings      *Settings
 
@@ -124,6 +129,13 @@ type AdaptiveCache[K comparable, V any] struct {
 // recordActiveSample counts the active policy's result for a key that is part
 // of the measured sample. Unsampled keys are served normally but not counted,
 // so the active arm's evidence covers the same substream as every shadow's.
+//
+// On the read-lock path it runs after the lock is released, so it is not
+// atomic with the Get it records. An epoch collecting in that gap reports the
+// sample one epoch late; a switch landing in it credits the sample to the
+// policy just made active. switchLocked clears the counters, but it cannot
+// reach a Get already past its lookup, so what remains is bounded by the Gets
+// in flight at that instant, not by how long the bandit took to decide.
 func (c *AdaptiveCache[K, V]) recordActiveSample(sampled, hit bool) {
 	if !sampled {
 		return
@@ -184,6 +196,16 @@ func (c *AdaptiveCache[K, V]) get(key K) (V, bool) {
 
 	val, found := c.policies[c.activePolicy].Get(key)
 	c.recordActiveSample(sampled, found)
+
+	// A window still open after this Get counts it against the cap. Closing
+	// demotes the source, which is safe here: the value above came from the
+	// active policy, and the source is not the active policy.
+	if c.migrating {
+		c.migrationRequests++
+		if limit := c.settings.MigrationMaxRequests; limit > 0 && c.migrationRequests >= limit {
+			c.closeMigrationLocked()
+		}
+	}
 
 	return val, found
 }

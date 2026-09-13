@@ -370,6 +370,33 @@ func TestGradualMigration_NeverServesAZeroFromTheSource(t *testing.T) {
 		cache.Get("fresh" + strconv.Itoa(i))
 	}
 
+	// Peek and Contains must not surface a placeholder either. They are checked
+	// here, while the window is still open: the Gets below promote the real
+	// values, after which nothing about the window is observable any more.
+	//
+	// The fresh keys carry the discriminating half. Nobody stored them, so the
+	// only copies anywhere are zero placeholders written by the fan-out, and a
+	// Peek or Contains that ever reached past the active policy into one would
+	// report a key present that was never written.
+	cache.mu.RLock()
+	stillOpen := cache.migrating
+	cache.mu.RUnlock()
+	require.True(t, stillOpen, "the window must still be open for Peek and Contains to be tested against it")
+
+	for i := 1; i <= capacity; i++ {
+		key := "real" + strconv.Itoa(i)
+		if value, found := cache.Peek(key); found {
+			assert.NotZero(t, value,
+				"Peek(%q) returned a zero as a hit: a shadow placeholder surfaced without a Get", key)
+		}
+	}
+	for i := range capacity * 3 {
+		key := "fresh" + strconv.Itoa(i)
+		value, found := cache.Peek(key)
+		assert.False(t, found, "Peek(%q) reported a key nobody stored (value %d)", key, value)
+		assert.False(t, cache.Contains(key), "Contains(%q) reported a key nobody stored", key)
+	}
+
 	for i := 1; i <= capacity; i++ {
 		key := "real" + strconv.Itoa(i)
 		value, found := cache.Get(key)

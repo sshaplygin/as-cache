@@ -87,6 +87,12 @@ func (c *AdaptedCache[K, V]) Add(key K, value V) bool {
 // still in use at its original capacity while the configured size is smaller,
 // and without this the cache would hold far more than the caller asked for
 // while Cap reported the smaller number.
+//
+// It removes keys[0], which is some entry rather than the oldest one: for 2Q
+// the oldest frequent entry, for ARC the oldest recent one (see Keys). That is
+// acceptable for the reason Resize gives -- which entries survive a shrink is
+// not meaningful -- and the TestKeysOrder_ canaries make an upstream change to
+// either order fail a test rather than silently change what this removes.
 func (c *AdaptedCache[K, V]) enforceCapacityLocked() {
 	for c.cache.Len() > c.size {
 		keys := c.cache.Keys()
@@ -140,7 +146,11 @@ func (c *AdaptedCache[K, V]) Purge() {
 	c.cache.Purge()
 }
 
-// Keys returns the cached keys, oldest first.
+// Keys returns the cached keys in the wrapped cache's own order. That is not a
+// recency order for the caches this adapter serves: 2Q returns its frequent
+// list then its recent one, ARC its recent list then its frequent one, each
+// oldest first. TestKeysOrder_TwoQueueIsFrequentThenRecent and policies/arc's
+// TestKeysOrder_ARCIsRecentThenFrequent pin both.
 func (c *AdaptedCache[K, V]) Keys() []K {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

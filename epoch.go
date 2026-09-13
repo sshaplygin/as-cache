@@ -28,20 +28,25 @@ func (c *AdaptiveCache[K, V]) runAdaptiveSelect() {
 // the call that completes it. Caller must hold no lock: runEpoch takes the
 // write lock.
 //
-// Exactly one caller per epoch sees the count equal the limit, so exactly one
-// epoch runs however many goroutines are in Get. The limit is subtracted
-// rather than the counter reset, so requests arriving mid-crossing still
-// count towards the next epoch.
+// The counter only ever increases, and an epoch runs on the call whose
+// increment returns a multiple of the limit. Add hands every caller a distinct
+// value, so each multiple is seen by exactly one caller: one epoch per limit
+// requests however many goroutines are in Get, and a request arriving
+// mid-crossing counts toward the next epoch.
+//
+// Do not reintroduce "compare with the limit, then subtract it". Callers that
+// increment between one caller's comparison and its subtraction push the count
+// past the limit unobserved, nothing subtracts again, and request-driven
+// epochs stop for good.
 func (c *AdaptiveCache[K, V]) countRequest() {
 	limit := c.settings.EpochRequests
 	if limit <= 0 {
 		return
 	}
 
-	if c.epochRequests.Add(1) != limit {
+	if c.epochRequests.Add(1)%limit != 0 {
 		return
 	}
-	c.epochRequests.Add(-limit)
 
 	c.runEpoch()
 }

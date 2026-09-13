@@ -21,6 +21,10 @@ type Settings struct {
     // Default: MigrationCold.
     MigrationStrategy MigrationStrategy
 
+    // MigrationMaxRequests caps a MigrationGradual window at N Get calls.
+    // Zero sets no cap. See "Migration Strategies".
+    MigrationMaxRequests int64
+
     // ObserveOnly measures every arm without ever switching.
     // See docs/advisor-mode.md.
     ObserveOnly bool
@@ -44,7 +48,21 @@ type Settings struct {
 | --- | --- | --- |
 | `MigrationCold` (default) | New active policy starts empty | Simple; causes a temporary miss spike |
 | `MigrationWarm` | All key/value pairs copied at switch time | No miss spike; O(n) work at switch |
-| `MigrationGradual` | Keys promoted on Get; one key drained per Add | Spreads migration cost; window closes at the next epoch at the latest |
+| `MigrationGradual` | Keys promoted on Get; one key drained per Add | Spreads migration cost; every `Get` takes the write lock while the window is open, which closes at the next epoch at the latest |
+
+A gradual window serialises reads for as long as it is open. On a long epoch
+that can be most of the epoch, so `MigrationMaxRequests` caps it at a number of
+`Get` calls: when the cap is reached the window closes and the old policy is
+demoted, and any key not promoted by then is gone — a later `Get` for it is a
+miss, the same as it would have been under `MigrationCold`. Only `Get` counts,
+because `Get` is what takes the write lock; `Add` drains a key per call and
+shortens the window anyway. Zero, the default, sets no cap.
+
+Measured on zipf with a switch from LRU to LFU, a cap of 100 cost 6.5 points of
+hit rate over the first 1,000 requests after the switch, a cap of 10 made gradual
+behave like cold, and a cap of 1,000 was never reached because read-through
+traffic had already drained the window. [Evidence](evidence.md#what-does-a-switch-cost-right-after-it)
+has the table, including what each strategy costs.
 
 ## Reducing shadow overhead
 
