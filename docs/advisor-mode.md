@@ -43,6 +43,23 @@ and let the bandit do it.
 `Advice()` is safe to call at any time. Check `Epochs` before believing it: a
 handful of epochs is not evidence.
 
+Three things about how the report is computed, each of which once made it
+misleading:
+
+- **`Epochs` counts reporting epochs, not ticks.** Outside `ObserveOnly`, with
+  `EvictPartialCapacityFilling` off, an epoch in which the active policy is not
+  yet full measures nothing and is not counted -- a cache that has ticked a
+  thousand times behind a half-full policy reports the evidence it actually has.
+- **A policy's measurements start over when it changes role.** Its active
+  tenure is measured at full capacity over all traffic, its shadow tenure on a
+  miniature over the sample, and pooling the two describes neither. Carrying
+  them across a switch also let the outgoing policy's long history outweigh the
+  incoming one's short one, so straight after a correct switch the report named
+  the policy just abandoned as best.
+- **Ties are broken by policy type.** Arms performing identically produce the
+  same `Best` on every call, rather than whichever one a map iteration happened
+  to put first.
+
 ## Observability
 
 A cache that changes its own eviction policy needs to be visible in staging.

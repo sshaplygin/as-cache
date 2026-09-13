@@ -72,7 +72,11 @@ Then once per epoch:
 
 1. Every arm reports its hits and misses — the active one included, measured
    over the same sampled substream, so no arm is judged on more evidence than
-   another. Counters reset; the epoch is the unit of evidence.
+   another. Counters reset; the epoch is the unit of evidence. The counts are
+   what was measured and are never scaled back up by `1/rate`: scaling would
+   restore the magnitude while inventing confidence, handing a Beta posterior
+   many times the evidence actually collected. `Stats()` still reports every
+   request the cache served; only the bandit sees the sample.
 
    Which goroutine runs this depends on how the epoch ends. `EpochDuration`
    ticks on a background goroutine; `EpochRequests` runs it on whichever
@@ -103,10 +107,30 @@ AdaptiveCache
   |-- shadow policy  (CacheWrapper -> real Cacher impl, zero-value adds only,
   |                   optionally a sampled miniature -- see ShadowSampleRate)
   |-- Bandit         (an interface; ready-made ones in the bandit module)
-  |-- epoch driver   (runEpoch -> selectPolicyLocked -> switchLocked -> migrateData,
-                      on a background goroutine for EpochDuration, or on the
-                      calling goroutine for EpochRequests)
+  |-- epoch driver   (runEpoch: collectEpoch -> consultBandit -> applySelection
+                      -> switchLocked -> migrateData, on a background goroutine
+                      for EpochDuration, or on the calling goroutine for
+                      EpochRequests)
 ```
+
+### Two rules the implementation keeps
+
+**Every mutation of a policy happens while that policy is not the active one.**
+A switch resizes and migrates into the incoming policy before making it active,
+and drops the outgoing policy's values only after it has stopped being active.
+Reverse either half and a caller can read a policy mid-rewrite -- most
+damagingly, taking a dropped value's zero for real data. Lock-free reads, listed
+under [what is not done](#what-is-not-done), would rest on this rule: a reader
+could only ever hold a policy nobody is mutating.
+
+**During a gradual migration window a policy can hold one of three roles, not
+two.** Besides the active policy and the shadows there is the source the window
+promotes out of. It is not active, and it is not a shadow either: it holds the
+only copy of every value not yet promoted, so it keeps its full capacity, is not
+filled with zero values when a read misses, and is demoted only when the window
+closes. Code that ranges over the policies skipping only the active one has to
+decide what it does to the source. Treating it as a shadow once filled it with
+zeros that the window then promoted and served to callers as hits.
 
 ## Implementing the Bandit Interface
 
@@ -132,6 +156,10 @@ Two consequences worth knowing. Under `EpochRequests` the `Get` that completes
 an epoch runs it, so that one caller does wait for the bandit — under
 `EpochDuration` nobody does. And calls are serialised: no implementation is
 entered from two goroutines at once.
+
+A selection naming `Undefined`, or any policy the cache does not hold, means no
+change. That is the natural answer from a bandit that has not formed an opinion
+yet, and the cache treats it as one rather than looking the policy up.
 
 Ready-made bandits live in the `bandit` module: `bandit.NewThompson`, and
 `bandit.NewGreedy` as a control. Both examples use the first.

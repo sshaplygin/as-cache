@@ -276,3 +276,11 @@ broken here:
   an arm reading 0 as "no limit" turns a bounded miniature into an unbounded
   cache. It must also not start a goroutine it gives you no way to stop: a
   reaper per cache with no `Close` leaks the goroutine and the cache with it.
+
+And one thing the library deliberately does not assume about an arm: **the order
+of `Keys()`.** 2Q returns its frequent queue followed by its recent one, ARC its
+recent list followed by its frequent one, and neither is a single recency order,
+so any rule of the form "keep the tail" is right for one and backwards for the
+other. When an adapted cache shrinks, `Resize` replays every entry into the
+rebuilt cache and lets the algorithm choose its own victims. Which entries
+survive a shrink is therefore not meaningful, and nothing should rely on it.
