@@ -29,7 +29,7 @@ cache, err := ascache.NewAdaptiveCache(
 | LFU | `policies.NewLFU` | this repository's O(1) LFU; strong on stationary popularity, weak when it shifts |
 | 2Q | `policies.NewTwoQueue` | scan-resistant; a scan cannot flush the working set |
 | Random | `policies.NewRandomPolicy` | no bookkeeping; the control arm worth beating |
-| TTL | `policies.NewTTL` | expiry as well as recency |
+| TTL | `policies.NewTTL` | expiry as well as recency; expiry runs on the wall clock, so its hit rate depends on how fast traffic arrives, and a replay is reproducible only while the TTL is far longer than the run |
 | ARC | `policies/arc.NewPolicy` | separate module — see below |
 | W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; the strongest baseline |
 | S3-FIFO | `policies/fifo.NewS3FIFOPolicy` | separate module; three FIFO queues, and deterministic |
