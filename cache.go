@@ -110,8 +110,9 @@ type AdaptiveCache[K comparable, V any] struct {
 	// epochTicker is nil when the cache ends its epochs on request count
 	// alone, since time.NewTicker rejects a non-positive duration.
 	epochTicker *time.Ticker
-	// epochRequests counts Get calls since the last request-driven epoch. It
-	// is mutated on the read path, so it must be atomic.
+	// epochRequests counts every Get since construction; an epoch runs on each
+	// multiple of Settings.EpochRequests (see countRequest). It is mutated on
+	// the read path, so it must be atomic.
 	epochRequests atomic.Int64
 	settings      *Settings
 
