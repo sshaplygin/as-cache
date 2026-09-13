@@ -53,9 +53,20 @@ func (c *AdaptiveCache[K, V]) allowSwitchLocked(candidate PolicyType) bool {
 		return false
 	}
 
-	if c.settings.MinHitRateImprovement > 0 &&
-		hitRate(cand)-hitRate(active) < c.settings.MinHitRateImprovement {
-		return false
+	if c.settings.MinHitRateImprovement > 0 {
+		// hitRate reports 0 for an arm that saw no requests, which reads as an
+		// arm serving nothing: against an active policy with no traffic any
+		// candidate with one hit clears the threshold, so the switch would be
+		// made on no evidence about the policy being replaced. A candidate with
+		// no traffic already loses on arithmetic; it is rejected here too so
+		// that stays true whatever hitRate returns for an empty epoch.
+		if active.Hits+active.Misses == 0 || cand.Hits+cand.Misses == 0 {
+			return false
+		}
+
+		if hitRate(cand)-hitRate(active) < c.settings.MinHitRateImprovement {
+			return false
+		}
 	}
 
 	return true
