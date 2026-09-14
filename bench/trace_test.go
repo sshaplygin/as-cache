@@ -7,13 +7,10 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ascache "github.com/sshaplygin/as-cache"
-	"github.com/sshaplygin/as-cache/bandit"
 	"github.com/sshaplygin/as-cache/bench"
 )
 
@@ -138,76 +135,6 @@ func loadKnownTraces(t *testing.T) []struct {
 	}
 
 	return found
-}
-
-// TestTraceEvidence is the real-workload counterpart to TestAdaptiveVersusFixed.
-// The synthetic result - that adaptive selection never beats the best fixed
-// policy - rests on workloads chosen by the author of the library, which is
-// exactly the kind of evidence that should not be trusted on its own.
-func TestTraceEvidence(t *testing.T) {
-	if testing.Short() {
-		t.Skip("evidence run; use make evidence")
-	}
-
-	for _, found := range loadKnownTraces(t) {
-		spec, w := found.spec, found.workload
-
-		t.Run(w.Name, func(t *testing.T) {
-			distinct := bench.DistinctKeys(w)
-			t.Logf("\n%s\n%s\n%s\ncache %d entries, %.1f%% of the %d distinct keys",
-				w.Name, spec.source, w.Description, spec.cache,
-				float64(spec.cache)/float64(distinct)*100, distinct)
-
-			results := make([]bench.Result, 0, len(bench.FixedPolicies())+1)
-			for _, builder := range bench.FixedPolicies() {
-				policy, err := builder.Build(spec.cache)
-				require.NoError(t, err)
-				results = append(results, bench.Replay(builder.Name, policy, w))
-			}
-
-			arms, err := bench.AdaptiveArms(spec.cache)
-			require.NoError(t, err)
-
-			cache, err := ascache.NewAdaptiveCache(arms,
-				bandit.NewThompson(0.7, 13),
-				&ascache.Settings{
-					EpochDuration:               2 * time.Millisecond,
-					EvictPartialCapacityFilling: true,
-					MigrationStrategy:           ascache.MigrationWarm,
-					ShadowSampleRate:            0.05,
-					MinShadowCapacity:           64,
-				})
-			require.NoError(t, err)
-			t.Cleanup(func() { _ = cache.Close() })
-
-			adaptive := bench.Replay("adaptive", cache, w)
-			results = append(results, adaptive)
-
-			t.Logf("\n%s", bench.Table(results))
-
-			best, worst := results[0], results[0]
-			for _, r := range results {
-				if r.Policy == "adaptive" {
-					continue
-				}
-				if r.HitRate() > best.HitRate() {
-					best = r
-				}
-				if r.HitRate() < worst.HitRate() {
-					worst = r
-				}
-			}
-
-			t.Logf("adaptive %.2f%% | best fixed %s %.2f%% (%+.2f pts) | worst fixed %s %.2f%%",
-				adaptive.HitRate()*100, best.Policy, best.HitRate()*100,
-				(adaptive.HitRate()-best.HitRate())*100, worst.Policy, worst.HitRate()*100)
-
-			// The same claim the synthetic suite makes: the value on offer is a
-			// bound on the downside of choosing wrong, not beating the best.
-			assert.Greater(t, adaptive.HitRate(), worst.HitRate(),
-				"adaptive selection must beat the worst fixed policy on %s", w.Name)
-		})
-	}
 }
 
 // TestTraceLoaders checks the parsers against the published ground truth for

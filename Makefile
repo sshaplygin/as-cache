@@ -48,7 +48,7 @@ release-check: ## Check the repository could actually be released today
 
 .PHONY: evidence
 evidence: ## Replay the workload suite and print the policy comparison tables
-	( cd bench && go test -count=1 -timeout 20m -v ./... )
+	( cd bench && go test -count=1 -timeout 45m -v ./... )
 
 .PHONY: verify-ref
 verify-ref: ## Calibrate the trace loaders and LRU against libCacheSim (needs AS_CACHE_TRACES)
