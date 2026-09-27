@@ -158,7 +158,8 @@ miss ratios than the LRU-based state of the art across several thousand traces
 (Yang, Zhang, Qiu, Yue & Rashmi, *FIFO Queues are All You Need for Cache
 Eviction*, SOSP '23).
 
-It is in `benchclient.DefaultArms` for that reason.
+It participates in the research benchmarks. The unpublished FIFO module is
+excluded from `benchclient.DefaultArms` and the v0.4 release.
 
 ### SIEVE
 

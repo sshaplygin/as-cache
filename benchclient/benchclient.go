@@ -32,7 +32,6 @@ import (
 	ascache "github.com/sshaplygin/as-cache"
 	"github.com/sshaplygin/as-cache/bandit"
 	"github.com/sshaplygin/as-cache/policies"
-	"github.com/sshaplygin/as-cache/policies/fifo"
 	"github.com/sshaplygin/as-cache/policies/tinylfu"
 )
 
@@ -107,8 +106,8 @@ type Cache[K comparable, V any] struct {
 }
 
 // DefaultArms is the policy set used when Cache.Arms is nil: LRU, LFU, 2Q,
-// Random and S3-FIFO. LRU, LFU, 2Q and S3-FIFO are deterministic, which is
-// most of what makes a replay through this package reproducible.
+// and Random. LRU, LFU and 2Q are deterministic. The experimental FIFO
+// adapters are excluded until their module is published.
 //
 // Random is the exception, and it is a real one rather than a caveat: it seeds
 // itself from the global source at construction (see policies.NewRandom), so
@@ -117,7 +116,7 @@ type Cache[K comparable, V any] struct {
 //
 // Do not assume that bounds the damage. Random is not a weak arm everywhere -
 // on a cyclic workload it serves 82.2% where LRU and LFU serve 0.00%, making it
-// the best of these five - so it is exactly the workloads where the bandit
+// the best of these four - so it is exactly the workloads where the bandit
 // would select it that inherit its jitter. A replay through this package is
 // reproducible up to that arm, not exactly. Giving RandomCache a fixed default
 // seed would close it; that is a behaviour change to a published module and
@@ -137,10 +136,6 @@ type Cache[K comparable, V any] struct {
 // the strongest arm available and worth including when a comparison matters
 // more than repeatability - see ArmsWithWindowTinyLFU, which is that trade
 // made explicitly.
-//
-// S3-FIFO is here for the opposite reason to W-TinyLFU's absence: it is the
-// other strong admission policy, and it is deterministic and unencumbered, so
-// including it costs the set nothing it was built to protect.
 func DefaultArms[K comparable, V any](capacity int) ([]ascache.Policy[K, V], error) {
 	lru, err := policies.NewLRU[K, V](capacity)
 	if err != nil {
@@ -157,17 +152,11 @@ func DefaultArms[K comparable, V any](capacity int) ([]ascache.Policy[K, V], err
 		return nil, fmt.Errorf("build 2Q arm: %w", err)
 	}
 
-	s3, err := fifo.NewS3FIFOPolicy[K, V](capacity)
-	if err != nil {
-		return nil, fmt.Errorf("build S3-FIFO arm: %w", err)
-	}
-
 	return []ascache.Policy[K, V]{
 		lru,
 		lfu,
 		twoQueue,
 		policies.NewRandomPolicy[K, V](capacity),
-		s3,
 	}, nil
 }
 

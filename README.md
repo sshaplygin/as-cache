@@ -41,6 +41,7 @@ Random and asynchronous W-TinyLFU mean some numbers vary between runs.
 | [Advisor mode](docs/advisor-mode.md) | `ObserveOnly`, `Advice()`, and the `metrics` module |
 | [Evidence](docs/evidence.md) | Every measured claim: policy tables, competing libraries, real traces, sampling fidelity |
 | [Benchmarking](docs/benchmarking.md) | Reproducible replays, `benchclient`, `make evidence` |
+| [Releasing](docs/releasing.md) | Development workspace, candidate checks, publication and upgrade notes |
 | [Project site](https://sshaplygin.github.io/as-cache/) | Landing page, plus an interactive explorer of the bandit's decisions on a phase-shift run |
 
 Past releases are recorded in the [changelog](CHANGELOG.md) and on the

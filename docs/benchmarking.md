@@ -67,7 +67,7 @@ usable by anything wanting the same five methods.
 
 It is configured for reproducibility rather than for the best number:
 request-counted epochs, a seeded bandit, and no sampling. `DefaultArms` is LRU,
-LFU, 2Q, Random and S3-FIFO — all deterministic except `Random`, which is
+LFU, 2Q and Random — all deterministic except `Random`, which is
 noted above.
 `ArmsWithWindowTinyLFU`
 adds the strongest arm and gives up repeatability to do it — that trade is

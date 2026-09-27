@@ -25,3 +25,7 @@ codemaps/
 .reports/
 .vscode/
 metrics/zzz_refute_probe_test.go
+
+# Python release-check test bytecode and local Go workspace checksums
+__pycache__/
+go.work.sum

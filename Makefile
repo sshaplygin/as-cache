@@ -43,8 +43,16 @@ test: ## Run tests with the race detector across all modules
 	done
 
 .PHONY: release-check
-release-check: ## Check the repository could actually be released today
+release-check: release-check-test ## Build eight candidate modules as external consumers
 	@./scripts/release-check.sh
+
+.PHONY: release-check-test
+release-check-test: ## Test the release checker against broken module fixtures
+	@python3 -m unittest discover -s scripts -p 'release_check_test.py'
+
+.PHONY: release-check-published
+release-check-published: ## Verify actual published tags (only after publication)
+	@./scripts/release-check.sh --published
 
 .PHONY: evidence
 evidence: ## Replay the workload suite and print the policy comparison tables
