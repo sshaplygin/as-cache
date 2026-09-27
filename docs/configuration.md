@@ -139,34 +139,38 @@ against your traffic.
 
 ## Tuning, measured
 
-The epoch duration is the setting that matters most, and the failure mode is
-not subtle. Measured on the ARC P3 trace with a 20k-entry cache:
+Epoch length controls how often a replay pays for selection and migration.
+The [2026-09-27 full log](../bench/results/2026-09-27/evidence.log) includes this
+wall-clock tuning experiment on ARC P3, capacity 20,000:
 
 | Configuration | Hit rate | ns/op |
 | --- | --- | --- |
-| 50ms epoch, warm migration | 11.4% | 795 |
-| 2ms epoch, warm migration | 3.2% | 38,056 |
-| 2ms epoch, cold migration | 0.7% | 722 |
+| 2ms epoch, warm migration | 3.39% | 53819 |
+| 2ms epoch, cold migration | 0.86% | 755 |
+| 50ms epoch, warm migration | 13.05% | 936 |
+| 50ms epoch, warm + stability gates | 10.08% | 1077 |
 
-An epoch short enough to trigger frequent switches makes the cache copy its
-entire contents on every switch, so it spends its time migrating rather than
-serving. Cold migration is worse: it discards the cache at each switch, which
-on the OLTP trace costs 25.7 points against warm migration at the same epoch
-(37.2% against 62.9%, both at 2ms). There is no 50ms cold run to compare
-against; the sweep covers 2ms warm, 2ms cold, 50ms warm and 50ms warm with the
-stability gates.
+These are single runs with timing-dependent epochs and nondeterministic arms,
+not the repeated [request-counted trace matrix](evidence.md#real-traces).
+Frequent warm switches can spend most of the runtime copying entries; cold
+switches discard useful contents. The separate
+[migration experiment](evidence.md#what-does-a-switch-cost-right-after-it)
+measures the hit-rate cost immediately after a forced switch.
 
-Rules of thumb:
+For an experiment:
 
-- Make the epoch long enough that migrating the cache is a small fraction of
-  the work done in it, and short enough that the workload sees many epochs.
-- Prefer `MigrationWarm`. `MigrationCold` is only reasonable if switches are
-  rare.
-- The stability gates help on steady traffic and hurt on fast-changing traffic
-  -- they cost 20.6 points on the LIRS `loop` trace (17.0% against 37.6%),
-  which needs to re-adapt constantly, and 0.8 on OLTP, which does not.
-- `ShadowSampleRate: 0.05` is a reasonable default. Higher rates cost more and
-  buy no better ranking.
+- Use `EpochRequests` to hold epoch boundaries fixed across replay speeds;
+  report every tested setting. The trace matrix includes 10/20/50 epochs,
+  and no one setting is best on every trace.
+- Measure the tradeoff between migration work and adapting quickly enough.
+  Warm migration retains values, but does not transfer a policy's learned
+  history. Cold migration requires refilling; gradual migration spreads work
+  and its request cap can truncate the transfer.
+- Treat stability gates as parameters to test. They can avoid switches on
+  steady traffic and delay useful switches when the workload changes.
+- `ShadowSampleRate: 0.05` is one measured starting point. Validate ranking,
+  overhead and sensitivity to the random sample on your workload; the
+  synthetic sampling checks do not establish a universally optimal rate.
 - Set `EvictPartialCapacityFilling: true` when W-TinyLFU or S3-FIFO could be
   the **active** arm. The gate reads that one policy and compares its `Len()`
   against `Cap()` for exact equality, and neither of those two holds that

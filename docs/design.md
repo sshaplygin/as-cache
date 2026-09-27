@@ -1,6 +1,6 @@
 # Design
 
-How as-cache works, and what it deliberately does not do.
+How this experimental library measures and studies adaptive policy selection.
 
 ## Problem
 
@@ -11,21 +11,20 @@ using a multi-armed bandit to pick the winner dynamically.
 
 ## When it fits
 
-Use it when:
-
-- You do not know which policy suits your traffic, and cannot easily find out.
-- Your traffic changes shape and you would rather not re-tune.
-- You want the measurement more than the switching. `ObserveOnly` gives you
-  that at no risk to the cache's behaviour — see [advisor mode](advisor-mode.md).
+Use it to investigate policy selection, switching and sampling on a workload.
+For a general-purpose production cache, start with otter or theine and read the
+[comparison](evidence.md#how-does-it-compare-with-other-go-cache-libraries).
+`ObserveOnly` keeps the configured policy active while gathering advice;
+it still adds measurement overhead — see [advisor mode](advisor-mode.md).
 
 Do not use it when:
 
 - You have already measured your traffic and know which policy wins. Use that
-  policy directly; this library's best case is roughly to match it, and it
-  [lands within 1.4 points of it on four of six real traces and beats it on
-  the other two](evidence.md#real-traces).
+  policy directly. The measured adaptive medians trail the best fixed choice
+  on eleven of twelve traces at every tested epoch length; see
+  [the full matrix and its limits](evidence.md#real-traces).
 - The hot path is latency-critical at single-digit nanoseconds. Even sampled,
-  the adaptive layer costs several times a bare LRU per operation — the
+  the adaptive layer adds work to a bare LRU operation — the
   [figures](evidence.md#memory-and-per-operation-cost) are measured.
 - You need a hard memory ceiling. The multiplier is well under the number of
   arms, but it is real.
@@ -204,11 +203,10 @@ implementation reports.
   retried read double-counts its own hit and double-bumps recency), and
   `MigrationGradual` cannot go lock-free at all, because promotion mutates from
   inside `Get`. Deferred as its own change rather than smuggled into another.
-- **Epochs are wall-clock driven** and cannot be stepped, so every measurement
-  of the bandit is timing-sensitive. This is why the evidence suite is excluded
-  from `-race`, and it makes the bandit awkward to test deterministically.
-  `EpochRequests` takes the clock out of a replay — see
-  [benchmarking](benchmarking.md) — but not out of production use.
+- **Not every replay is deterministic.** `EpochRequests` fixes the request
+  boundaries, but sampled key selection, Random and asynchronous W-TinyLFU
+  still vary. Wall-clock epochs and TTL add timing dependencies. See
+  [benchmarking](benchmarking.md) for the repeatability requirements.
 - **No adaptive sizing.** The cache's capacity is whatever you set. Only the
   choice of policy adapts.
 - **Nothing here has run in production** that I know of.

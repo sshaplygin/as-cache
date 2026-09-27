@@ -2,12 +2,10 @@
 
 ## Reproducible replays
 
-`EpochDuration` measures on a wall clock, which is right in production and
-wrong for a benchmark: replaying one trace twice re-evaluates a different
-number of times on a machine that happens to be busy, so the hit rate moves
-between runs and cannot be compared with anything. `EpochRequests` ends an
-epoch every N `Get` calls instead, which takes the clock out of the
-measurement entirely.
+`EpochDuration` measures on a wall clock. A trace replay can therefore
+re-evaluate a different number of times when the machine is busy.
+`EpochRequests` ends an epoch every N `Get` calls instead, fixing the request
+boundaries independently of replay speed. Other sources of variation remain.
 
 ```go
 &ascache.Settings{EpochRequests: 10_000} // no EpochDuration: no wall clock at all
@@ -17,13 +15,19 @@ measurement entirely.
 counts exactly the requests the bandit is shown. A write-only workload never
 ends an epoch, which is correct — there is nothing to compare policies on. The
 epoch runs on whichever goroutine makes the Nth `Get`, so that call pays for
-the switch and any migration; prefer `EpochDuration` in production, where that
-work belongs on the background goroutine. Setting both applies both.
+the switch and any migration. `EpochDuration` performs that work on a
+background goroutine instead; it changes the timing model of the experiment.
+Setting both applies both.
 
-Two things outside the epoch clock also have to hold still, and one of them is
-not in your control:
+Exact replay also requires the following:
 
 - **Seed the bandit.** `bandit.NewThompson(discount, seed)` takes one.
+- **Disable random key sampling for exact replay.** `ShadowSampleRate: 0`
+  uses full-size shadows. With sampling enabled, each cache gets a fresh hash
+  seed, which is not controlled by the bandit's seed. The real-trace matrix
+  deliberately measures this variation over five replays.
+- **Keep TTL longer than a replay.** Request-counted epochs do not change
+  wall-clock expiry; the suite uses a one-hour TTL to measure its LRU behavior.
 - **Every arm must be deterministic.** LRU, LFU, 2Q, S3-FIFO and SIEVE are.
   **Random is not**, despite being the simplest arm here: it seeds itself from
   the global source at construction, so three identical replays served 44, 44
@@ -90,6 +94,31 @@ A format misread is a correctness bug, not evidence: it produces a workload
 that looks entirely plausible and quietly invalidates every number taken from
 it. They are pinned against fixtures copied from the real files in
 [bench/trace_formats_test.go](../bench/trace_formats_test.go).
+
+## Saved baseline
+
+The [2026-09-27 artifact](../bench/results/2026-09-27/) retains all twelve
+trace results, the full test log and provenance for the measured source revision.
+The trace matrix uses nine arms, sampling 0.05, warm migration and request-counted
+epochs at 10/20/50 requested epochs per trace. Random, W-TinyLFU and adaptive
+selection each run five times; deterministic fixed arms run once. Results are
+median [min-max], not confidence intervals. Request-counted epochs do not make
+this sampled, asynchronous experiment deterministic.
+
+Save a fresh matrix alongside the complete output:
+
+```sh
+AS_CACHE_TRACES="$PWD/traces" make verify-ref
+AS_CACHE_TRACES="$PWD/traces" AS_CACHE_EVIDENCE_OUT="$PWD/traces.json" make evidence > evidence.log 2>&1
+```
+
+The JSON names the measured commit, tracked-tree state, platform, settings and
+every hit-rate observation. The retained baseline adds input checksums and
+libCacheSim provenance in its manifest. `make evidence` skips unavailable trace
+files, so verify that a new artifact includes all expected traces before
+publishing it. The twelve-trace baseline did; its LRU calibration covered all
+sixty capacity points. The complete suite also includes synthetic experiments
+and slower wall-clock tuning runs, separate from the request-counted matrix.
 
 ## Real traces
 

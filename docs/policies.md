@@ -88,6 +88,11 @@ arm is for.
 
 ## S3-FIFO and SIEVE
 
+These adapters are experimental source in this repository. The
+`policies/fifo` module has not been tagged; inclusion in the evidence suite
+does not imply a published package. They are deferred from the v0.4 release
+plan while native implementations are planned for v0.5.
+
 Both constructors reject a size of zero or less, as `NewLRU`, `NewLFU` and
 `NewTwoQueue` do: a cache built at zero would accept nothing and report no hits
 for as long as it existed, which as a bandit arm is a silent no-op rather than
@@ -118,9 +123,7 @@ W-TinyLFU for a different reason. It is hard to reach from ordinary traffic
 to capacity, read everything several times, then write once) it is real. Set
 `EvictPartialCapacityFilling: true` if you would rather not think about it.
 
-```bash
-go get github.com/sshaplygin/as-cache/policies/fifo
-```
+Use a repository checkout for these experiments:
 
 ```go
 s3, err := fifo.NewS3FIFOPolicy[string, int](10000)
