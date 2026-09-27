@@ -1,4 +1,5 @@
 """Packaging regressions exercised against isolated miniature repositories."""
+
 import os
 from pathlib import Path
 import shutil
@@ -10,7 +11,16 @@ import importlib.util
 
 ROOT = Path(__file__).resolve().parent.parent
 MODULE = "github.com/sshaplygin/as-cache"
-MODULES = (".", "lfu", "policies", "policies/arc", "policies/tinylfu", "metrics", "bandit", "benchclient")
+MODULES = (
+    ".",
+    "lfu",
+    "policies",
+    "policies/arc",
+    "policies/tinylfu",
+    "metrics",
+    "bandit",
+    "benchclient",
+)
 
 
 class ReleaseCheckTest(unittest.TestCase):
@@ -37,8 +47,9 @@ class ReleaseCheckTest(unittest.TestCase):
         self.commit()
 
     def git(self, *args):
-        subprocess.run(["git", *args], cwd=self.root, check=True,
-                       stdout=subprocess.DEVNULL)
+        subprocess.run(
+            ["git", *args], cwd=self.root, check=True, stdout=subprocess.DEVNULL
+        )
 
     def commit(self):
         self.git("add", ".")
@@ -50,8 +61,12 @@ class ReleaseCheckTest(unittest.TestCase):
         env = dict(os.environ, GOWORK="off", GOPROXY="off", GOSUMDB="off")
         return subprocess.run(
             ["bash", "scripts/release-check.sh", "v0.4.0"],
-            cwd=self.root, env=env, text=True, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, timeout=180,
+            cwd=self.root,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=180,
         )
 
     def test_candidate_builds_without_workspace_or_external_proxy(self):
@@ -60,8 +75,12 @@ class ReleaseCheckTest(unittest.TestCase):
 
     def test_rejects_license_present_only_outside_git_index(self):
         subprocess.run(["git", "add", "."], cwd=self.root, check=True)
-        subprocess.run(["git", "rm", "--cached", "benchclient/LICENSE"],
-                       cwd=self.root, check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(
+            ["git", "rm", "--cached", "benchclient/LICENSE"],
+            cwd=self.root,
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
         self.git("commit", "-qm", "omit license")
         result = self.check_release(stage=False)
         self.assertNotEqual(0, result.returncode, result.stdout)
@@ -69,24 +88,26 @@ class ReleaseCheckTest(unittest.TestCase):
 
     def test_rejects_local_replace_even_with_real_looking_version(self):
         p = self.root / "benchclient/go.mod"
-        p.write_text(p.read_text() + f"\nrequire {MODULE} v0.4.0\nreplace {MODULE} => ..\n")
+        p.write_text(
+            p.read_text() + f"\nrequire {MODULE} v0.4.0\nreplace {MODULE} => ..\n"
+        )
         result = self.check_release()
         self.assertNotEqual(0, result.returncode, result.stdout)
-        self.assertIn('published go.mod must not contain replace', result.stdout)
+        self.assertIn("published go.mod must not contain replace", result.stdout)
 
     def test_rejects_sibling_version_outside_candidate(self):
         p = self.root / "benchclient/go.mod"
         p.write_text(p.read_text() + f"\nrequire {MODULE} v0.9.99\n")
         result = self.check_release()
         self.assertNotEqual(0, result.returncode, result.stdout)
-        self.assertIn('must use release version', result.stdout)
+        self.assertIn("must use release version", result.stdout)
 
     def test_rejects_unpublished_fifo_dependency(self):
         p = self.root / "benchclient/go.mod"
         p.write_text(p.read_text() + f"\nrequire {MODULE}/policies/fifo v0.4.0\n")
         result = self.check_release()
         self.assertNotEqual(0, result.returncode, result.stdout)
-        self.assertIn('outside the release set', result.stdout)
+        self.assertIn("outside the release set", result.stdout)
 
     def test_rejects_code_that_only_builds_with_local_api(self):
         p = self.root / "benchclient/go.mod"
@@ -96,7 +117,7 @@ class ReleaseCheckTest(unittest.TestCase):
         )
         result = self.check_release()
         self.assertNotEqual(0, result.returncode, result.stdout)
-        self.assertIn('undefined: core.MissingSymbol', result.stdout)
+        self.assertIn("undefined: core.MissingSymbol", result.stdout)
 
     def test_rejects_uncommitted_tracked_edits(self):
         path = self.root / "policies/cache.go"
@@ -122,15 +143,18 @@ class ReleaseCheckTest(unittest.TestCase):
 
     def test_nested_modules_are_excluded_from_parent_zip(self):
         spec = importlib.util.spec_from_file_location(
-            "checker", self.root / "scripts/release_check.py")
+            "checker", self.root / "scripts/release_check.py"
+        )
         checker = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(checker)
         proxy = self.root / "proxy"
         checker.candidate_proxy(proxy, "v0.4.0")
         for module in (MODULE, MODULE + "/policies"):
             with zipfile.ZipFile(proxy / module / "@v/v0.4.0.zip") as archive:
-                names = [name.removeprefix(module + "@v0.4.0/")
-                         for name in archive.namelist()]
+                names = [
+                    name.removeprefix(module + "@v0.4.0/")
+                    for name in archive.namelist()
+                ]
             self.assertIn("go.mod", names)
             self.assertNotIn("fifo/go.mod", names)
             self.assertNotIn("policies/fifo/go.mod", names)

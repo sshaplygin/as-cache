@@ -10,7 +10,7 @@ require (
 	github.com/sshaplygin/as-cache/bandit v0.4.0
 	github.com/sshaplygin/as-cache/policies v0.4.0
 	github.com/sshaplygin/as-cache/policies/arc v0.4.0
-	github.com/sshaplygin/as-cache/policies/fifo v0.3.1
+	github.com/sshaplygin/as-cache/policies/fifo v0.0.0 // Unreleased; local replace below is required.
 	github.com/sshaplygin/as-cache/policies/tinylfu v0.4.0
 	github.com/stretchr/testify v1.11.1
 	github.com/viccon/sturdyc v1.1.5

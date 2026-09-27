@@ -5,7 +5,7 @@ MODULES := . lfu policies policies/arc policies/fifo policies/tinylfu metrics ba
 GOLANGCI_LINT_VERSION := v2.8.0
 
 .PHONY: all
-all: fmt vet lint test release-check ## Format, vet, lint, test and check releasability
+all: fmt vet lint test python-check release-check ## Format, vet, lint, test and check releasability
 
 .PHONY: lint
 lint: ## Run golangci-lint across all modules
@@ -64,10 +64,7 @@ verify-ref: ## Calibrate the trace loaders and LRU against libCacheSim (needs AS
 
 .PHONY: tidy
 tidy: ## Run go mod tidy across all modules
-	@set -e; for m in $(MODULES); do \
-		echo "==> tidy $$m"; \
-		( cd $$m && go mod tidy ); \
-	done
+	@python3 scripts/tidy.py
 
 .PHONY: install-tools
 install-tools: ## Install golangci-lint at the pinned version
@@ -77,3 +74,7 @@ install-tools: ## Install golangci-lint at the pinned version
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: python-check
+python-check: ## Lint and check formatting with pinned Ruff
+	@./scripts/python-check.sh

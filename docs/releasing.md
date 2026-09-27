@@ -6,19 +6,26 @@ A successful candidate check does not mean that version has been published.
 ## Developing the repository
 
 Use Go 1.25.2 or later. The checked-in `go.work` joins all twelve modules for
-local builds, examples, and `make all`. Published modules contain no `replace`
+local builds, examples, and `make all`. The workspace file also ships in the
+root module zip; running Go commands *inside that extracted zip* needs
+`GOWORK=off`, because sibling modules are not included there. Normal consumers
+use their own workspace and are unaffected. Published modules contain no `replace`
 directives. The benchmark, examples and experimental FIFO module retain local
 replacements; they are not in the release set.
 
 `go mod tidy` resolves each module separately and needs published sibling
-versions. Before v0.4.0 is tagged, do not use `make tidy` to validate the
-candidate: use the candidate consumer check below. Do not commit checksum
+versions. `make tidy` prints a skip reason for a module whose sibling versions are not
+yet resolvable; it tidies the other modules. Use the candidate consumer check
+below to validate unpublished versions. Do not commit checksum
 entries produced from temporary candidate zips as checksums of a public release.
 
 ## Candidate checks
 
-Stage new files first: the candidate packager takes the current contents of
-Git-tracked files and excludes nested modules from their parent's zip.
+Commit all tracked changes first: the check rejects staged and unstaged edits.
+It packages the clean committed source and excludes nested modules from their
+parent's zip. The release set is discovered from tracked `go.mod` files with
+explicit exclusions for the benchmark, examples and experimental FIFO module;
+a new module is checked automatically.
 
 ```sh
 make all
