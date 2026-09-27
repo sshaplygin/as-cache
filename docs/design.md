@@ -49,9 +49,10 @@ On each request:
 1. The active policy serves the read or write. A read counts as its hit or
    miss; a write counts as neither, since nobody asked the cache a question.
 2. The sampler decides whether the shadows see the key at all. When
-   `ShadowSampleRate` is below 1 they track a deterministic fraction of the
-   keyspace and shrink to match, so per-operation cost stops scaling with the
-   number of policies.
+   `ShadowSampleRate` is below 1 they track a hash-selected key subset and
+   shrink to match. Membership is stable within an instance, but its hash seed
+   changes for a new cache. Sampling reduces fan-out frequency; each sampled
+   request still visits every shadow.
 3. Each shadow answers the same lookup, and a shadow that **misses fills
    itself** with `Add(key, zeroValue)` — exactly as the caller would fill a
    read-through cache that missed. That fill is what makes the measurement mean

@@ -109,6 +109,7 @@ both otter and theine on all five workloads; the raw timings are in the
 This is a comparison of caller-visible library behavior, not a controlled
 comparison of eviction algorithms at equal memory. otter performs asynchronous
 maintenance; the harness calls `CleanUp` to enforce its stated capacity.
+Calling `CleanUp` also contributes to otter's measured operation time.
 The capacity check measured 500 retained entries for otter, 544 for theine,
 533 for ristretto and 476 for sturdyc at a nominal 500.
 
@@ -127,11 +128,11 @@ above and real-trace matrix below:
 
 | Workload | Adaptive | Best fixed | Worst fixed | Adaptive vs best |
 | --- | --- | --- | --- | --- |
-| zipf | 65.74% | SIEVE 73.58% | Random 62.59% | -7.84 pts |
-| uniform | 10.21% | W-TinyLFU 18.27% | Random 9.98% | -8.06 pts |
-| loop | 86.26% | W-TinyLFU 97.32% | LRU 0.00% | -11.06 pts |
-| scan | 34.09% | LFU 39.95% | LRU 30.00% | -5.86 pts |
-| phase-shift | 73.42% | W-TinyLFU 84.64% | LRU 34.50% | -11.22 pts |
+| zipf | 65.74% | SIEVE 73.58% | 62.59% | -7.84 pts |
+| uniform | 10.21% | W-TinyLFU 18.27% | 9.98% | -8.07 pts |
+| loop | 86.26% | W-TinyLFU 97.32% | 0.00% | -11.06 pts |
+| scan | 34.09% | LFU 39.95% | 30.00% | -5.86 pts |
+| phase-shift | 73.42% | W-TinyLFU 84.64% | 34.50% | -11.22 pts |
 
 These are individual runs. In particular, W-TinyLFU's result on uniform is
 sensitive to asynchronous capacity overshoot; it is not evidence of an
@@ -227,6 +228,8 @@ Reproduction and source formats are in [benchmarking](benchmarking.md).
 Input hashes, the pinned libCacheSim revision and its binary hash are in the
 [manifest](../bench/results/2026-09-27/manifest.json).
 
+<a id="one-loop-row-two-answers-one-run"></a>
+
 ### One `loop` row, different answers
 
 In this matrix, standalone W-TinyLFU on LIRS loop has a median of 43.72% and a
@@ -234,6 +237,8 @@ range of 30.36–50.05%. There is no bandit in that fixed-policy measurement.
 Asynchronous maintenance changes which entries survive a cycle, so one replay
 cannot settle the comparison. Random is also nondeterministic; the other
 fixed arms in this setup are deterministic while TTL does not expire.
+
+<a id="the-two-fifo-policies-near-identical-on-key-value-traffic-far-apart-elsewhere"></a>
 
 ### The two FIFO policies
 

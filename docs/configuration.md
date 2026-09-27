@@ -47,7 +47,7 @@ type Settings struct {
 | Strategy | Behaviour | Trade-off |
 | --- | --- | --- |
 | `MigrationCold` (default) | New active policy starts empty | Simple; causes a temporary miss spike |
-| `MigrationWarm` | All key/value pairs copied at switch time | No miss spike; O(n) work at switch |
+| `MigrationWarm` | Cached key/value pairs offered to the incoming policy | Transfers values, not eviction history; O(n) work at switch |
 | `MigrationGradual` | Keys promoted on Get; one key drained per Add | Spreads migration cost; every `Get` takes the write lock while the window is open, which closes at the next epoch at the latest |
 
 A gradual window serialises reads for as long as it is open. On a long epoch
@@ -69,8 +69,9 @@ has the table, including what each strategy costs.
 Running policies in parallel costs something on every operation: each shadow is
 another lookup and another lock. Since a shadow exists only to estimate a hit
 rate, and a hit rate can be estimated from a sample, `ShadowSampleRate` lets
-shadows track a deterministic fraction of the keyspace instead of mirroring
-everything.
+shadows track a hash-selected subset of the keyspace instead of mirroring
+everything. Membership is stable within one cache instance; a new cache gets
+a fresh random hash seed.
 
 ```go
 &ascache.Settings{
@@ -79,34 +80,22 @@ everything.
 }
 ```
 
-Shadows shrink along with the rate, so each remains a faithful miniature of a
-full-size cache rather than an undersized one, and every shadow samples the same
-keys so their hit rates stay comparable. The active policy still serves every
+Shadows shrink along with the rate, and every shadow samples the same keys.
+This gives each arm a comparable input stream, but a miniature can change
+reuse patterns and policy rankings. The active policy still serves every
 key -- only the measurement is sampled, and it is sampled for the active policy
 too, so no arm is judged on more evidence than another. `Stats()` continues to
 report real, unsampled traffic.
 
-The effect is that per-operation cost stops scaling with the number of policies.
-Measured with mutex-backed stub policies on an Apple M1 Max at
-`-benchtime=300ms`, so the numbers isolate what the adaptive layer adds rather
-than what any particular policy costs:
+Sampling reduces how often a request visits every shadow; it does not remove
+the dependence on policy count. A sampled key still visits each shadow, so
+fan-out work scales with both the sampled request fraction and the number of
+arms. Sampling selects keys, and a hot selected key can account for many
+requests: 5% of keys need not mean exactly 5% of requests.
 
-| Benchmark | shadows | sampling off | rate 0.05 |
-| --- | --- | --- | --- |
-| `Get` | 1 | 102 ns/op | 40 ns/op |
-| `Get` | 3 | 153 ns/op | 44 ns/op |
-| `GetParallel` | 1 | 284 ns/op | 183 ns/op |
-| `GetParallel` | 3 | 361 ns/op | 187 ns/op |
-| `Add` | 1 | 98 ns/op | 53 ns/op |
-| `Add` | 3 | 142 ns/op | 55 ns/op |
-| `MixedParallel` | 1 | 187 ns/op | 96 ns/op |
-
-Read the `Get` rows down the shadow count. Unsampled, two further shadows cost
-another 51ns, because every operation visits every policy. Sampled, the same
-step costs 4ns -- the fan-out happens on 5% of operations, so adding a policy
-is close to free. That is what makes carrying nine arms practical.
-
-Reproduce with `go test -run '^$' -bench . -benchtime=300ms .`
+The [warm-cache measurements](evidence.md#memory-and-per-operation-cost)
+show the observed overhead with eight real policies. To isolate wrapper cost
+with stub policies, run `go test -run '^$' -bench . -benchtime=300ms .`.
 
 Sampling is off by default. `MinShadowCapacity` (256 unless you set it) is the
 floor on a miniature: when the rate would shrink a shadow below it, the
@@ -114,9 +103,11 @@ floor on a miniature: when the rate would shrink a shadow below it, the
 enough that the floor exceeds its nominal size, sampling disables itself. A
 miniature of a handful of entries measures noise rather than a policy.
 
-Sampling does not distort which policy wins — that was measured directly, see
-[evidence](evidence.md#does-sampling-distort-the-comparison). It does distort
-the absolute hit rate a shadow reports, so do not quote one as a forecast.
+The policies selected from sampled estimates tied the best full-size policy
+on the two tested synthetic workloads. This does not guarantee that every
+workload keeps the same ranking. Sampling also changes absolute hit-rate estimates, so do not
+quote a shadow rate as a forecast. See the
+[evidence and its limits](evidence.md#does-sampling-distort-the-comparison).
 
 ## Keeping switches stable
 
