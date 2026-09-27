@@ -35,14 +35,17 @@ def module_path(directory):
 
 def preflight(version):
     expected = {module_path(d) for d in PUBLISHABLE}
+    tracked = set(run("git", "ls-files", "-z").split("\0"))
     env = dict(os.environ, GOWORK="off", GOFLAGS="")
     for directory in PUBLISHABLE:
         path = ROOT / directory
         metadata = json.loads(run("go", "mod", "edit", "-json", cwd=path, env=env))
         if metadata["Module"]["Path"] != module_path(directory):
             raise RuntimeError(f"{directory}: unexpected module path")
-        if not any(p.is_file() and p.stat().st_size for p in path.glob("LICENSE*")):
-            raise RuntimeError(f"{directory}: missing nonempty LICENSE")
+        if not any(p.is_file() and p.stat().st_size
+                   and p.relative_to(ROOT).as_posix() in tracked
+                   for p in path.glob("LICENSE*")):
+            raise RuntimeError(f"{directory}: missing tracked nonempty LICENSE")
         if metadata.get("Replace"):
             raise RuntimeError(f"{directory}: published go.mod must not contain replace directives")
         for dependency in metadata.get("Require") or []:

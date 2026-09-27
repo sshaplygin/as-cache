@@ -31,8 +31,9 @@ class ReleaseCheckTest(unittest.TestCase):
             (p / "cache.go").write_text("package cache\n\nconst Value = 1\n")
         subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
 
-    def check_release(self):
-        subprocess.run(["git", "add", "."], cwd=self.root, check=True)
+    def check_release(self, stage=True):
+        if stage:
+            subprocess.run(["git", "add", "."], cwd=self.root, check=True)
         env = dict(os.environ, GOWORK="off", GOPROXY="off", GOSUMDB="off")
         return subprocess.run(
             ["bash", "scripts/release-check.sh", "v0.4.0"],
@@ -43,6 +44,13 @@ class ReleaseCheckTest(unittest.TestCase):
     def test_candidate_builds_without_workspace_or_external_proxy(self):
         result = self.check_release()
         self.assertEqual(0, result.returncode, result.stdout)
+
+    def test_rejects_license_present_only_outside_git_index(self):
+        subprocess.run(["git", "add", "."], cwd=self.root, check=True)
+        subprocess.run(["git", "rm", "--cached", "benchclient/LICENSE"],
+                       cwd=self.root, check=True, stdout=subprocess.DEVNULL)
+        result = self.check_release(stage=False)
+        self.assertNotEqual(0, result.returncode, result.stdout)
 
     def test_rejects_local_replace_even_with_real_looking_version(self):
         p = self.root / "benchclient/go.mod"
