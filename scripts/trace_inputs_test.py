@@ -101,7 +101,19 @@ class TraceInputsTest(unittest.TestCase):
                 self.assertIn("checksum mismatch", result.stderr)
                 self.assertFalse((traces / name).exists())
                 self.assertFalse((traces / (name + ".part")).exists())
-                self.assertRegex(result.stderr, r"caller lines: [1-9][0-9]*")
+                call = (
+                    'verify "$name" "$TRACES/$name.part"'
+                    if kind == "generic"
+                    else 'verify meta_kvcache_202206_1.csv "$TRACES/meta_kvcache_202206_1.csv.part"'
+                )
+                callsite = next(
+                    number
+                    for number, line in enumerate(
+                        (scripts / "fetch-traces.sh").read_text().splitlines(), 1
+                    )
+                    if line.strip() == call
+                )
+                self.assertRegex(result.stderr, rf"caller lines: {callsite}(?:\s|\))")
 
     def test_reference_rejects_extra_msr_volume(self):
         with tempfile.TemporaryDirectory() as temporary:
