@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build release candidates as consumers, without repository replacements.
 
-Candidate mode requires a clean committed tree and serves its source as module zips from a temporary file proxy.
+Candidate mode serves one resolved HEAD snapshot as module zips from a temporary file proxy.
 Published mode downloads actual versions. Neither mode changes tags or go.mod.
 """
 
@@ -15,6 +15,8 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+
+from committed_source import CommittedSource
 
 MODULE = "github.com/sshaplygin/as-cache"
 # FIFO stays experimental; it must not enter any published dependency graph.
@@ -42,40 +44,29 @@ def module_path(directory):
     return MODULE if directory == "." else f"{MODULE}/{directory}"
 
 
-def module_directories():
+def module_directories(source):
     return sorted(
-        {
-            str(Path(name).parent)
-            for name in run("git", "ls-files", "-z").split("\0")
-            if name and Path(name).name == "go.mod"
-        }
+        str(path.parent.relative_to(source)) for path in source.rglob("go.mod")
     )
 
 
-def publishable():
+def publishable(source):
     return [
-        directory for directory in module_directories() if directory not in EXCLUDED
+        directory
+        for directory in module_directories(source)
+        if directory not in EXCLUDED
     ]
 
 
-def preflight(version):
-    if run("git", "status", "--porcelain", "--untracked-files=no").strip():
-        raise RuntimeError("commit tracked changes before release checks")
-    run("git", "rev-parse", "--verify", "HEAD")
-    expected = {module_path(d) for d in publishable()}
-    tracked = set(run("git", "ls-files", "-z").split("\0"))
+def preflight(version, source):
+    expected = {module_path(d) for d in publishable(source)}
     env = dict(os.environ, GOWORK="off", GOFLAGS="")
-    for directory in publishable():
-        path = ROOT / directory
+    for directory in publishable(source):
+        path = source / directory
         metadata = json.loads(run("go", "mod", "edit", "-json", cwd=path, env=env))
         if metadata["Module"]["Path"] != module_path(directory):
             raise RuntimeError(f"{directory}: unexpected module path")
-        if not any(
-            p.is_file()
-            and p.stat().st_size
-            and p.relative_to(ROOT).as_posix() in tracked
-            for p in path.glob("LICENSE*")
-        ):
+        if not any(p.is_file() and p.stat().st_size for p in path.glob("LICENSE*")):
             raise RuntimeError(f"{directory}: missing tracked nonempty LICENSE")
         if metadata.get("Replace"):
             raise RuntimeError(
@@ -94,18 +85,18 @@ def preflight(version):
         print(f"  metadata ok: {directory}", flush=True)
 
 
-def candidate_proxy(destination, version):
-    # Only tracked files are packaged. Nested modules must never leak into the
-    # parent zip, including modules deliberately omitted from this release.
-    names = run("git", "ls-files", "-z").split("\0")
-    tracked = [Path(name) for name in names if name]
+def candidate_proxy(destination, version, source):
+    # The exported source contains only blobs from the same resolved commit.
+    tracked = sorted(
+        path.relative_to(source) for path in source.rglob("*") if path.is_file()
+    )
     module_dirs = {p.parent for p in tracked if p.name == "go.mod"}
-    for directory in publishable():
+    for directory in publishable(source):
         base = Path(directory)
         name = module_path(directory)
         target = destination / name / "@v"
         target.mkdir(parents=True)
-        (target / f"{version}.mod").write_bytes((ROOT / base / "go.mod").read_bytes())
+        (target / f"{version}.mod").write_bytes((source / base / "go.mod").read_bytes())
         info = {"Version": version, "Time": datetime.now(timezone.utc).isoformat()}
         (target / f"{version}.info").write_text(json.dumps(info))
         (target / "list").write_text(version + "\n")
@@ -122,17 +113,12 @@ def candidate_proxy(destination, version):
                     for child in module_dirs
                 ):
                     continue
-                source = ROOT / file
-                if source.is_symlink():
-                    raise RuntimeError(
-                        f"{file}: symlinks are not supported in release candidates"
-                    )
-                if not source.is_file():
-                    raise RuntimeError(f"{file}: tracked release input is missing")
-                archive.write(source, f"{name}@{version}/{file.relative_to(base)}")
+                archive.write(
+                    source / file, f"{name}@{version}/{file.relative_to(base)}"
+                )
 
 
-def check_consumers(work, version, published):
+def check_consumers(work, version, published, source):
     # A fresh module cache prevents candidate versions from contaminating a
     # developer's real cache or a prior download from hiding a missing version.
     # Deliberately download dependencies per consumer: sharing a cache can mask
@@ -146,14 +132,14 @@ def check_consumers(work, version, published):
         print(f"Checking published {version} through {upstream}", flush=True)
     else:
         proxy = work / "proxy"
-        candidate_proxy(proxy, version)
+        candidate_proxy(proxy, version, source)
         env["GOPROXY"] = proxy.as_uri() + "," + upstream
         env["GONOSUMDB"] = MODULE
         print(
             f"Rehearsing candidate {version}; this does not verify remote tags",
             flush=True,
         )
-    for directory in publishable():
+    for directory in publishable(source):
         name = module_path(directory)
         consumer = work / "consumers" / directory.replace("/", "-").replace(".", "root")
         consumer.mkdir(parents=True)
@@ -179,7 +165,7 @@ def check_consumers(work, version, published):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "version", nargs="?", default=(ROOT / "release-version").read_text().strip()
+        "version", nargs="?", help="defaults to release-version in HEAD"
     )
     parser.add_argument(
         "--published",
@@ -187,17 +173,26 @@ def main():
         help="verify real published versions, not candidate zips",
     )
     args = parser.parse_args()
-    if not re.fullmatch(r"v0\.[0-9]+\.[0-9]+", args.version):
-        parser.error("expected a pre-1.0 release version such as v0.4.0")
     try:
-        preflight(args.version)
+        snapshot = CommittedSource(ROOT)
         with tempfile.TemporaryDirectory(prefix="as-cache-release-") as temporary:
-            check_consumers(Path(temporary), args.version, args.published)
-    except (RuntimeError, OSError) as error:
+            work = Path(temporary)
+            source = snapshot.export(work / "source")
+            version = args.version or (source / "release-version").read_text().strip()
+            if not re.fullmatch(r"v0\.[0-9]+\.[0-9]+", version):
+                parser.error("expected a pre-1.0 release version such as v0.4.0")
+            print(
+                f"Validating committed source {snapshot.commit}; working-tree edits are excluded",
+                flush=True,
+            )
+            preflight(version, source)
+            check_consumers(work, version, args.published, source)
+            count = len(publishable(source))
+    except (RuntimeError, ValueError, OSError, subprocess.CalledProcessError) as error:
         print(f"FAIL: {error}", file=sys.stderr)
         return 1
     kind = "Published" if args.published else "Candidate"
-    print(f"{kind} consumer checks passed for {len(publishable())} modules.")
+    print(f"{kind} consumer checks passed for {count} modules.")
     return 0
 
 

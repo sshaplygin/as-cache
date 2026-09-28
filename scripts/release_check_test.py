@@ -29,7 +29,7 @@ class ReleaseCheckTest(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
         (self.root / "scripts").mkdir()
-        for name in ("release-check.sh", "release_check.py"):
+        for name in ("release-check.sh", "release_check.py", "committed_source.py"):
             if (ROOT / "scripts" / name).exists():
                 shutil.copyfile(ROOT / "scripts" / name, self.root / "scripts" / name)
         (self.root / "release-version").write_text("v0.4.0\n")
@@ -119,19 +119,72 @@ class ReleaseCheckTest(unittest.TestCase):
         self.assertNotEqual(0, result.returncode, result.stdout)
         self.assertIn("undefined: core.MissingSymbol", result.stdout)
 
-    def test_rejects_uncommitted_tracked_edits(self):
-        path = self.root / "policies/cache.go"
-        path.write_text(path.read_text() + "var UncommittedProbe = 1\n")
-        result = self.check_release(stage=False)
-        self.assertNotEqual(0, result.returncode, result.stdout)
-        self.assertIn("commit tracked changes", result.stdout)
+    def test_disk_and_index_edits_never_enter_snapshot(self):
+        from committed_source import CommittedSource
+        import release_check
 
-    def test_rejects_staged_new_files(self):
-        (self.root / "policies/new.go").write_text("package cache\n")
-        self.git("add", ".")
+        for flag in (None, "--assume-unchanged", "--skip-worktree"):
+            with self.subTest(flag=flag):
+                path = self.root / "policies/cache.go"
+                committed = path.read_bytes()
+                if flag:
+                    self.git("update-index", flag, "policies/cache.go")
+                path.write_text("package cache\nvar UncommittedProbe = MissingSymbol\n")
+                (self.root / "policies/go.mod").write_text("invalid disk metadata\n")
+                (self.root / "policies/LICENSE").unlink()
+                (self.root / "release-version").write_text("v0.9.99\n")
+                extra = self.root / "policies/new"
+                extra.mkdir(exist_ok=True)
+                (extra / "go.mod").write_text("module uncommitted\n")
+                self.git("add", "policies/new")
+                with tempfile.TemporaryDirectory() as work:
+                    work = Path(work)
+                    snapshot = CommittedSource(self.root)
+                    source = snapshot.export(work / "source")
+                    release_check.preflight("v0.4.0", source)
+                    release_check.candidate_proxy(work / "proxy", "v0.4.0", source)
+                    target = work / "proxy" / MODULE / "policies/@v"
+                    with zipfile.ZipFile(target / "v0.4.0.zip") as archive:
+                        self.assertEqual(
+                            committed,
+                            archive.read(MODULE + "/policies@v0.4.0/cache.go"),
+                        )
+                        self.assertNotIn("new/go.mod", " ".join(archive.namelist()))
+                    self.assertEqual(
+                        (source / "policies/go.mod").read_bytes(),
+                        (target / "v0.4.0.mod").read_bytes(),
+                    )
+                    self.assertEqual(
+                        "v0.4.0", (source / "release-version").read_text().strip()
+                    )
+                if flag:
+                    self.git(
+                        "update-index",
+                        "--no-assume-unchanged"
+                        if flag == "--assume-unchanged"
+                        else "--no-skip-worktree",
+                        "policies/cache.go",
+                    )
+                self.git("reset", "--hard", "HEAD")
+
+    def test_cli_accepts_uncommitted_build_breakage_but_checks_head(self):
+        (self.root / "policies/cache.go").write_text(
+            "package cache\nvar Probe = MissingSymbol\n"
+        )
+        self.git("add", "policies/cache.go")
+        result = self.check_release(stage=False)
+        self.assertEqual(0, result.returncode, result.stdout)
+        self.assertIn("working-tree edits are excluded", result.stdout)
+
+    def test_rejects_committed_symlink_even_when_disk_is_regular(self):
+        target = self.root / "policies/link.go"
+        target.symlink_to("cache.go")
+        self.commit()
+        target.unlink()
+        target.write_text("package cache\n")
         result = self.check_release(stage=False)
         self.assertNotEqual(0, result.returncode, result.stdout)
-        self.assertIn("commit tracked changes", result.stdout)
+        self.assertIn("symlinks", result.stdout)
 
     def test_discovers_new_module_without_allowlist_edit(self):
         path = self.root / "policies/new"
@@ -148,7 +201,10 @@ class ReleaseCheckTest(unittest.TestCase):
         checker = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(checker)
         proxy = self.root / "proxy"
-        checker.candidate_proxy(proxy, "v0.4.0")
+        from committed_source import CommittedSource
+
+        source = CommittedSource(self.root).export(self.root / "snapshot")
+        checker.candidate_proxy(proxy, "v0.4.0", source)
         for module in (MODULE, MODULE + "/policies"):
             with zipfile.ZipFile(proxy / module / "@v/v0.4.0.zip") as archive:
                 names = [

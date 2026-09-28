@@ -22,11 +22,18 @@ entries produced from temporary candidate zips as checksums of a public release.
 
 ## Candidate checks
 
-Commit all tracked changes first: the check rejects staged and unstaged edits.
-It packages the clean committed source and excludes nested modules from their
-parent's zip. The release set is discovered from tracked `go.mod` files with
-explicit exclusions for the benchmark, examples and experimental FIFO module;
-a new module is checked automatically.
+The release check resolves HEAD once and exports its committed blobs into a
+private directory. Module inventory, versions, licenses, metadata and ZIP bytes
+all come from that snapshot. Index and working-tree edits, including files marked
+assume-unchanged or skip-worktree, cannot enter a candidate. Nested modules stay
+outside their parent's ZIP; committed symlinks and submodules are rejected.
+The release set is discovered from the snapshot's `go.mod` files, excluding the
+benchmark, examples and experimental FIFO module.
+
+`make all` checks working-tree formatting, lint and tests, then separately checks
+the committed HEAD release candidate. It works with uncommitted development
+changes, but those changes are validated as a release candidate only after commit.
+The checker prints the exact commit it checks.
 
 ```sh
 make all
