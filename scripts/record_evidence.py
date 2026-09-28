@@ -224,9 +224,34 @@ def refresh_report(directory):
     """Regenerate presentation without rerunning or changing measurements."""
     if git("status", "--porcelain", "--untracked-files=all", "--", "scripts"):
         raise ValueError("commit report-generator changes before rendering")
+    snapshot = CommittedSource(ROOT)
+    with tempfile.TemporaryDirectory(prefix="as-cache-render-") as temporary:
+        source = snapshot.export(Path(temporary) / "source")
+        env = dict(
+            measurement_environment(),
+            PYTHONPATH=str(source / "scripts"),
+            PYTHONDONTWRITEBYTECODE="1",
+        )
+        subprocess.run(
+            [
+                sys.executable,
+                "-B",
+                "-c",
+                "import sys; from pathlib import Path; from record_evidence import refresh_report_inputs; refresh_report_inputs(Path(sys.argv[1]), sys.argv[2])",
+                str(directory.resolve()),
+                snapshot.commit,
+            ],
+            cwd=source,
+            env=env,
+            check=True,
+        )
+
+
+def refresh_report_inputs(directory, generator_commit):
+    """Called in the committed generator snapshot after input validation."""
     manifest = verify_inputs(directory)
     render(directory)
-    manifest["report_generator_commit"] = git("rev-parse", "HEAD")
+    manifest["report_generator_commit"] = generator_commit
     manifest["artifacts_sha256"]["README.md"] = digest(directory / "README.md")
     (directory / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     verify_manifest(directory)

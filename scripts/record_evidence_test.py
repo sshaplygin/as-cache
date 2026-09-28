@@ -9,7 +9,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from record_evidence import combine, refresh_report, verify_manifest
+from record_evidence import combine, refresh_report_inputs, verify_manifest
 from render_evidence import render, report_text
 from trace_inputs import CATALOG, digest
 
@@ -204,12 +204,6 @@ class EvidenceManifestTest(unittest.TestCase):
                 return report_text(folder) + "New presentation.\n"
 
             with (
-                patch(
-                    "record_evidence.git",
-                    side_effect=lambda *args: "b" * 40
-                    if args[0] == "rev-parse"
-                    else "",
-                ),
                 patch("record_evidence.report_text", side_effect=next_template),
                 patch("render_evidence.report_text", side_effect=next_template),
             ):
@@ -217,7 +211,7 @@ class EvidenceManifestTest(unittest.TestCase):
                     ValueError, "README differs from the report"
                 ):
                     verify_manifest(directory)
-                refresh_report(directory)
+                refresh_report_inputs(directory, "b" * 40)
                 verify_manifest(directory)
             self.assertEqual(
                 before,
@@ -238,12 +232,11 @@ class EvidenceManifestTest(unittest.TestCase):
             (directory / "traces.json").write_text("modified input")
             before = (directory / "README.md").read_bytes()
             with (
-                patch("record_evidence.git", return_value=""),
                 self.assertRaisesRegex(
                     ValueError, "artifact hash mismatch: traces.json"
                 ),
             ):
-                refresh_report(directory)
+                refresh_report_inputs(directory, "b" * 40)
             self.assertEqual(before, (directory / "README.md").read_bytes())
 
     def test_report_preserves_tied_ranges_and_defines_advice_denominators(self):

@@ -252,4 +252,7 @@ and exact generated report without downloading traces or running measurements.
 It is part of `make all` and CI. After committing a report-template change, use
 `python3 scripts/record_evidence.py --render bench/results/current` to validate
 the existing inputs and regenerate presentation; the manifest records the new
-report-generator commit. Strict verification then checks the new report too.
+report-generator commit. Refresh executes the generator from an isolated export
+of that commit, so Git index flags cannot substitute working-tree code while
+claiming committed provenance. Strict verification compares exact UTF-8 report
+bytes, including line endings, without modifying any artifact.
