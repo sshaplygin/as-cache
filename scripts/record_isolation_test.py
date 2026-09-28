@@ -147,7 +147,6 @@ class RecordingIsolationTest(unittest.TestCase):
                 {
                     "AS_CACHE_TRACES": str(self.root / "traces"),
                     "MAKEFILES": str(makefile),
-                    "MAKEFLAGS": "-e",
                 },
             ),
         ):
