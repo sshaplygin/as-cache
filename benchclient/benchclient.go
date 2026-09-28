@@ -109,33 +109,14 @@ type Cache[K comparable, V any] struct {
 // and Random. LRU, LFU and 2Q are deterministic. The experimental FIFO
 // adapters are excluded until their module is published.
 //
-// Random is the exception, and it is a real one rather than a caveat: it seeds
-// itself from the global source at construction (see policies.NewRandom), so
-// two replays of one trace do not agree. Measured over 20,000 requests against
-// a 50-entry cache, three identical replays served 44, 44 and 40 hits.
+// Random seeds itself at construction, so repeated replays need not agree.
+// It can be a strong arm on cyclic traffic; a fixed bandit seed does not
+// remove the policy's own randomness.
 //
-// Do not assume that bounds the damage. Random is not a weak arm everywhere -
-// on a cyclic workload it serves 82.2% where LRU and LFU serve 0.00%, making it
-// the best of these four - so it is exactly the workloads where the bandit
-// would select it that inherit its jitter. A replay through this package is
-// reproducible up to that arm, not exactly. Giving RandomCache a fixed default
-// seed would close it; that is a behaviour change to a published module and
-// has not been made.
-//
-// Two absences are deliberate.
-//
-// ARC is patented by IBM (US 6,996,676), which is why it lives in its own
-// module here; pulling it into a package anyone might import would defeat that
-// separation.
-//
-// W-TinyLFU is left out because it is not reproducible. Measured directly,
-// with no cache and no bandit above it, one trace replayed three times gave
-// three different hit counts and left the cache at 527, 504 and 545 entries
-// against a capacity of 500: otter evicts asynchronously and reports an
-// approximate size, so its result depends on how the run was scheduled. It is
-// an additional baseline worth including when a comparison matters
-// more than repeatability - see ArmsWithWindowTinyLFU, which is that trade
-// made explicitly.
+// Other optional arms are excluded: ARC lives in a separate module for its
+// patent constraints, W-TinyLFU performs asynchronous maintenance, and the
+// experimental FIFO module is not published. ArmsWithWindowTinyLFU explicitly
+// adds W-TinyLFU when that comparison matters more than exact repeatability.
 func DefaultArms[K comparable, V any](capacity int) ([]ascache.Policy[K, V], error) {
 	lru, err := policies.NewLRU[K, V](capacity)
 	if err != nil {

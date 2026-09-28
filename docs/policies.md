@@ -31,7 +31,7 @@ cache, err := ascache.NewAdaptiveCache(
 | Random | `policies.NewRandomPolicy` | no bookkeeping; the control arm worth beating |
 | TTL | `policies.NewTTL` | expiry as well as recency; expiry runs on the wall clock, so its hit rate depends on how fast traffic arrives, and a replay is reproducible only while the TTL is far longer than the run |
 | ARC | `policies/arc.NewPolicy` | separate module — see below |
-| W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; the strongest baseline |
+| W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; asynchronous, workload-dependent baseline |
 | S3-FIFO | `policies/fifo.NewS3FIFOPolicy` | separate module; three FIFO queues, and deterministic |
 | SIEVE | `policies/fifo.NewSievePolicy` | same module; one FIFO queue and a sweeping hand |
 
@@ -162,6 +162,10 @@ It participates in the research benchmarks. The unpublished FIFO module is
 excluded from `benchclient.DefaultArms` and the v0.4 release.
 
 ### SIEVE
+
+The current evidence includes an independent visited-bit model and a FIFO
+control. Identical LFU/SIEVE hit counts on some traces do not mean the algorithms
+are interchangeable; see the [diagnostic and worked examples](evidence.md#the-two-fifo-policies).
 
 SIEVE is simpler still: **one** FIFO queue and a hand that sweeps it from the
 oldest end. Each entry carries a single visited bit, set when it is read. The

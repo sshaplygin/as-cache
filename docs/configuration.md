@@ -58,11 +58,10 @@ miss, the same as it would have been under `MigrationCold`. Only `Get` counts,
 because `Get` is what takes the write lock; `Add` drains a key per call and
 shortens the window anyway. Zero, the default, sets no cap.
 
-Measured on zipf with a switch from LRU to LFU, a cap of 100 cost 6.5 points of
-hit rate over the first 1,000 requests after the switch, a cap of 10 made gradual
-behave like cold, and a cap of 1,000 was never reached because read-through
-traffic had already drained the window. [Evidence](evidence.md#what-does-a-switch-cost-right-after-it)
-has the table, including what each strategy costs.
+A short request cap can end migration before reusable entries transfer.
+`TestSwitchWarmupCost` compares those effects in fixed request windows; see
+[evidence](evidence.md#what-does-a-switch-cost-right-after-it) for the current
+logs and the limits of that comparison.
 
 ## Reducing shadow overhead
 
@@ -103,9 +102,7 @@ floor on a miniature: when the rate would shrink a shadow below it, the
 enough that the floor exceeds its nominal size, sampling disables itself. A
 miniature of a handful of entries measures noise rather than a policy.
 
-The policies selected from sampled estimates tied the best full-size policy
-on the two tested synthetic workloads. This does not guarantee that every
-workload keeps the same ranking. Sampling also changes absolute hit-rate estimates, so do not
+Sampling may change policy rankings and absolute hit-rate estimates, so do not
 quote a shadow rate as a forecast. See the
 [evidence and its limits](evidence.md#does-sampling-distort-the-comparison).
 
@@ -130,29 +127,22 @@ against your traffic.
 
 ## Tuning, measured
 
-Epoch length controls how often a replay pays for selection and migration.
-The [2026-09-27 full log](../bench/results/2026-09-27/evidence.log) includes this
-wall-clock tuning experiment on ARC P3, capacity 20,000:
+The [current P3 tuning experiment](../bench/results/current/README.md#p3-tuning)
+compares all four combinations of cold/warm migration and stability gates
+on/off, at 10/20/50 request-counted epochs. Three batches of five replays give
+fifteen observations per cell; every result is retained. Gates use
+`MinHitRateImprovement: 0.02` and `SwitchCooldownEpochs: 3`.
 
-| Configuration | Hit rate | ns/op |
-| --- | --- | --- |
-| 2ms epoch, warm migration | 3.39% | 53819 |
-| 2ms epoch, cold migration | 0.86% | 755 |
-| 50ms epoch, warm migration | 13.05% | 936 |
-| 50ms epoch, warm + stability gates | 10.08% | 1077 |
-
-These are single runs with timing-dependent epochs and nondeterministic arms,
-not the repeated [request-counted trace matrix](evidence.md#real-traces).
-Frequent warm switches can spend most of the runtime copying entries; cold
-switches discard useful contents. The separate
-[migration experiment](evidence.md#what-does-a-switch-cost-right-after-it)
-measures the hit-rate cost immediately after a forced switch.
+This is an example on one workload, not a production setting recommendation.
+The experimental shadow floor is 64 rather than the default 256. The
+[trace context table](../bench/results/current/README.md#workload-context)
+reports the effective sample rate, which can exceed the requested 5%.
 
 For an experiment:
 
 - Use `EpochRequests` to hold epoch boundaries fixed across replay speeds;
   report every tested setting. The trace matrix includes 10/20/50 epochs,
-  and no one setting is best on every trace.
+  so the comparison does not select only the most favorable setting.
 - Measure the tradeoff between migration work and adapting quickly enough.
   Warm migration retains values, but does not transfer a policy's learned
   history. Cold migration requires refilling; gradual migration spreads work

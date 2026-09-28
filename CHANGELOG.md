@@ -36,8 +36,8 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - `Keys()` ordering is explicitly policy-specific. Migration documentation
   now describes the limits of preserving order across policies.
 - Documentation and the site now describe adaptive selection as experimental,
-  with measured overhead and workload-dependent results. The interactive
-  explorer is explicitly historical v0.3-era data.
+  with measured limitations and workload-dependent results. The historical
+  explorer dataset is removed; final materials show only current measurements.
 
 ### Fixed
 
@@ -58,14 +58,15 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   for its interaction with the existing migration limits.
 - MSR Cambridge block-I/O and Meta kvcache trace loaders, fetch support, format
   fixtures and independent LRU calibration against pinned libCacheSim.
-- Retained [2026-09-27 results](bench/results/2026-09-27/README.md) with source,
-  input and output hashes: twelve traces, sixty calibration points, and a
-  384-replay policy matrix. Only ARC P3 has adaptive medians above the best
-  fixed policy at all three epoch settings, with overlapping run ranges.
-  The largest median deficit is 5.01 percentage points. These results do not
-  establish a general adaptive advantage.
+- Generated [current results](bench/results/current/README.md) with input/output
+  hashes, sixty LRU calibration points and three consecutive evidence runs.
+  The tables retain all outcomes, ties, workload context and effective sampling;
+  they do not assert that adaptive selection always beats the worst fixed policy.
+- An offline ObserveOnly sweep on all twelve traces, an object/byte-capacity
+  comparison for Meta, independent SIEVE diagnostics, and repeated P3 tuning
+  with request-counted epochs. Raw wall-clock timings are not product claims.
 - Experimental S3-FIFO and SIEVE adapters in repository source and the research
-  suite. **The FIFO module is excluded from v0.4.0 publication.**
+  suite, planned for v0.5. **The FIFO module is excluded from v0.4.0 publication.**
   `benchclient.DefaultArms` retains the four released arms from v0.3.1:
   LRU, LFU, 2Q and Random. Random is nondeterministic.
 

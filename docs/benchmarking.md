@@ -25,23 +25,15 @@ Exact replay also requires the following:
 - **Disable random key sampling for exact replay.** `ShadowSampleRate: 0`
   uses full-size shadows. With sampling enabled, each cache gets a fresh hash
   seed, which is not controlled by the bandit's seed. The real-trace matrix
-  deliberately measures this variation over five replays.
+  deliberately measures this variation over three batches of five replays.
 - **Keep TTL longer than a replay.** Request-counted epochs do not change
   wall-clock expiry; the suite uses a one-hour TTL to measure its LRU behavior.
-- **Every arm must be deterministic.** LRU, LFU, 2Q, S3-FIFO and SIEVE are.
-  **Random is not**, despite being the simplest arm here: it seeds itself from
-  the global source at construction, so three identical replays served 44, 44
-  and 40 hits over 20,000 requests. It is in `DefaultArms` as the control arm,
-  so replays through `benchclient` are reproducible up to that arm rather than
-  exactly — and note that Random is not always the weak arm it looks like: on
-  a cyclic workload it serves 82.2% where LRU and LFU serve 0.00%, so the
-  workloads where the bandit would actually pick it are the ones that inherit
-  its jitter.
-  **W-TinyLFU is not**: otter evicts asynchronously and reports an approximate
-  size, so replaying one trace three times against it directly gave three
-  different hit counts and left 527, 504 and 545 entries in a cache with a
-  capacity of 500. One unstable arm moves which policy the bandit picks, and
-  with it the whole replay.
+- **Every arm must be deterministic for exact replay.** Random seeds itself
+  at construction and W-TinyLFU evicts asynchronously. Its retained size can
+  also exceed nominal capacity. Either arm makes the complete adaptive run
+  nondeterministic even with fixed request epochs and a seeded bandit.
+  Random is in `DefaultArms` as a control and can outperform LRU on cyclic
+  traffic; it must not be dismissed as an always-weak policy.
 
 ## Benchmark harnesses
 
@@ -70,7 +62,7 @@ request-counted epochs, a seeded bandit, and no sampling. `DefaultArms` is LRU,
 LFU, 2Q and Random — all deterministic except `Random`, which is
 noted above.
 `ArmsWithWindowTinyLFU`
-adds the strongest arm and gives up repeatability to do it — that trade is
+adds another workload-dependent baseline and gives up repeatability to do it — that trade is
 yours to make explicitly, which is why it is a second function rather than an
 option. ARC is absent for the [patent reason](policies.md#arc-is-a-separate-module);
 a harness that wants it can supply its own `Arms`.
@@ -97,28 +89,38 @@ it. They are pinned against fixtures copied from the real files in
 
 ## Saved baseline
 
-The [2026-09-27 artifact](../bench/results/2026-09-27/) retains all twelve
-trace results, the full test log and provenance for the measured source revision.
-The trace matrix uses nine arms, sampling 0.05, warm migration and request-counted
-epochs at 10/20/50 requested epochs per trace. Random, W-TinyLFU and adaptive
-selection each run five times; deterministic fixed arms run once. Results are
-median [min-max], not confidence intervals. Request-counted epochs do not make
-this sampled, asynchronous experiment deterministic.
+The [current artifact](../bench/results/current/README.md) retains all twelve
+traces, three full evidence logs and generated provenance for one clean commit.
+The trace matrix uses nine arms, warm migration, requested sampling 0.05 and
+minimum shadow capacity 64 (the library default is 256). Per-trace effective
+rates and 10/20/50 request epochs are recorded explicitly.
 
-Save a fresh matrix alongside the complete output:
+Each batch runs Random, W-TinyLFU and each adaptive setting five times;
+deterministic fixed arms run once. Three consecutive full batches provide
+fifteen observations per nondeterministic cell. Every outcome is retained,
+including comparisons below fixed baselines. Min/max are not confidence bounds.
+The artifact also includes an ObserveOnly sweep, P3 tuning and a Meta size
+comparison; see [evidence](evidence.md) for their different scopes.
+
+To produce and verify a new current dataset from a clean committed tree:
 
 ```sh
-AS_CACHE_TRACES="$PWD/traces" make verify-ref
-AS_CACHE_TRACES="$PWD/traces" AS_CACHE_EVIDENCE_OUT="$PWD/traces.json" make evidence > evidence.log 2>&1
+AS_CACHE_TRACES="$PWD/traces" python3 scripts/record_evidence.py --out /tmp/as-cache-current
+python3 scripts/record_evidence.py --verify /tmp/as-cache-current
 ```
 
-The JSON names the measured commit, tracked-tree state, platform, settings and
-every hit-rate observation. The retained baseline adds input checksums and
-libCacheSim provenance in its manifest. `make evidence` skips unavailable trace
-files, so verify that a new artifact includes all expected traces before
-publishing it. The twelve-trace baseline did; its LRU calibration covered all
-sixty capacity points. The complete suite also includes synthetic experiments
-and slower wall-clock tuning runs, separate from the request-counted matrix.
+Use an empty output directory and run heavy measurements sequentially. The
+recorder calibrates LRU, runs the object/byte comparison, executes `make evidence`
+three times, merges the observations, generates the tables and hashes the
+outputs. After review, replace `bench/results/current/`; do not retain past
+iteration datasets. It rejects tracked edits, untracked files and ignored Go
+build inputs, missing required traces and failed commands. Failed commands
+retain their log and exit code for diagnosis. The verifier requires every
+artifact and measurement command and recomputes the pooled JSON from the raw
+batches, checking settings, trace inventories and observation counts.
+
+For one diagnostic batch, use `AS_CACHE_TRACES=... AS_CACHE_EVIDENCE_OUT=... make evidence`.
+This is not a replacement for the three-batch publication procedure.
 
 ## Real traces
 
@@ -152,8 +154,9 @@ requests and much less reuse than the traffic they were taken from.
 
 The Meta files are 5 to 10 GB each, so the script fetches only the first slice
 of one over a byte-range request — no AWS credentials or CLI needed. The slice
-ends mid-line and the loader skips the truncated row. `AS_CACHE_META_BYTES`
-sets the size; the default of 128 MiB is about 5M rows.
+ends mid-line and the loader skips the truncated row. The 128 MiB prefix and
+its SHA-256 are pinned in `scripts/trace-inputs.json`; a different slice needs
+a deliberate catalog update, not an unchecked size override.
 
 **MSR Cambridge comes from a mirror, not from SNIA.** The canonical source is
 [SNIA IOTTA trace 388](https://iotta.snia.org/traces/block-io/388), which hands
@@ -190,8 +193,8 @@ AS_CACHE_TRACES=$(pwd)/traces make verify-ref
 
 1. Each trace is expanded into one key per request by awk in
    [scripts/verify-ref.sh](../scripts/verify-ref.sh), straight from the raw
-   file and following the loader's documented rules, so a loader bug cannot
-   cancel itself out.
+   file and following the loader's documented rules. `oracle_trace.py` exports
+   the sequence in oracleGeneralBin format with unit sizes.
 2. [libCacheSim](https://github.com/1a1a11a/libCacheSim) replays that through
    LRU, object sizes ignored, at 0.25, 0.5, 1, 2 and 4 times the capacity the
    evidence suite uses. The script builds it into `.tools/` at a pinned commit,
@@ -200,7 +203,7 @@ AS_CACHE_TRACES=$(pwd)/traces make verify-ref
    `AS_CACHE_LIBCACHESIM` points it at an existing checkout instead.
 3. `TestLRUMatchesReference` loads the same files through the Go loaders,
    replays this repository's LRU at the same capacities, and requires the same
-   request count and a miss ratio within 0.5 percentage points.
+   request count and a miss ratio within 0.0051 percentage points.
 
 The gate fails when it cannot run: libCacheSim that will not build, a trace
 missing from the directory, or the Go test skipping. On all twelve traces at
@@ -208,6 +211,14 @@ all five capacities, 60 points, the largest difference is 0.005 points, which
 is the rounding of cachesim's four-decimal output, and every request count
 matches.
 
-It checks LRU and the loaders, nothing more. Agreement says the workloads and
-the counting are right; it says nothing about any other policy or about the
-adaptive cache.
+Agreement establishes that two independent expansions of the same interpretation
+and their LRU hit counting agree within the simulator's rounding. It cannot
+detect a shared misunderstanding of a source format, and says nothing about
+other policies or automatic selection. Coverage is bidirectional: an additional
+MSR volume makes the gate fail until it is included in the reference inventory.
+
+The fetcher verifies recorded sizes and SHA-256 hashes of existing files on
+every run; new downloads are verified as `.part` files before rename. Corrupt
+cached files fail with their name. The complete evidence command verifies the
+same catalog before loading any trace, so partial input sets cannot quietly
+become a publication dataset.

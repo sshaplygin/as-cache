@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>as-cache — Adaptive Selection Cache for Go</title>
-<meta name="description" content="A Go cache that runs several eviction policies in parallel and lets a multi-armed bandit pick the one that wins on your real traffic.">
+<meta name="description" content="An experimental Go library for studying cache-policy selection, with current measurements and explicit limits.">
 <meta name="author" content="Sam Shaplygin">
 <meta name="theme-color" content="#fcfcfb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)">
@@ -15,21 +15,16 @@
 <meta property="og:title" content="as-cache — Adaptive Selection Cache for Go">
 <meta property="og:description" content="An experimental Go library for studying cache-policy selection, with measured results from twelve trace workloads and explicit limits.">
 <meta property="og:url" content="https://sshaplygin.github.io/as-cache/">
-<meta property="og:image" content="https://sshaplygin.github.io/as-cache/og.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="as-cache: stop guessing your cache eviction policy, measure it">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="as-cache — Adaptive Selection Cache for Go">
 <meta name="twitter:description" content="An experimental Go library for studying cache-policy selection, with measured results from twelve trace workloads and explicit limits.">
-<meta name="twitter:image" content="https://sshaplygin.github.io/as-cache/og.png">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
   "name": "as-cache",
   "alternateName": "Adaptive Selection Cache",
-  "description": "A Go library that runs several cache eviction policies in parallel and uses a multi-armed bandit to select the one that wins on real traffic.",
+  "description": "An experimental Go library for studying cache-policy selection, with current measurements and explicit limits.",
   "url": "https://sshaplygin.github.io/as-cache/",
   "codeRepository": "https://github.com/sshaplygin/as-cache",
   "programmingLanguage": "Go",
@@ -149,24 +144,6 @@
   }
   .step p { margin: 0; font-size: 14px; color: var(--ink-2); }
 
-  .explorer-card {
-    display: block; text-decoration: none; color: inherit;
-    background: var(--panel); border: 1px solid var(--hairline);
-    border-radius: 10px; padding: 18px; margin-top: 16px;
-  }
-  .explorer-card:hover { border-color: var(--accent); }
-  .explorer-card img {
-    display: block; width: 100%; height: auto;
-    border-radius: 6px; border: 1px solid var(--hairline);
-    background: #fcfcfb;
-  }
-  .explorer-card .cta {
-    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-    align-items: baseline; margin-top: 12px;
-  }
-  .explorer-card .cta b { color: var(--accent); font-family: var(--mono); font-size: 13px; }
-  .explorer-card .cta span { font-size: 13px; color: var(--ink-3); }
-
   pre {
     background: var(--panel); border: 1px solid var(--hairline);
     border-radius: 10px; padding: 16px 18px; overflow-x: auto;
@@ -229,13 +206,12 @@
     <a href="https://github.com/sshaplygin/as-cache">GitHub</a>
     <a href="https://pkg.go.dev/github.com/sshaplygin/as-cache">pkg.go.dev</a>
     <a href="https://github.com/sshaplygin/as-cache/tree/main/docs">Docs</a>
-    <a href="bandit-explorer.html">Explorer</a>
     <button id="theme" type="button" aria-label="Switch color theme"></button>
   </nav>
 
   <main>
     <p class="eyebrow">Adaptive Selection Cache · Go</p>
-    <h1>Stop guessing your cache eviction policy. Measure it.</h1>
+    <h1>Experiment with cache eviction policies.</h1>
     <p class="lede">
       as-cache runs several eviction policies at once. One is <b>active</b> and
       serves every request; the rest run as <b>shadows</b> that see each key,
@@ -249,11 +225,11 @@
       Automatic switching has not established a general advantage.</p>
 
     <div class="meta">
-      <span><b>7</b> policies + <b>2</b> experimental FIFO arms</span>
+      <span><b>7</b> policies + <b>2</b> experimental FIFO arms planned for v0.5</span>
       <span>Thompson sampling</span>
       <span>Go <b>1.25+</b></span>
       <span>MPL 2.0</span>
-      <span>pre-1.0, <b>v0.3.1</b></span>
+      <span>pre-1.0, <b>v0.4 candidate</b></span>
     </div>
 
     <h2>How it works</h2>
@@ -266,9 +242,9 @@
       </div>
       <div class="step">
         <p class="k">Per epoch</p>
-        <p>Every arm reports its hit rate over the same sampled substream, so
-           each carries equal, honest evidence. The bandit updates its
-           posteriors and names a winner.</p>
+        <p>Every arm reports counts over the same sampled keyspace. Counts are
+           not scaled up; miniature shadows can still change rates and rankings.
+           The bandit uses these measurements to select a policy.</p>
       </div>
       <div class="step">
         <p class="k">On switch</p>
@@ -277,17 +253,6 @@
            placeholder as a real value.</p>
       </div>
     </div>
-
-    <h2>Watch the bandit decide</h2>
-    <a class="explorer-card" href="bandit-explorer.html">
-      <img src="active-policy-timeline.svg" width="808" height="310"
-           alt="Timeline of which policy is active over a phase-shift run">
-      <span class="cta">
-        <b>Open the interactive explorer &rarr;</b>
-        <span>Explore a historical seven-policy, 240,000-request illustration
-              from the v0.3 era. Its data is not the current benchmark baseline.</span>
-      </span>
-    </a>
 
     <h2>Quick start</h2>
     <pre><code>go get github.com/sshaplygin/as-cache
@@ -327,7 +292,7 @@ v, ok := cache.Get("k")</code></pre>
           <tr><td>Random</td><td class="mono">policies.NewRandomPolicy</td><td>the control arm worth beating</td></tr>
           <tr><td>TTL</td><td class="mono">policies.NewTTL</td><td>expiry as well as recency</td></tr>
           <tr><td>ARC</td><td class="mono">arc.NewPolicy</td><td>separate module — patented by IBM</td></tr>
-          <tr><td>W-TinyLFU</td><td class="mono">tinylfu.NewPolicy</td><td>separate module; the strongest baseline</td></tr>
+          <tr><td>W-TinyLFU</td><td class="mono">tinylfu.NewPolicy</td><td>separate module; asynchronous, workload-dependent</td></tr>
           <tr><td>S3-FIFO</td><td class="mono">fifo.NewS3FIFOPolicy</td><td>experimental, unreleased module; three static FIFO queues (SOSP '23)</td></tr>
           <tr><td>SIEVE</td><td class="mono">fifo.NewSievePolicy</td><td>experimental, unreleased module; one queue and a sweeping hand (NSDI '24)</td></tr>
         </tbody>
@@ -336,41 +301,21 @@ v, ok := cache.Get("k")</code></pre>
 
     <h2>What the evidence says</h2>
     <p class="note" style="margin-top:0">
-      The 2026-09-27 baseline contains twelve trace workloads and 384 replays.
-      Randomness and asynchronous eviction produce run-to-run variation;
-      raw observations and methodology are linked from
-      <a href="https://github.com/sshaplygin/as-cache/blob/main/docs/evidence.md">docs/evidence.md</a>.
+      The current dataset contains twelve trace workloads and three consecutive
+      measurement batches. Randomness and asynchronous maintenance produce
+      variation; observed ranges do not bound future runs.
+      <a href="https://github.com/sshaplygin/as-cache/blob/main/bench/results/current/README.md">Read the generated tables and provenance</a>.
     </p>
     <div class="scroller">
       <table>
-        <thead><tr><th>Finding</th><th>Numbers</th></tr></thead>
+        <thead><tr><th>Comparison</th><th>Scope and limits</th></tr></thead>
         <tbody>
-          <tr>
-            <td>No single policy wins everywhere. The best fixed policy changes
-                by trace, and the strongest baseline can land near the bottom.</td>
-            <td class="num">SIEVE wins Twitter, S3-FIFO wins Meta kvcache, 2Q wins OLTP; W-TinyLFU wins ARC P3 and
-                LIRS — and lands near the bottom on OLTP</td>
-          </tr>
-          <tr>
-            <td>Adaptive selection does not generally match the best fixed
-                policy. Only ARC P3 has higher adaptive medians.</td>
-            <td class="num">12 traces; 5 runs per adaptive setting; 10/20/50
-                epochs. ARC P3 ranges overlap; all other medians trail the best fixed.</td>
-          </tr>
-          <tr>
-            <td>Epoch length changes the result; no tested setting wins everywhere.</td>
-            <td class="num">Largest median deficit: 5.01 percentage points on
-                LIRS loop at 10 epochs. These are observed samples, not confidence intervals.</td>
-          </tr>
-          <tr>
-            <td>Shadows hold keys and bookkeeping, never values, so memory does
-                not multiply by the policy count.</td>
-            <td class="num">8 policies cost 3.92x one LRU; 1.39x with sampling, with 256-byte values</td>
-          </tr>
-          <tr>
-            <td>The adaptive layer is not free on the hot path.</td>
-            <td class="num">52 ns/op bare LRU vs 97 sampled, 1425 unsampled in the warm-cache test</td>
-          </tr>
+          <tr><td>Fixed and adaptive policies</td><td>All nine arms; 10/20/50 request epochs; fifteen observations for each nondeterministic cell. No guaranteed improvement or worst-policy floor.</td></tr>
+          <tr><td>Workload context</td><td>Distinct keys, cache/keyspace fraction, compulsory-miss ceilings and effective sampling are published. On MSR prn/web leading policies tie; src1_2/usr margins are below 0.04 points.</td></tr>
+          <tr><td>Sampling</td><td>Requested rate 5%, experimental floor 64. Effective rates are 12.8% and 6.4% on the small LIRS caches, 5% elsewhere.</td></tr>
+          <tr><td>ObserveOnly</td><td>LRU stays active on all twelve traces; per-arm advice is retained. This offline sweep is not a real-service trial.</td></tr>
+          <tr><td>Object versus byte budgets</td><td>Meta GET traffic is compared in both libCacheSim LRU modes under an explicit byte-budget convention. The nine-policy matrix remains an entry-count comparison.</td></tr>
+          <tr><td>Cost</td><td>Shadows retain keys and metadata and add work on the request path. Host-specific timings remain raw diagnostics, not stable product claims.</td></tr>
         </tbody>
       </table>
     </div>
@@ -400,6 +345,8 @@ v, ok := cache.Get("k")</code></pre>
     <div class="scroller">
       <table>
         <tbody>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/getting-started.md">Getting started</a></td><td>Install and run the cache</td></tr>
+          <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/releasing.md">Releasing</a></td><td>Development workspace, candidate checks and publication</td></tr>
           <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/design.md">Design</a></td>
               <td>How it works per request and per epoch, the Bandit interface, what is not done</td></tr>
           <tr><td><a href="https://github.com/sshaplygin/as-cache/blob/main/docs/configuration.md">Configuration</a></td>

@@ -5,8 +5,9 @@ A successful candidate check does not mean that version has been published.
 
 ## Developing the repository
 
-Use Go 1.25.2 or later. The checked-in `go.work` joins all twelve modules for
-local builds, examples, and `make all`. The workspace file also ships in the
+Use Go 1.25.2 or later and Python 3.11 or later. Python formatting and linting
+use Ruff 0.13.2 in a local virtual environment under `.tools/`. The checked-in
+`go.work` joins all twelve modules for local builds, examples, and `make all`. The workspace file also ships in the
 root module zip; running Go commands *inside that extracted zip* needs
 `GOWORK=off`, because sibling modules are not included there. Normal consumers
 use their own workspace and are unaffected. Published modules contain no `replace`

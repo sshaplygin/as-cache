@@ -17,18 +17,20 @@ values. Once per epoch a multi-armed bandit selects a policy. Switching is
 unconditional by default; optional [stability gates](docs/configuration.md#keeping-switches-stable)
 can restrict it.
 
-Measurement does not guarantee an improvement. In the current five-run trace
-matrix, adaptive medians exceed the best fixed median only on ARC P3, with
-overlapping observed ranges; they trail it on the other eleven traces at all
-three tested epoch lengths. [ObserveOnly](docs/advisor-mode.md) collects policy
-advice while keeping the configured policy active.
+Measurement does not guarantee an improvement or a floor relative to a fixed
+policy. The [current results](bench/results/current/README.md) report repeated
+observations, small margins and ties, effective sampling, an object/byte
+comparison and an offline [ObserveOnly](docs/advisor-mode.md) sweep. ObserveOnly
+collects advice while keeping the configured policy active.
 
 It is pre-1.0, the API may change, and production use has not been established.
 The repository includes nine policy arms; S3-FIFO and SIEVE are experimental
-adapters whose module has not been released. The
+adapters planned for v0.5; their module is excluded from v0.4. The
 [evidence](docs/evidence.md) links to raw results, input checksums and the
-measured revision. Repeat the procedure with `make evidence`; random sampling,
-Random and asynchronous W-TinyLFU mean some numbers vary between runs.
+measured revision. Reproduce the dataset with the
+[three-batch recorder](docs/benchmarking.md#saved-baseline); `make evidence` runs
+one diagnostic batch. Random sampling, Random and asynchronous W-TinyLFU mean
+some numbers vary between runs.
 
 ## Documentation
 
@@ -42,7 +44,7 @@ Random and asynchronous W-TinyLFU mean some numbers vary between runs.
 | [Evidence](docs/evidence.md) | Every measured claim: policy tables, competing libraries, real traces, sampling fidelity |
 | [Benchmarking](docs/benchmarking.md) | Reproducible replays, `benchclient`, `make evidence` |
 | [Releasing](docs/releasing.md) | Development workspace, candidate checks, publication and upgrade notes |
-| [Project site](https://sshaplygin.github.io/as-cache/) | Landing page, plus an interactive explorer of the bandit's decisions on a phase-shift run |
+| [Project site](https://sshaplygin.github.io/as-cache/) | Project overview and documentation |
 
 Past releases are recorded in the [changelog](CHANGELOG.md) and on the
 [releases page](https://github.com/sshaplygin/as-cache/releases).

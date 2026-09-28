@@ -20,14 +20,14 @@ it still adds measurement overhead — see [advisor mode](advisor-mode.md).
 Do not use it when:
 
 - You have already measured your traffic and know which policy wins. Use that
-  policy directly. The measured adaptive medians trail the best fixed choice
-  on eleven of twelve traces at every tested epoch length; see
-  [the full matrix and its limits](evidence.md#real-traces).
+  policy directly. Automatic switching has no guaranteed advantage; see
+  [the current matrix and its limits](evidence.md#real-traces).
 - The hot path is latency-critical at single-digit nanoseconds. Even sampled,
   the adaptive layer adds work to a bare LRU operation — the
-  [figures](evidence.md#memory-and-per-operation-cost) are measured.
-- You need a hard memory ceiling. The multiplier is well under the number of
-  arms, but it is real.
+  [diagnostics](evidence.md#memory-and-per-operation-cost) can measure that cost
+  on your target host.
+- You need a hard memory ceiling. Shadow keys and metadata still cost memory;
+  the multiplier depends on the workload and stored values.
 - You cannot give it enough traffic per epoch to measure anything. Arms within
   noise of each other reorder run to run, so a cache seeing a handful of
   requests per epoch picks essentially at random. `Advice()` reports `Epochs`
