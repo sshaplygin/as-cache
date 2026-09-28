@@ -143,7 +143,9 @@ class TraceInputsTest(unittest.TestCase):
             )
             reference = directory / "reference.tsv"
             reference.write_text(
-                "".join(f"{name}\t{capacity}\t1\t1.0\n" for name, _, capacity in specs)
+                "".join(
+                    f"{name}\t{capacity}\t1\t1.0000\n" for name, _, capacity in specs
+                )
             )
             result = subprocess.run(
                 ["go", "test", "-count=1", "-run", "^TestLRUMatchesReference$", "."],

@@ -51,23 +51,12 @@ func Competitors() []CompetitorBuilder {
 //
 // # Why this calls CleanUp
 //
-// otter admits on the caller's goroutine and evicts on a maintenance pass, so
-// under a replay that writes as fast as it can, admission runs far ahead of
-// eviction. Measured: 5000 keys written into a cache built with MaximumSize
-// 500 left 1916 of them retrievable, and the cache only fell back to 500 once
-// maintenance had run.
-//
-// Left alone, that does not measure otter's policy at capacity 500. It
-// measures a cache roughly four times the size every other subject was given,
-// and it wins comparisons on that basis alone - which is exactly the sort of
-// result that looks like a finding and is an artifact. CleanUp forces the
-// pending work through, so the capacity in the table is the capacity being
-// compared.
-//
-// The cost lands in the ns/op column, and it is real: nobody runs otter this
-// way in production, where the maintenance pass keeps up because the workload
-// is not a tight loop. Read otter's hit rate here as a policy comparison and
-// its timing as a floor, not as its throughput.
+// Admission and eviction are asynchronous, so a tight write replay can outrun
+// maintenance. CleanUp drains pending work before a result is compared. The
+// separate capacity-honesty test records retained entries after a write flood;
+// it does not establish occupancy or a causal hit-rate advantage on other replays.
+// This forced maintenance also affects timings, which are raw diagnostics for
+// this harness rather than estimates of production throughput.
 type otterCompetitor struct {
 	cache *otter.Cache[string, int]
 }

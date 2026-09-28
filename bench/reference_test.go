@@ -2,6 +2,7 @@ package bench_test
 
 import (
 	"bufio"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -24,7 +25,28 @@ const referenceEnv = "AS_CACHE_LRU_REFERENCE"
 // points, accepted between this repository and libCacheSim at any one point.
 // cachesim prints four decimals, so agreement shows up as a difference no
 // larger than its rounding, 0.005 points.
-const referenceTolerance = 0.0051
+const referenceDecimals = 4
+
+// Half the supported miss-ratio rounding quantum, converted to percentage
+// points, plus numerical slack. Reject coarser input instead of widening it.
+var referenceTolerance = 50/math.Pow10(referenceDecimals) + 0.0001
+
+func parseReferenceMiss(raw string) (float64, error) {
+	parts := strings.Split(raw, ".")
+	if len(parts) != 2 || (parts[0] != "0" && parts[0] != "1") || len(parts[1]) != referenceDecimals {
+		return 0, fmt.Errorf("expected pinned %d-decimal miss ratio, got %q", referenceDecimals, raw)
+	}
+	for _, digit := range parts[1] {
+		if digit < '0' || digit > '9' {
+			return 0, fmt.Errorf("invalid miss ratio %q", raw)
+		}
+	}
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil || value < 0 || value > 1 || math.IsNaN(value) || math.IsInf(value, 0) {
+		return 0, fmt.Errorf("invalid miss ratio %q", raw)
+	}
+	return value, nil
+}
 
 type referencePoint struct {
 	file     string
@@ -117,7 +139,7 @@ func readReference(t *testing.T, path string) []referencePoint {
 
 		capacity, capErr := strconv.Atoi(fields[1])
 		requests, reqErr := strconv.Atoi(fields[2])
-		miss, missErr := strconv.ParseFloat(fields[3], 64)
+		miss, missErr := parseReferenceMiss(fields[3])
 		require.NoError(t, capErr)
 		require.NoError(t, reqErr)
 		require.NoError(t, missErr)

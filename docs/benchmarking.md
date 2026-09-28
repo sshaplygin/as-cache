@@ -224,7 +224,10 @@ AS_CACHE_TRACES=$(pwd)/traces make verify-ref
    `AS_CACHE_LIBCACHESIM` points it at an existing checkout instead.
 3. `TestLRUMatchesReference` loads the same files through the Go loaders,
    replays this repository's LRU at the same capacities, and requires the same
-   request count and a miss ratio within 0.0051 percentage points.
+   request count and a miss ratio within 0.0051 percentage points. The reference
+   must contain finite ratios in [0, 1] with exactly four decimal places, the
+   pinned simulator format. The bound is half its rounding quantum (0.005
+   percentage points) plus 0.0001 numerical slack; coarser input is rejected.
 
 The gate fails when it cannot run: libCacheSim that will not build, a trace
 missing from the directory, or the Go test skipping. On all twelve traces at

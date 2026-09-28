@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ascache "github.com/sshaplygin/as-cache"
-	"github.com/sshaplygin/as-cache/bandit"
 	"github.com/sshaplygin/as-cache/bench"
 )
 
@@ -89,9 +88,11 @@ func (s spread) String() string {
 }
 
 type adaptiveRecord struct {
-	EpochsPerTrace int    `json:"epochs_per_trace"`
-	EpochRequests  int64  `json:"epoch_requests"`
-	HitRate        spread `json:"hit_rate_percent"`
+	EpochsPerTrace      int              `json:"epochs_per_trace"`
+	EpochRequests       int64            `json:"epoch_requests"`
+	HitRate             spread           `json:"hit_rate_percent"`
+	Settings            ascache.Settings `json:"settings"`
+	EffectiveSampleRate float64          `json:"effective_sample_rate"`
 }
 
 type traceRecord struct {
@@ -101,6 +102,7 @@ type traceRecord struct {
 	Distinct            int               `json:"distinct_keys"`
 	Capacity            int               `json:"capacity"`
 	Fixed               map[string]spread `json:"fixed_hit_rate_percent"`
+	PolicyNames         map[string]string `json:"policy_names"`
 	Adaptive            []adaptiveRecord  `json:"adaptive"`
 	EffectiveSampleRate float64           `json:"effective_sample_rate"`
 	Observe             []observeRun      `json:"observe_only"`
@@ -153,12 +155,13 @@ func TestTraceEvidence(t *testing.T) {
 
 		t.Run(w.Name, func(t *testing.T) {
 			record := traceRecord{
-				Trace:    w.Name,
-				Source:   spec.source,
-				Requests: len(w.Keys),
-				Distinct: bench.DistinctKeys(w),
-				Capacity: spec.cache,
-				Fixed:    map[string]spread{},
+				Trace:       w.Name,
+				Source:      spec.source,
+				Requests:    len(w.Keys),
+				Distinct:    bench.DistinctKeys(w),
+				Capacity:    spec.cache,
+				Fixed:       map[string]spread{},
+				PolicyNames: map[string]string{},
 			}
 			t.Logf("\n%s\n%s\n%s\ncache %d entries, %.1f%% of the %d distinct keys",
 				w.Name, spec.source, w.Description, spec.cache,
@@ -174,31 +177,20 @@ func TestTraceEvidence(t *testing.T) {
 				for range runs {
 					policy, err := builder.Build(spec.cache)
 					require.NoError(t, err)
+					record.PolicyNames[policy.GetType().String()] = builder.Name
 					s.Runs = append(s.Runs, bench.Replay(builder.Name, policy, w).HitRate()*100)
 				}
 				record.Fixed[builder.Name] = s
 			}
 
-			record.EffectiveSampleRate = math.Min(1, math.Max(0.05, 64.0/float64(spec.cache)))
 			record.Diagnostic = diagnoseSieve(t, spec.cache, w)
 			record.Observe = observeTrace(t, spec.cache, w)
+			record.EffectiveSampleRate = record.Observe[0].Advice.SampleRate
 			for _, epochs := range traceEvidenceEpochs {
-				epochRequests := int64(len(w.Keys) / epochs)
-
-				var s spread
-				for range traceEvidenceRuns {
-					arms, err := bench.AdaptiveArms(spec.cache)
-					require.NoError(t, err)
-
-					cache, err := ascache.NewAdaptiveCache(arms, bandit.NewThompson(0.7, 13),
-						traceEvidenceSettings(epochRequests))
-					require.NoError(t, err)
-
-					t.Cleanup(func() { require.NoError(t, cache.Close()) })
-					s.Runs = append(s.Runs, bench.Replay("adaptive", cache, w).HitRate()*100)
-					require.NoError(t, cache.Close())
-				}
-				record.Adaptive = append(record.Adaptive, adaptiveRecord{epochs, epochRequests, s})
+				settings := traceEvidenceSettings(int64(len(w.Keys) / epochs))
+				cell := replayAdaptiveEvidence(t, spec.cache, w, epochs, settings)
+				require.Equal(t, record.EffectiveSampleRate, cell.EffectiveSampleRate)
+				record.Adaptive = append(record.Adaptive, cell)
 			}
 
 			t.Logf("\n%s", traceRecordTable(record))
@@ -294,8 +286,7 @@ func writeTraceEvidence(t *testing.T, records []traceRecord) {
 		"runs":          traceEvidenceRuns,
 		"settings": map[string]any{
 			"epoch_mode": "requests", "epochs_per_trace": traceEvidenceEpochs,
-			"EvictPartialCapacityFilling": true, "MigrationStrategy": "warm",
-			"ShadowSampleRate": 0.05, "MinShadowCapacity": 64,
+			"location": "adaptive[].settings and observe_only[].settings (actual constructor arguments)",
 		},
 		"bandit": "bandit.NewThompson(0.7, 13)",
 		"traces": records,

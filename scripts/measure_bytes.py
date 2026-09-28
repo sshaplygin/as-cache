@@ -5,6 +5,7 @@ import csv
 import json
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import tempfile
 
@@ -44,9 +45,11 @@ def measure(binary, path, capacity, ignore, work):
         "--num-thread",
         "1",
     ]
+    print("$ " + shlex.join(command), flush=True)
     output = subprocess.check_output(
         command, cwd=work, text=True, stderr=subprocess.STDOUT
     )
+    print(output, end="" if output.endswith("\n") else "\n", flush=True)
     matches = re.findall(r"([0-9]+) req.*?miss ratio ([0-9.]+)", output)
     match = matches[-1] if matches else None
     if not match:

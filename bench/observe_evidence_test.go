@@ -10,9 +10,11 @@ import (
 )
 
 type observeRun struct {
-	HitRate       float64        `json:"hit_rate_percent"`
-	EpochRequests int64          `json:"epoch_requests"`
-	Advice        ascache.Advice `json:"advice"`
+	HitRate       float64          `json:"hit_rate_percent"`
+	EpochRequests int64            `json:"epoch_requests"`
+	Advice        ascache.Advice   `json:"advice"`
+	BestName      string           `json:"best_policy_name"`
+	Settings      ascache.Settings `json:"settings"`
 }
 
 // ObserveOnly holds LRU active; Advice measures all nine policies on the sampled
@@ -36,7 +38,7 @@ func observeTrace(t *testing.T, capacity int, w bench.Workload) []observeRun {
 		require.Equal(t, baseline.Hits, result.Hits, "ObserveOnly must serve the unchanged LRU")
 		require.Equal(t, ascache.LRU, advice.Active)
 		require.Len(t, advice.Reports, 9)
-		runs = append(runs, observeRun{result.HitRate() * 100, settings.EpochRequests, advice})
+		runs = append(runs, observeRun{HitRate: result.HitRate() * 100, EpochRequests: settings.EpochRequests, Advice: advice, BestName: advice.Best.String(), Settings: *settings})
 		require.NoError(t, cache.Close())
 	}
 	return runs

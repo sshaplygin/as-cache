@@ -3,6 +3,7 @@ package bench_test
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -14,12 +15,13 @@ import (
 )
 
 type tuningRecord struct {
-	Trace         string `json:"trace"`
-	Strategy      string `json:"strategy"`
-	Gates         bool   `json:"gates"`
-	Epochs        int    `json:"epochs"`
-	EpochRequests int64  `json:"epoch_requests"`
-	HitRate       spread `json:"hit_rate_percent"`
+	Trace         string           `json:"trace"`
+	Strategy      string           `json:"strategy"`
+	Gates         bool             `json:"gates"`
+	Epochs        int              `json:"epochs"`
+	EpochRequests int64            `json:"epoch_requests"`
+	HitRate       spread           `json:"hit_rate_percent"`
+	Settings      ascache.Settings `json:"settings"`
 }
 
 // TestAdaptiveTuning isolates configuration effects on the P3 example used in
@@ -29,20 +31,26 @@ func TestAdaptiveTuning(t *testing.T) {
 	if testing.Short() {
 		t.Skip("evidence run; use make evidence")
 	}
+	dir, err := bench.TraceDir()
+	if err != nil {
+		t.Skipf("%s; configure %s", err, bench.TraceDirEnv)
+	}
 	var records []tuningRecord
-	for _, found := range loadKnownTraces(t) {
-		if found.spec.file != "arc_p3.gz" {
+	for _, spec := range knownTraces() {
+		if spec.file != "arc_p3.gz" {
 			continue
 		}
+		workload, loadErr := spec.load(filepath.Join(dir, spec.file))
+		require.NoError(t, loadErr)
 		for _, epochs := range traceEvidenceEpochs {
 			for _, strategy := range []ascache.MigrationStrategy{ascache.MigrationCold, ascache.MigrationWarm} {
 				for _, gates := range []bool{false, true} {
-					record := tuningRecord{Trace: found.workload.Name, Epochs: epochs, EpochRequests: int64(len(found.workload.Keys) / epochs), Gates: gates, Strategy: "cold"}
+					record := tuningRecord{Trace: workload.Name, Epochs: epochs, EpochRequests: int64(len(workload.Keys) / epochs), Gates: gates, Strategy: "cold"}
 					if strategy == ascache.MigrationWarm {
 						record.Strategy = "warm"
 					}
 					for range traceEvidenceRuns {
-						arms, err := bench.AdaptiveArms(found.spec.cache)
+						arms, err := bench.AdaptiveArms(spec.cache)
 						require.NoError(t, err)
 						settings := traceEvidenceSettings(record.EpochRequests)
 						settings.MigrationStrategy = strategy
@@ -50,10 +58,11 @@ func TestAdaptiveTuning(t *testing.T) {
 							settings.MinHitRateImprovement = 0.02
 							settings.SwitchCooldownEpochs = 3
 						}
+						record.Settings = *settings
 						cache, err := ascache.NewAdaptiveCache(arms, bandit.NewThompson(0.7, 13), settings)
 						require.NoError(t, err)
 						t.Cleanup(func() { require.NoError(t, cache.Close()) })
-						record.HitRate.Runs = append(record.HitRate.Runs, bench.Replay("tuning", cache, found.workload).HitRate()*100)
+						record.HitRate.Runs = append(record.HitRate.Runs, bench.Replay("tuning", cache, workload).HitRate()*100)
 						require.NoError(t, cache.Close())
 					}
 					t.Logf("%s %d epochs %s gates=%v: %s", record.Trace, epochs, record.Strategy, gates, record.HitRate)
