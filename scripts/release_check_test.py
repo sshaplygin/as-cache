@@ -55,12 +55,12 @@ class ReleaseCheckTest(unittest.TestCase):
         self.git("add", ".")
         self.git("commit", "--allow-empty", "-qm", "fixture")
 
-    def check_release(self, stage=True):
+    def check_release(self, stage=True, version="v0.4.0"):
         if stage:
             self.commit()
         env = dict(os.environ, GOWORK="off", GOPROXY="off", GOSUMDB="off")
         return subprocess.run(
-            ["bash", "scripts/release-check.sh", "v0.4.0"],
+            ["bash", "scripts/release-check.sh", *([version] if version else [])],
             cwd=self.root,
             env=env,
             text=True,
@@ -175,6 +175,13 @@ class ReleaseCheckTest(unittest.TestCase):
         result = self.check_release(stage=False)
         self.assertEqual(0, result.returncode, result.stdout)
         self.assertIn("working-tree edits are excluded", result.stdout)
+
+    def test_default_version_ignores_uncommitted_release_version(self):
+        (self.root / "release-version").write_text("v0.9.99\n")
+        result = self.check_release(stage=False, version=None)
+        self.assertEqual(0, result.returncode, result.stdout)
+        self.assertIn("Rehearsing candidate v0.4.0", result.stdout)
+        self.assertNotIn("v0.9.99", result.stdout)
 
     def test_rejects_committed_symlink_even_when_disk_is_regular(self):
         target = self.root / "policies/link.go"
