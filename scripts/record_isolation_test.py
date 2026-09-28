@@ -23,7 +23,7 @@ class RecordingIsolationTest(unittest.TestCase):
         self.git("config", "user.email", "fixture@example.invalid")
         (self.root / "scripts").mkdir()
         (self.root / "scripts/record_evidence.py").write_text(
-            "import json, subprocess\n"
+            "import json, os, subprocess\n"
             "from pathlib import Path\n"
             "def measure(out):\n"
             "    out.mkdir(parents=True, exist_ok=True)\n"
