@@ -167,6 +167,23 @@ class EvidenceManifestTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "commit.*changes"):
                     record_evidence.record(directory / "out")
 
+    def test_ignored_go_source_prevents_recording(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            subprocess.run(["git", "init", "-q", str(directory)], check=True)
+            (directory / ".git/info/exclude").write_text(
+                "metrics/zzz_refute_probe_test.go\n"
+            )
+            (directory / "metrics").mkdir()
+            (directory / "metrics/zzz_refute_probe_test.go").write_text(
+                "package metrics\n"
+            )
+            with patch.object(record_evidence, "ROOT", directory):
+                with self.assertRaisesRegex(
+                    ValueError, "ignored build inputs.*zzz_refute"
+                ):
+                    record_evidence.record(directory / "out")
+
     def test_empty_inventory_cannot_certify_unmeasured_data(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
