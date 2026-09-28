@@ -9,7 +9,16 @@
 #   ./scripts/fetch-traces.sh [target-dir]     # default: ./traces (gitignored)
 #   AS_CACHE_TRACES=$(pwd)/traces make evidence
 set -Eeuo pipefail
-trap 'echo "FAIL: ${BASH_SOURCE[0]}:$LINENO exited with status $?" >&2' ERR
+PENDING_PART=""
+on_error() {
+    local result="$1" failure_line="$2" callers="$3"
+    if [ -n "$PENDING_PART" ]; then
+        rm -f "$PENDING_PART"
+    fi
+    echo "FAIL: ${BASH_SOURCE[0]}:$failure_line exited with status $result (caller lines: $callers)" >&2
+    exit "$result"
+}
+trap 'on_error "$?" "$LINENO" "${BASH_LINENO[*]}"' ERR
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 verify() {
     python3 "$ROOT/scripts/trace_inputs.py" "$TRACES" "$1" --path "$2"
@@ -19,17 +28,19 @@ TRACES="${1:-$(pwd)/traces}"
 mkdir -p "$TRACES"
 
 fetch() {
-	local name="$1" url="$2"
-	if [ -e "$TRACES/$name" ]; then
+    local name="$1" url="$2"
+    if [ -e "$TRACES/$name" ]; then
         verify "$name" "$TRACES/$name"
-		echo "  have  $name"
-		return
-	fi
-	echo "  get   $name"
-	# --fail so an HTML error page is never mistaken for trace data.
-	curl -fSL --retry 3 -o "$TRACES/$name.part" "$url"
+        echo "  have  $name"
+        return
+    fi
+    echo "  get   $name"
+    # --fail so an HTML error page is never mistaken for trace data.
+    PENDING_PART="$TRACES/$name.part"
+    curl -fSL --retry 3 -o "$PENDING_PART" "$url"
     verify "$name" "$TRACES/$name.part"
     mv "$TRACES/$name.part" "$TRACES/$name"
+    PENDING_PART=""
 }
 
 echo "Fetching traces into $TRACES"
@@ -40,7 +51,7 @@ echo "Fetching traces into $TRACES"
 # Cite: Yang, Yue & Rashmi, "A Large Scale Analysis of Hundreds of In-memory
 # Cache Clusters at Twitter", OSDI '20.
 fetch twitter_cluster052.csv \
-	https://raw.githubusercontent.com/twitter/cache-trace/master/samples/2020Mar/cluster052
+    https://raw.githubusercontent.com/twitter/cache-trace/master/samples/2020Mar/cluster052
 
 # --- LIRS research traces ---------------------------------------------------
 # Tiny and deliberately adversarial. `loop` is a cyclic scan that defeats LRU
@@ -49,7 +60,7 @@ fetch twitter_cluster052.csv \
 # Cite: Jiang & Zhang, "LIRS", SIGMETRICS '02.
 LIRS=https://raw.githubusercontent.com/ben-manes/caffeine/master/simulator/src/main/resources/com/github/benmanes/caffeine/cache/simulator/parser/lirs
 for f in loop 2_pools multi2; do
-	fetch "lirs_$f.trace.gz" "$LIRS/$f.trace.gz"
+    fetch "lirs_$f.trace.gz" "$LIRS/$f.trace.gz"
 done
 
 # --- ARC paper traces -------------------------------------------------------
@@ -60,7 +71,7 @@ done
 # Cite: Megiddo & Modha, "ARC", FAST '03.
 ARC=https://raw.githubusercontent.com/maypok86/otter/main/benchmarks/simulator/trace/arc
 for f in p3 oltp; do
-	fetch "arc_$f.gz" "$ARC/$f.gz"
+    fetch "arc_$f.gz" "$ARC/$f.gz"
 done
 
 # --- Meta kvcache, from the CacheBench workload bucket ----------------------
@@ -81,13 +92,15 @@ META_BYTES="${AS_CACHE_META_BYTES:-134217728}"
 META=https://cachelib-workload-sharing.s3.amazonaws.com/pub/kvcache/202206/kvcache_traces_1.csv
 if [ -e "$TRACES/meta_kvcache_202206_1.csv" ]; then
     verify meta_kvcache_202206_1.csv "$TRACES/meta_kvcache_202206_1.csv"
-	echo "  have  meta_kvcache_202206_1.csv"
+    echo "  have  meta_kvcache_202206_1.csv"
 else
-	echo "  get   meta_kvcache_202206_1.csv (first $META_BYTES bytes of 4.9 GB)"
-	curl -fSL --retry 3 -H "Range: bytes=0-$((META_BYTES - 1))" \
-		-o "$TRACES/meta_kvcache_202206_1.csv.part" "$META"
+    echo "  get   meta_kvcache_202206_1.csv (first $META_BYTES bytes of 4.9 GB)"
+    PENDING_PART="$TRACES/meta_kvcache_202206_1.csv.part"
+    curl -fSL --retry 3 -H "Range: bytes=0-$((META_BYTES - 1))" \
+        -o "$TRACES/meta_kvcache_202206_1.csv.part" "$META"
     verify meta_kvcache_202206_1.csv "$TRACES/meta_kvcache_202206_1.csv.part"
     mv "$TRACES/meta_kvcache_202206_1.csv.part" "$TRACES/meta_kvcache_202206_1.csv"
+    PENDING_PART=""
 fi
 
 # --- MSR Cambridge block I/O, SNIA IOTTA trace 388 ---------------------------
@@ -116,60 +129,62 @@ MSR_MIRROR=https://cache-datasets.s3.amazonaws.com/cache_dataset_txt/2008_msr
 
 # volume, archive, offset of its tar header, size in bytes, MD5 from MD5.txt
 MSR_VOLUMES=(
-	"hm_0   msr-cambridge1.tar       7168 41967571 e8a4059b21e91921256f737df3e0e5c9"
-	"prn_0  msr-cambridge1.tar   79446528 44469556 d6402a3a42063dabbf940dbf27f14219"
-	"proj_0 msr-cambridge1.tar  249739264 54999265 523b81261912744d33e70be92ae699e1"
-	"src1_2 msr-cambridge2.tar 1089042432 21339692 55fb3869c8e9e3ff4a31d88e8aea4e7e"
-	"usr_0  msr-cambridge2.tar 1213713920 25999401 e5478f9ca3d247b3b995cf3ff029c9d8"
-	"web_0  msr-cambridge2.tar 1933530624 24066938 b7cbd5bdb352b49eb33a0029111111ae"
+    "hm_0   msr-cambridge1.tar       7168 41967571 e8a4059b21e91921256f737df3e0e5c9"
+    "prn_0  msr-cambridge1.tar   79446528 44469556 d6402a3a42063dabbf940dbf27f14219"
+    "proj_0 msr-cambridge1.tar  249739264 54999265 523b81261912744d33e70be92ae699e1"
+    "src1_2 msr-cambridge2.tar 1089042432 21339692 55fb3869c8e9e3ff4a31d88e8aea4e7e"
+    "usr_0  msr-cambridge2.tar 1213713920 25999401 e5478f9ca3d247b3b995cf3ff029c9d8"
+    "web_0  msr-cambridge2.tar 1933530624 24066938 b7cbd5bdb352b49eb33a0029111111ae"
 )
 
 md5_of() {
-	if command -v md5sum >/dev/null 2>&1; then
-		md5sum "$1" | cut -d' ' -f1
-	else
-		md5 -q "$1"
-	fi
+    if command -v md5sum >/dev/null 2>&1; then
+        md5sum "$1" | cut -d' ' -f1
+    else
+        md5 -q "$1"
+    fi
 }
 
 fetch_msr() {
-	local volume="$1" archive="$2" header="$3" size="$4" want="$5"
-	local name="msr_$volume.csv.gz"
-	local out="$TRACES/$name" url="$MSR_MIRROR/$archive"
-	if [ -e "$out" ]; then
+    local volume="$1" archive="$2" header="$3" size="$4" want="$5"
+    local name="msr_$volume.csv.gz"
+    local out="$TRACES/$name" url="$MSR_MIRROR/$archive"
+    if [ -e "$out" ]; then
         verify "$name" "$out"
-		echo "  have  $name"
-		return
-	fi
+        echo "  have  $name"
+        return
+    fi
 
-	# The first 100 bytes of a tar header are the member's name. Checking it
-	# before downloading turns a repacked archive into a clear error instead of
-	# tens of megabytes of the wrong volume.
-	local member
-	member=$(curl -fsSL --retry 3 -r "$header-$((header + 99))" "$url" | tr -d '\0')
-	if [ "$member" != "MSR-Cambridge/$volume.csv.gz" ]; then
-		echo "  FAIL  $name: $archive holds '$member' at byte $header; the mirror has changed" >&2
-		return 1
-	fi
+    # The first 100 bytes of a tar header are the member's name. Checking it
+    # before downloading turns a repacked archive into a clear error instead of
+    # tens of megabytes of the wrong volume.
+    local member
+    member=$(curl -fsSL --retry 3 -r "$header-$((header + 99))" "$url" | tr -d '\0')
+    if [ "$member" != "MSR-Cambridge/$volume.csv.gz" ]; then
+        echo "  FAIL  $name: $archive holds '$member' at byte $header; the mirror has changed" >&2
+        return 1
+    fi
 
-	echo "  get   $name ($((size / 1048576)) MB from $archive)"
-	local start=$((header + 512))
-	curl -fSL --retry 3 -r "$start-$((start + size - 1))" -o "$out.part" "$url"
+    echo "  get   $name ($((size / 1048576)) MB from $archive)"
+    local start=$((header + 512))
+    PENDING_PART="$out.part"
+    curl -fSL --retry 3 -r "$start-$((start + size - 1))" -o "$PENDING_PART" "$url"
 
-	local got
-	got=$(md5_of "$out.part")
-	if [ "$got" != "$want" ]; then
-		echo "  FAIL  $name: MD5 $got, expected $want from the archive's MD5.txt" >&2
-		rm -f "$out.part"
-		return 1
-	fi
-	verify "$name" "$out.part"
-	mv "$out.part" "$out"
+    local got
+    got=$(md5_of "$out.part")
+    if [ "$got" != "$want" ]; then
+        echo "  FAIL  $name: MD5 $got, expected $want from the archive's MD5.txt" >&2
+        rm -f "$out.part"
+        return 1
+    fi
+    verify "$name" "$out.part"
+    mv "$out.part" "$out"
+    PENDING_PART=""
 }
 
 for entry in "${MSR_VOLUMES[@]}"; do
-	# shellcheck disable=SC2086 # the entry is split into its fields on purpose
-	fetch_msr $entry
+    # shellcheck disable=SC2086 # the entry is split into its fields on purpose
+    fetch_msr $entry
 done
 
 echo

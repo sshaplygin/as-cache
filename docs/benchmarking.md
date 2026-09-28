@@ -69,13 +69,23 @@ a harness that wants it can supply its own `Arms`.
 
 ## The repository's own suite
 
-`make evidence` replays a suite of deterministic workloads against every policy,
-against the adaptive cache, and against competing Go cache libraries. The
-generators are in [bench/workload.go](../bench/workload.go) and the results are
-written up in [evidence](evidence.md).
+`AS_CACHE_TRACES=... make evidence` requires all thirteen files in
+[scripts/trace-inputs.json](../scripts/trace-inputs.json), verifies their sizes
+and hashes, then replays the synthetic and real-trace suites. Fetch them first
+with `./scripts/fetch-traces.sh`. Missing inputs fail before any tests run.
+The measured/reference matrix has twelve traces: `lirs_multi2.trace.gz` is part
+of the downloaded and hashed inventory but is not replayed by this suite.
 
-`./scripts/fetch-traces.sh` downloads published traces (nothing is committed),
-after which `AS_CACHE_TRACES=... make evidence` replays those too.
+For synthetic diagnostics without downloaded traces, run:
+
+```sh
+(cd bench && env -u AS_CACHE_TRACES -u AS_CACHE_LRU_REFERENCE go test -count=1 -timeout 45m -v ./...)
+```
+
+That command skips the trace-dependent tests and cannot produce a publishable
+complete dataset. The workload generators are in
+[bench/workload.go](../bench/workload.go); the current interpretation is in
+[evidence](evidence.md).
 
 Evidence tests are guarded by `testing.Short()` and excluded from `make test`.
 Under `-race` epoch pacing changes by roughly 15x and the measurements become

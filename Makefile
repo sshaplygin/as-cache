@@ -55,7 +55,7 @@ release-check-published: ## Verify actual published tags (only after publication
 	@./scripts/release-check.sh --published
 
 .PHONY: evidence
-evidence: ## Replay the workload suite and print the policy comparison tables
+evidence: ## Verify all 13 pinned trace files and replay the complete workload suite
 	@python3 scripts/trace_inputs.py "$${AS_CACHE_TRACES:?set AS_CACHE_TRACES}"
 	( cd bench && go test -count=1 -timeout 45m -v ./... )
 

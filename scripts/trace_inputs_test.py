@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 
@@ -48,7 +49,59 @@ class TraceInputsTest(unittest.TestCase):
             )
             self.assertNotEqual(0, result.returncode)
             self.assertFalse((traces / "twitter_cluster052.csv").exists())
+            self.assertFalse((traces / "twitter_cluster052.csv.part").exists())
             self.assertIn("exited with status", result.stderr)
+            self.assertRegex(result.stderr, r"caller lines: [1-9][0-9]*")
+
+    def test_failed_checksum_removes_generic_and_meta_staging_files(self):
+        for kind in ("generic", "meta"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                scripts = root / "scripts"
+                scripts.mkdir()
+                shutil.copyfile(
+                    ROOT / "scripts/fetch-traces.sh", scripts / "fetch-traces.sh"
+                )
+                # Isolate the download cleanup contract: cached files pass,
+                # verification of the newly downloaded staged bytes fails.
+                (scripts / "trace_inputs.py").write_text(
+                    'import sys\nif sys.argv[-1].endswith(".part"):\n'
+                    '    print("checksum mismatch", file=sys.stderr)\n    sys.exit(1)\n'
+                )
+                curl = root / "curl"
+                curl.write_text(
+                    '#!/bin/bash\nwhile [ "$#" -gt 0 ]; do\nif [ "$1" = -o ]; then shift; printf corrupt > "$1"; fi\nshift\ndone\n'
+                )
+                curl.chmod(0o755)
+                traces = root / "traces"
+                traces.mkdir()
+                if kind == "meta":
+                    for name in (
+                        "twitter_cluster052.csv",
+                        "lirs_loop.trace.gz",
+                        "lirs_2_pools.trace.gz",
+                        "lirs_multi2.trace.gz",
+                        "arc_p3.gz",
+                        "arc_oltp.gz",
+                    ):
+                        (traces / name).touch()
+                name = (
+                    "twitter_cluster052.csv"
+                    if kind == "generic"
+                    else "meta_kvcache_202206_1.csv"
+                )
+                result = subprocess.run(
+                    ["bash", str(scripts / "fetch-traces.sh"), str(traces)],
+                    env=dict(os.environ, PATH=temporary + ":" + os.environ["PATH"]),
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
+                )
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("checksum mismatch", result.stderr)
+                self.assertFalse((traces / name).exists())
+                self.assertFalse((traces / (name + ".part")).exists())
+                self.assertRegex(result.stderr, r"caller lines: [1-9][0-9]*")
 
     def test_reference_rejects_extra_msr_volume(self):
         with tempfile.TemporaryDirectory() as temporary:
