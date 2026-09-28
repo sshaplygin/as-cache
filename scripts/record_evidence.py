@@ -38,6 +38,40 @@ def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
 
 
+def require_committed_sources():
+    if git("status", "--porcelain", "--untracked-files=all"):
+        raise ValueError("commit all source changes before measuring")
+    ignored = git(
+        "ls-files",
+        "--others",
+        "--ignored",
+        "--exclude-standard",
+        "--",
+        "*.go",
+        "*.c",
+        "*.cc",
+        "*.cpp",
+        "*.h",
+        "*.s",
+        "*.S",
+        "*.syso",
+        "go.mod",
+        "go.sum",
+        "go.work",
+    ).splitlines()
+    # Go's ./... traversal ignores dot/underscore directories. This excludes
+    # tool checkouts and report worktrees, but catches ignored package inputs.
+    build_inputs = [
+        name
+        for name in ignored
+        if not any(part.startswith((".", "_")) for part in Path(name).parts)
+    ]
+    if build_inputs:
+        raise ValueError(
+            f"ignored build inputs are not committed: {', '.join(build_inputs)}"
+        )
+
+
 def verify_manifest(directory):
     manifest = json.loads((directory / "manifest.json").read_text())
     artifacts = manifest.get("artifacts_sha256", {})
@@ -110,8 +144,7 @@ def refresh_report(directory):
 
 
 def record(directory):
-    if git("status", "--porcelain", "--untracked-files=all"):
-        raise ValueError("commit all source changes before measuring")
+    require_committed_sources()
     if directory.exists() and any(directory.iterdir()):
         raise ValueError(
             "output directory must be empty; old data must not be mixed into a new measurement"
@@ -180,9 +213,8 @@ def record(directory):
     for number in range(1, 4):
         env["AS_CACHE_EVIDENCE_OUT"] = str(directory / f"traces-{number}.json")
         command(["make", "evidence"], f"evidence-{number}.log")
-        if git("rev-parse", "HEAD") != manifest["commit"] or git(
-            "status", "--porcelain", "--untracked-files=all"
-        ):
+        require_committed_sources()
+        if git("rev-parse", "HEAD") != manifest["commit"]:
             raise ValueError("measurement sources changed during the run")
     combine(directory, manifest["commit"])
     render(directory)
