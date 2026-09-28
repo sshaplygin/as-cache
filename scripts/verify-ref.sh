@@ -4,7 +4,7 @@
 # Every published number from a real trace rests on two things that no unit
 # test can vouch for: that a loader turned the file into the right request
 # sequence, and that a replay counts hits the way everyone else does. This
-# checks both against an independent implementation, on every trace the
+# compares two expansions of the documented interpretation and LRU counts, on every trace the
 # evidence suite reads:
 #
 #   1. Each trace is expanded into one key per request here, with awk, from the
@@ -13,7 +13,7 @@
 #      the one the suite uses, ignoring object sizes.
 #   3. TestLRUMatchesReference loads the same files through the Go loaders,
 #      replays this repository's LRU at the same capacities, and requires the
-#      same request count and a miss ratio within 0.5 percentage points.
+#      same request count and a miss ratio within 0.0051 percentage points.
 #
 # The gate fails when it cannot run - libCacheSim missing and not buildable, a
 # trace absent, the test skipped - rather than reporting success over nothing.
@@ -118,6 +118,7 @@ expand() {
 	esac
 }
 
+python3 "$ROOT/scripts/trace_inputs.py" "$TRACES"
 build_libcachesim
 [ "$(git -C "$LCS" rev-parse HEAD)" = "$LIBCACHESIM_COMMIT" ] ||
 	fail "$LCS is not at the pinned commit $LIBCACHESIM_COMMIT"
@@ -133,10 +134,11 @@ for entry in "${TRACE_LIST[@]}"; do
 	[ -s "$TRACES/$file" ] || fail "$file is absent from $TRACES; run ./scripts/fetch-traces.sh"
 
 	expand "$kind" "$TRACES/$file" >"$WORK/keys.txt"
+    python3 "$ROOT/scripts/oracle_trace.py" "$WORK/keys.txt" "$WORK/keys.bin"
 	for m in "${GRID[@]}"; do
 		size=$(awk -v c="$capacity" -v m="$m" 'BEGIN { printf "%d", c * m }')
 		# cachesim writes a result directory into its working directory.
-		line=$(cd "$WORK" && "$CACHESIM" "$WORK/keys.txt" txt lru "$size" \
+		line=$(cd "$WORK" && "$CACHESIM" "$WORK/keys.bin" oracleGeneralBin lru "$size" \
 			--ignore-obj-size true --num-thread 1 2>/dev/null | grep "miss ratio") ||
 			fail "cachesim produced no result for $file at $size"
 		requests=$(sed -E 's/.*, +([0-9]+) req.*/\1/' <<<"$line")
@@ -161,3 +163,5 @@ grep -q -- '--- PASS: TestLRUMatchesReference' <<<"$out" || {
 
 echo
 echo "Reference gate passed: $(wc -l <"$REFERENCE" | tr -d ' ') points, libCacheSim $LIBCACHESIM_COMMIT."
+
+if [ -n "${AS_CACHE_REFERENCE_OUT:-}" ]; then cp "$REFERENCE" "$AS_CACHE_REFERENCE_OUT"; fi

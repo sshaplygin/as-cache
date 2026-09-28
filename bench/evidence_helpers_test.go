@@ -1,9 +1,10 @@
 package bench_test
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEvidenceHelpersEmpty(t *testing.T) {

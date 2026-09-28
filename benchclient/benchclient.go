@@ -133,7 +133,7 @@ type Cache[K comparable, V any] struct {
 // three different hit counts and left the cache at 527, 504 and 545 entries
 // against a capacity of 500: otter evicts asynchronously and reports an
 // approximate size, so its result depends on how the run was scheduled. It is
-// the strongest arm available and worth including when a comparison matters
+// an additional baseline worth including when a comparison matters
 // more than repeatability - see ArmsWithWindowTinyLFU, which is that trade
 // made explicitly.
 func DefaultArms[K comparable, V any](capacity int) ([]ascache.Policy[K, V], error) {

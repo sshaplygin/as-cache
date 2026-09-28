@@ -24,7 +24,7 @@ const referenceEnv = "AS_CACHE_LRU_REFERENCE"
 // points, accepted between this repository and libCacheSim at any one point.
 // cachesim prints four decimals, so agreement shows up as a difference no
 // larger than its rounding, 0.005 points.
-const referenceTolerance = 0.5
+const referenceTolerance = 0.0051
 
 type referencePoint struct {
 	file     string
@@ -63,6 +63,10 @@ func TestLRUMatchesReference(t *testing.T) {
 			order = append(order, p.file)
 		}
 		byFile[p.file] = append(byFile[p.file], p)
+	}
+
+	for file := range specs {
+		require.Contains(t, byFile, file, "evidence trace %s has no reference calibration", file)
 	}
 
 	lru := fixedPolicy(t, "LRU")

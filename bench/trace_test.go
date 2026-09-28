@@ -23,8 +23,7 @@ type traceSpec struct {
 }
 
 // knownTraces are the traces ./scripts/fetch-traces.sh downloads. Each is
-// skipped individually when absent, so a partial download still reports on
-// what is there.
+// required when a trace directory is configured; partial datasets are errors.
 func knownTraces() []traceSpec {
 	return []traceSpec{
 		{
@@ -83,6 +82,9 @@ func msrVolumes(dir string) []traceSpec {
 
 	specs := make([]traceSpec, 0, len(matches))
 	for _, path := range matches {
+		if !strings.HasSuffix(path, ".csv") && !strings.HasSuffix(path, ".csv.gz") {
+			continue
+		}
 		specs = append(specs, traceSpec{
 			file: filepath.Base(path),
 			load: func(p string) (bench.Workload, error) {
@@ -109,6 +111,11 @@ func loadKnownTraces(t *testing.T) []struct {
 		t.Skipf("%s; run ./scripts/fetch-traces.sh and set %s", err, bench.TraceDirEnv)
 	}
 
+	for _, volume := range []string{"hm_0", "prn_0", "proj_0", "src1_2", "usr_0", "web_0"} {
+		_, plainErr := os.Stat(filepath.Join(dir, "msr_"+volume+".csv"))
+		_, gzipErr := os.Stat(filepath.Join(dir, "msr_"+volume+".csv.gz"))
+		require.True(t, plainErr == nil || gzipErr == nil, "required MSR volume absent: %s", volume)
+	}
 	var found []struct {
 		spec     traceSpec
 		workload bench.Workload
@@ -116,11 +123,8 @@ func loadKnownTraces(t *testing.T) []struct {
 
 	for _, spec := range append(knownTraces(), msrVolumes(dir)...) {
 		path := filepath.Join(dir, spec.file)
-		if _, statErr := os.Stat(path); statErr != nil {
-			t.Logf("absent, skipping: %s", spec.file)
-
-			continue
-		}
+		_, statErr := os.Stat(path)
+		require.NoError(t, statErr, "required trace absent: %s", spec.file)
 
 		w, loadErr := spec.load(path)
 		require.NoError(t, loadErr, "load %s", spec.file)

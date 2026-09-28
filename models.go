@@ -25,8 +25,7 @@ const (
 	TTL
 	// TinyLFU evicts using the W-TinyLFU family, which gates admission on a
 	// frequency sketch so a new key must earn its place against the entry it
-	// would displace. It is the strongest general-purpose baseline in wide
-	// use, and the one an adaptive cache has to beat to justify itself.
+	// would displace. Its relative performance depends on the workload.
 	TinyLFU
 	// S3FIFO evicts using three static FIFO queues: a small queue that holds
 	// newly admitted entries just long enough to see whether they are ever

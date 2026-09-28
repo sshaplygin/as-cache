@@ -8,20 +8,28 @@
 # Usage:
 #   ./scripts/fetch-traces.sh [target-dir]     # default: ./traces (gitignored)
 #   AS_CACHE_TRACES=$(pwd)/traces make evidence
-set -euo pipefail
+set -Eeuo pipefail
+trap 'echo "FAIL: ${BASH_SOURCE[0]}:$LINENO exited with status $?" >&2' ERR
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+verify() {
+    python3 "$ROOT/scripts/trace_inputs.py" "$TRACES" "$1" --path "$2"
+}
 
 TRACES="${1:-$(pwd)/traces}"
 mkdir -p "$TRACES"
 
 fetch() {
 	local name="$1" url="$2"
-	if [ -s "$TRACES/$name" ]; then
+	if [ -e "$TRACES/$name" ]; then
+        verify "$name" "$TRACES/$name"
 		echo "  have  $name"
 		return
 	fi
 	echo "  get   $name"
 	# --fail so an HTML error page is never mistaken for trace data.
-	curl -fSL --retry 3 -o "$TRACES/$name" "$url"
+	curl -fSL --retry 3 -o "$TRACES/$name.part" "$url"
+    verify "$name" "$TRACES/$name.part"
+    mv "$TRACES/$name.part" "$TRACES/$name"
 }
 
 echo "Fetching traces into $TRACES"
@@ -62,20 +70,24 @@ done
 #
 # The published file is 4.9 GB, so only its first slice is fetched. The bucket
 # serves range requests over plain HTTPS, so no AWS credentials or CLI are
-# needed. Override the size with AS_CACHE_META_BYTES.
+# needed. The pinned size and checksum live in scripts/trace-inputs.json.
 #
 # The slice ends mid-line; LoadMetaKVTrace skips the truncated last row.
 # Note the op_count column: a row stands for that many requests, and the loader
 # expands it. See docs/benchmarking.md.
 # Cite: Meta CacheLib, https://cachelib.org/docs/Cache_Library_User_Guides/Cachebench_FB_HW_eval/
 META_BYTES="${AS_CACHE_META_BYTES:-134217728}"
+[ "$META_BYTES" = 134217728 ] || { echo "FAIL: Meta slice must match scripts/trace-inputs.json (134217728 bytes)" >&2; exit 1; }
 META=https://cachelib-workload-sharing.s3.amazonaws.com/pub/kvcache/202206/kvcache_traces_1.csv
-if [ -s "$TRACES/meta_kvcache_202206_1.csv" ]; then
+if [ -e "$TRACES/meta_kvcache_202206_1.csv" ]; then
+    verify meta_kvcache_202206_1.csv "$TRACES/meta_kvcache_202206_1.csv"
 	echo "  have  meta_kvcache_202206_1.csv"
 else
 	echo "  get   meta_kvcache_202206_1.csv (first $META_BYTES bytes of 4.9 GB)"
 	curl -fSL --retry 3 -H "Range: bytes=0-$((META_BYTES - 1))" \
-		-o "$TRACES/meta_kvcache_202206_1.csv" "$META"
+		-o "$TRACES/meta_kvcache_202206_1.csv.part" "$META"
+    verify meta_kvcache_202206_1.csv "$TRACES/meta_kvcache_202206_1.csv.part"
+    mv "$TRACES/meta_kvcache_202206_1.csv.part" "$TRACES/meta_kvcache_202206_1.csv"
 fi
 
 # --- MSR Cambridge block I/O, SNIA IOTTA trace 388 ---------------------------
@@ -124,7 +136,8 @@ fetch_msr() {
 	local volume="$1" archive="$2" header="$3" size="$4" want="$5"
 	local name="msr_$volume.csv.gz"
 	local out="$TRACES/$name" url="$MSR_MIRROR/$archive"
-	if [ -s "$out" ]; then
+	if [ -e "$out" ]; then
+        verify "$name" "$out"
 		echo "  have  $name"
 		return
 	fi
@@ -150,6 +163,7 @@ fetch_msr() {
 		rm -f "$out.part"
 		return 1
 	fi
+	verify "$name" "$out.part"
 	mv "$out.part" "$out"
 }
 
