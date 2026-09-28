@@ -179,6 +179,17 @@ class EvidenceManifestTest(unittest.TestCase):
                 before, {p.name: p.read_bytes() for p in directory.iterdir()}
             )
 
+    def test_report_line_ending_drift_fails_even_with_updated_hash(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            manifest = complete_manifest(directory)
+            readme = directory / "README.md"
+            readme.write_bytes(readme.read_bytes().replace(b"\n", b"\r\n"))
+            manifest["artifacts_sha256"]["README.md"] = digest(readme)
+            (directory / "manifest.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "README differs from the report"):
+                verify_manifest(directory)
+
     def test_refresh_accepts_old_template_without_changing_measurements(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
