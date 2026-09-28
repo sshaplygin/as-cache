@@ -64,14 +64,11 @@ On each request:
    anything: a read-through caller only calls `Add` when the *active* policy
    missed, so without it a shadow could never acquire a key the incumbent was
    already serving, and the better the incumbent performed the less its rivals
-   were allowed to learn. The drift that causes is not a small bias: measured
-   on a cyclic workload behind a 94%-hit incumbent, arms that truly serve 0.00%
-   reported over 90%, because a starved shadow's contents go static and a
-   static cache covering most of a small keyspace looks excellent. Its sign
-   depends on which arm is incumbent, so it does not cancel — `Advice()`
-   recommended switching from the best arm to the worst. Shadows hold keys and
-   eviction bookkeeping, never data, which is why N policies do not cost N
-   times the memory — and why no caller can ever be handed a shadow's zero.
+   were allowed to learn. Without the shadow's own fills, its contents can stay
+   artificially static and its reported rate no longer models read-through
+   behavior. Shadows retain keys and eviction bookkeeping while omitting payload
+   values. Memory still depends on each policy's metadata, capacity and workload;
+   the cache must never return a shadow's zero as caller data.
 
 Then once per epoch:
 
@@ -100,9 +97,10 @@ Then once per epoch:
    shadows run at if sampling is on.
 
 The measurement is the durable part, and you can have it without the
-switching: [`ObserveOnly`](advisor-mode.md) runs every arm and reports which
-would have served you best, while the cache behaves exactly like the policy you
-built it with.
+switching: [`ObserveOnly`](advisor-mode.md) reports every arm's measured rates
+on the sampled stream while the cache keeps serving the configured policy.
+These miniature rates and rankings need validation against full-cache replays
+before using them to choose a serving policy.
 
 ## Architecture
 
