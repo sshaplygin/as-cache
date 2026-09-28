@@ -51,3 +51,19 @@ class CommittedSource:
             target.write_bytes(content)
             target.chmod(0o755 if mode == "100755" else 0o644)
         return destination
+
+    def checkout(self, destination):
+        """Give exported blobs private Git metadata for measurement provenance."""
+        destination = self.export(destination)
+        subprocess.run(
+            ["git", "init", "--quiet", "--template=", str(destination)], check=True
+        )
+        objects = (
+            self.git("rev-parse", "--path-format=absolute", "--git-path", "objects")
+            .decode()
+            .strip()
+        )
+        (destination / ".git/objects/info/alternates").write_text(objects + "\n")
+        for args in (("update-ref", "HEAD", self.commit), ("read-tree", self.commit)):
+            subprocess.run(["git", *args], cwd=destination, check=True)
+        return destination

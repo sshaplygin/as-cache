@@ -9,6 +9,10 @@ import platform
 import re
 import subprocess
 import time
+import sys
+import tempfile
+
+from committed_source import CommittedSource
 
 from evidence_batches import pooled_results
 from render_evidence import render
@@ -39,37 +43,68 @@ def git(*args):
 
 
 def require_committed_sources():
+    # Called only inside the private snapshot, never over the preserved developer tree.
     if git("status", "--porcelain", "--untracked-files=all"):
-        raise ValueError("commit all source changes before measuring")
+        raise ValueError("measurement snapshot sources changed")
     ignored = git(
-        "ls-files",
-        "--others",
-        "--ignored",
-        "--exclude-standard",
-        "--",
-        "*.go",
-        "*.c",
-        "*.cc",
-        "*.cpp",
-        "*.h",
-        "*.s",
-        "*.S",
-        "*.syso",
-        "go.mod",
-        "go.sum",
-        "go.work",
+        "ls-files", "--others", "--ignored", "--exclude-standard"
     ).splitlines()
-    # Go's ./... traversal ignores dot/underscore directories. This excludes
-    # tool checkouts and report worktrees, but catches ignored package inputs.
-    build_inputs = [
-        name
-        for name in ignored
-        if not any(part.startswith((".", "_")) for part in Path(name).parts)
-    ]
-    if build_inputs:
+    # Go generates this workspace checksum file from committed module requirements.
+    unexpected = [name for name in ignored if name != "go.work.sum"]
+    if unexpected:
+        raise ValueError(f"unexpected ignored snapshot inputs: {', '.join(unexpected)}")
+
+
+def validate_output(directory):
+    directory = directory.resolve()
+    if directory.exists() and (not directory.is_dir() or any(directory.iterdir())):
         raise ValueError(
-            f"ignored build inputs are not committed: {', '.join(build_inputs)}"
+            "output directory must be empty; old data must not be mixed into a new measurement"
         )
+    if directory == ROOT.resolve():
+        raise ValueError("output must not be the repository root")
+    if directory.is_relative_to(ROOT.resolve()):
+        relative = directory.relative_to(ROOT.resolve()).as_posix()
+        ignored = subprocess.run(
+            ["git", "check-ignore", "--quiet", "--no-index", relative + "/"], cwd=ROOT
+        )
+        if ignored.returncode != 0:
+            raise ValueError(
+                "output inside the repository must be ignored; use an external empty directory"
+            )
+    return directory
+
+
+def record(directory):
+    directory = validate_output(directory)
+    traces = Path(os.environ["AS_CACHE_TRACES"]).resolve()
+    lcs = Path(
+        os.environ.get("AS_CACHE_LIBCACHESIM", ROOT / ".tools/libCacheSim")
+    ).resolve()
+    snapshot = CommittedSource(ROOT)
+    with tempfile.TemporaryDirectory(prefix="as-cache-measure-") as temporary:
+        source = snapshot.checkout(Path(temporary) / "source")
+        print(
+            f"Measuring committed snapshot {snapshot.commit} at {source}; developer files are excluded",
+            flush=True,
+        )
+        env = dict(
+            os.environ,
+            AS_CACHE_TRACES=str(traces),
+            AS_CACHE_LIBCACHESIM=str(lcs),
+            PYTHONPATH=str(source / "scripts"),
+            PYTHONDONTWRITEBYTECODE="1",
+            GOWORK=str(source / "go.work") if (source / "go.work").exists() else "off",
+            GOFLAGS="",
+        )
+        command = [
+            sys.executable,
+            "-B",
+            "-c",
+            "import sys; from pathlib import Path; from record_evidence import measure; measure(Path(sys.argv[1]))",
+            str(directory),
+        ]
+        subprocess.run(command, cwd=source, env=env, check=True)
 
 
 def verify_manifest(directory):
@@ -143,7 +178,7 @@ def refresh_report(directory):
     verify_manifest(directory)
 
 
-def record(directory):
+def measure(directory):
     require_committed_sources()
     if directory.exists() and any(directory.iterdir()):
         raise ValueError(

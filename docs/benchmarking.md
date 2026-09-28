@@ -102,7 +102,7 @@ including comparisons below fixed baselines. Min/max are not confidence bounds.
 The artifact also includes an ObserveOnly sweep, P3 tuning and a Meta size
 comparison; see [evidence](evidence.md) for their different scopes.
 
-To produce and verify a new current dataset from a clean committed tree:
+To produce and verify a new current dataset from committed HEAD:
 
 ```sh
 AS_CACHE_TRACES="$PWD/traces" python3 scripts/record_evidence.py --out /tmp/as-cache-current
@@ -113,8 +113,18 @@ Use an empty output directory and run heavy measurements sequentially. The
 recorder calibrates LRU, runs the object/byte comparison, executes `make evidence`
 three times, merges the observations, generates the tables and hashes the
 outputs. After review, replace `bench/results/current/`; do not retain past
-iteration datasets. It rejects tracked edits, untracked files and ignored Go
-build inputs, missing required traces and failed commands. Failed commands
+iteration datasets. The recorder exports one resolved HEAD into a temporary,
+private Git checkout and runs that commit's scripts there. Developer edits,
+ignored tests, embeds and other untracked assets cannot enter the measurements.
+The original workspace, including preserved local probes, is left untouched.
+Commit changes before recording if they should be measured. The printed commit
+identifies the snapshot; routine local tests can still include developer files
+that CI does not see. Final acceptance uses a clean committed checkout.
+
+Output must be empty and either outside the repository or inside an ignored
+directory; unsuitable output is rejected before recording starts. The recorder
+rejects unexpected files introduced into its private snapshot, missing required
+traces and failed commands. Failed commands
 retain their log and exit code for diagnosis. The verifier requires every
 artifact and measurement command and recomputes the pooled JSON from the raw
 batches, checking settings, trace inventories and observation counts.

@@ -3,12 +3,9 @@
 import json
 from copy import deepcopy
 from pathlib import Path
-import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
 
-import record_evidence
 from record_evidence import combine, verify_manifest
 from trace_inputs import CATALOG, digest
 
@@ -157,32 +154,6 @@ class EvidenceManifestTest(unittest.TestCase):
                 write_batches(directory, batches)
                 with self.assertRaises(ValueError):
                     combine(directory, "a" * 40)
-
-    def test_untracked_source_prevents_recording(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
-            subprocess.run(["git", "init", "-q", str(directory)], check=True)
-            (directory / "injected_test.go").write_text("package injected\n")
-            with patch.object(record_evidence, "ROOT", directory):
-                with self.assertRaisesRegex(ValueError, "commit.*changes"):
-                    record_evidence.record(directory / "out")
-
-    def test_ignored_go_source_prevents_recording(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
-            subprocess.run(["git", "init", "-q", str(directory)], check=True)
-            (directory / ".git/info/exclude").write_text(
-                "metrics/zzz_refute_probe_test.go\n"
-            )
-            (directory / "metrics").mkdir()
-            (directory / "metrics/zzz_refute_probe_test.go").write_text(
-                "package metrics\n"
-            )
-            with patch.object(record_evidence, "ROOT", directory):
-                with self.assertRaisesRegex(
-                    ValueError, "ignored build inputs.*zzz_refute"
-                ):
-                    record_evidence.record(directory / "out")
 
     def test_empty_inventory_cannot_certify_unmeasured_data(self):
         with tempfile.TemporaryDirectory() as temporary:
