@@ -274,7 +274,7 @@ def report_text(directory):
 
 
 def render(directory):
-    (directory / "README.md").write_text(report_text(directory))
+    (directory / "README.md").write_bytes(report_text(directory).encode("utf-8"))
 
 
 if __name__ == "__main__":

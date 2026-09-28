@@ -205,7 +205,7 @@ def verify_inputs(directory):
 
 def verify_manifest(directory):
     manifest = verify_inputs(directory)
-    if (directory / "README.md").read_text() != report_text(directory):
+    if (directory / "README.md").read_bytes() != report_text(directory).encode("utf-8"):
         raise ValueError(
             "README differs from the report generated from retained measurements"
         )
