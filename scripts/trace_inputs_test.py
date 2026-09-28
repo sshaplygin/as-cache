@@ -16,8 +16,6 @@ class TraceInputsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             manifest = ROOT / "scripts/trace-inputs.json"
-            if not manifest.exists():
-                manifest = ROOT / "bench/results/2026-09-27/manifest.json"
             for item in json.loads(manifest.read_text())["files"]:
                 (directory / item["file"]).write_text("garbage")
             result = subprocess.run(

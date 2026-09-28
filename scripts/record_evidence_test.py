@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import record_evidence
 from record_evidence import combine, verify_manifest
+from trace_inputs import CATALOG, digest
 
 
 def batch_fixture():
@@ -73,7 +74,62 @@ def write_batches(directory, batches):
         (directory / f"traces-{number}-tuning.json").write_text(json.dumps(tuning))
 
 
+def complete_manifest(directory):
+    write_batches(directory, [batch_fixture() for _ in range(3)])
+    combine(directory, "a" * 40)
+    (directory / "bytes.json").write_text(json.dumps({"commit": "a" * 40}))
+    for name in (
+        "README.md",
+        "bytes.log",
+        "reference.log",
+        "reference.tsv",
+        "evidence-1.log",
+        "evidence-2.log",
+        "evidence-3.log",
+    ):
+        (directory / name).write_text("retained output\n")
+    commands = [
+        {"args": ["make", "verify-ref"], "log": "reference.log", "exit_code": 0},
+        {
+            "args": ["python3", "scripts/measure_bytes.py"],
+            "log": "bytes.log",
+            "exit_code": 0,
+        },
+    ] + [
+        {"args": ["make", "evidence"], "log": f"evidence-{i}.log", "exit_code": 0}
+        for i in range(1, 4)
+    ]
+    manifest = {
+        "commit": "a" * 40,
+        "files": json.loads(CATALOG.read_text())["files"],
+        "commands": commands,
+        "artifacts_sha256": {p.name: digest(p) for p in directory.iterdir()},
+    }
+    (directory / "manifest.json").write_text(json.dumps(manifest))
+    return manifest
+
+
 class EvidenceManifestTest(unittest.TestCase):
+    def test_complete_dataset_requires_commands_and_matches_raw_batches(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            manifest = complete_manifest(directory)
+            verify_manifest(directory)
+            missing = deepcopy(manifest)
+            missing["commands"] = []
+            (directory / "manifest.json").write_text(json.dumps(missing))
+            with self.assertRaisesRegex(ValueError, "required measurement commands"):
+                verify_manifest(directory)
+            traces = json.loads((directory / "traces.json").read_text())
+            traces["traces"][0]["adaptive"][0]["hit_rate_percent"]["runs"][0] = 99
+            (directory / "traces.json").write_text(json.dumps(traces))
+            manifest["artifacts_sha256"]["traces.json"] = digest(
+                directory / "traces.json"
+            )
+            (directory / "manifest.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "differs from its raw batches"):
+                verify_manifest(directory)
+
     def test_combining_rejects_changed_inventory_settings_and_sample_counts(self):
         mutations = {
             "missing trace": lambda batches: batches[0]["traces"].pop(),
