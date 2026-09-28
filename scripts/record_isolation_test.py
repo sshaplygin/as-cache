@@ -27,11 +27,12 @@ class RecordingIsolationTest(unittest.TestCase):
             "from pathlib import Path\n"
             "def measure(out):\n"
             "    out.mkdir(parents=True, exist_ok=True)\n"
-            '    output = subprocess.check_output(["go", "run", "."], text=True)\n'
+            '    output = subprocess.check_output(["make", "--silent", "run"], text=True)\n'
             '    state = subprocess.check_output(["git", "status", "--porcelain"], text=True)\n'
             '    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()\n'
             '    (out / "observed.json").write_text(json.dumps(dict(output=output, state=state, commit=commit, probe=Path("injected_test.go").exists(), workspace=os.environ.get("GOWORK"))))\n'
         )
+        (self.root / "Makefile").write_text("run:\n\tgo run .\n")
         (self.root / "go.mod").write_text("module fixture\n\ngo 1.25.2\n")
         (self.root / "go.work").write_text("go 1.25.2\nuse .\n")
         (self.root / "main.go").write_text(
@@ -120,6 +121,34 @@ class RecordingIsolationTest(unittest.TestCase):
             patch.dict(
                 os.environ,
                 {"AS_CACHE_TRACES": str(self.root / "traces"), "GOENV": str(goenv)},
+            ),
+        ):
+            record_evidence.record(output)
+        self.assertEqual(
+            "committed/hidden committed",
+            json.loads((output / "observed.json").read_text())["output"],
+        )
+
+    def test_external_makefile_cannot_reintroduce_go_overlay(self):
+        work = Path(self.work.name)
+        replacement = work / "replacement.go"
+        replacement.write_text(
+            'package main\nimport "fmt"\nfunc main() { fmt.Print("OUTSIDE COMMITTED INPUTS") }\n'
+        )
+        overlay = work / "overlay.json"
+        overlay.write_text(json.dumps({"Replace": {"main.go": str(replacement)}}))
+        makefile = work / "injected.mk"
+        makefile.write_text(f"export GOFLAGS = -overlay={overlay}\n")
+        output = work / "results"
+        with (
+            patch.object(record_evidence, "ROOT", self.root),
+            patch.dict(
+                os.environ,
+                {
+                    "AS_CACHE_TRACES": str(self.root / "traces"),
+                    "MAKEFILES": str(makefile),
+                    "MAKEFLAGS": "-e",
+                },
             ),
         ):
             record_evidence.record(output)

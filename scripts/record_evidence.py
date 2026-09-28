@@ -79,6 +79,45 @@ def validate_output(directory):
     return directory
 
 
+def measurement_environment():
+    # Preserve tool locations, caches, locale and network access, not ambient
+    # build commands (MAKEFILES/MAKEFLAGS, BASH_ENV, GOENV overlays, Git redirects).
+    allowed = {
+        "PATH",
+        "HOME",
+        "TMPDIR",
+        "TMP",
+        "TEMP",
+        "LANG",
+        "TZ",
+        "USER",
+        "LOGNAME",
+        "GOROOT",
+        "GOTOOLCHAIN",
+        "GOCACHE",
+        "GOMODCACHE",
+        "GOPROXY",
+        "GOSUMDB",
+        "GOPRIVATE",
+        "GONOPROXY",
+        "GONOSUMDB",
+        "SSL_CERT_FILE",
+        "SSL_CERT_DIR",
+    }
+    allowed.update(
+        {
+            name
+            for proxy in ("http_proxy", "https_proxy", "all_proxy", "no_proxy")
+            for name in (proxy, proxy.upper())
+        }
+    )
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if key in allowed or key.startswith("LC_")
+    }
+
+
 def record(directory):
     directory = validate_output(directory)
     traces = Path(os.environ["AS_CACHE_TRACES"]).resolve()
@@ -93,7 +132,9 @@ def record(directory):
             flush=True,
         )
         env = dict(
-            git_environment(),
+            measurement_environment(),
+            GIT_CONFIG_GLOBAL=os.devnull,
+            GIT_CONFIG_NOSYSTEM="1",
             AS_CACHE_TRACES=str(traces),
             AS_CACHE_LIBCACHESIM=str(lcs),
             PYTHONPATH=str(source / "scripts"),

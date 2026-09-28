@@ -117,8 +117,9 @@ iteration datasets. The recorder exports one resolved HEAD into a temporary,
 private Git checkout and runs that commit's scripts there. Developer edits,
 ignored tests, embeds and other untracked assets cannot enter the measurements.
 The original workspace, including preserved local probes, is left untouched.
-Commit changes before recording if they should be measured. The printed commit
-identifies the snapshot; routine local tests can still include developer files
+Commit changes before recording if they should be measured. The recorder controls the build environment: ambient Make, shell, Git and Go
+configuration cannot inject source overrides. Tool paths, caches, locale and
+network proxy settings remain available. The printed commit identifies the snapshot; routine local tests can still include developer files
 that CI does not see. Final acceptance uses a clean committed checkout.
 
 Output must be empty and either outside the repository or inside an ignored
