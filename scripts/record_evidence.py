@@ -15,7 +15,7 @@ import tempfile
 from committed_source import CommittedSource, git_environment
 
 from evidence_batches import pooled_results
-from render_evidence import render
+from render_evidence import render, report_text
 from trace_inputs import CATALOG, digest, verify
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -153,7 +153,7 @@ def record(directory):
         subprocess.run(command, cwd=source, env=env, check=True)
 
 
-def verify_manifest(directory):
+def verify_inputs(directory):
     manifest = json.loads((directory / "manifest.json").read_text())
     artifacts = manifest.get("artifacts_sha256", {})
     if not REQUIRED_ARTIFACTS.issubset(artifacts):
@@ -200,8 +200,17 @@ def verify_manifest(directory):
     for name, expected in (("traces.json", traces), ("tuning.json", tuning)):
         if json.loads((directory / name).read_text()) != expected:
             raise ValueError(f"pooled artifact differs from its raw batches: {name}")
+    return manifest
+
+
+def verify_manifest(directory):
+    manifest = verify_inputs(directory)
+    if (directory / "README.md").read_text() != report_text(directory):
+        raise ValueError(
+            "README differs from the report generated from retained measurements"
+        )
     print(
-        f"Verified {len(manifest['artifacts_sha256'])} artifacts at {manifest['commit']}"
+        f"Verified {len(manifest['artifacts_sha256'])} artifacts and generated report at {manifest['commit']}"
     )
 
 
@@ -215,9 +224,8 @@ def refresh_report(directory):
     """Regenerate presentation without rerunning or changing measurements."""
     if git("status", "--porcelain", "--untracked-files=all", "--", "scripts"):
         raise ValueError("commit report-generator changes before rendering")
-    verify_manifest(directory)
+    manifest = verify_inputs(directory)
     render(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
     manifest["report_generator_commit"] = git("rev-parse", "HEAD")
     manifest["artifacts_sha256"]["README.md"] = digest(directory / "README.md")
     (directory / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -238,8 +246,10 @@ def measure(directory):
     lcs = Path(
         os.environ.get("AS_CACHE_LIBCACHESIM", ROOT / ".tools/libCacheSim")
     ).resolve()
+    commit = git("rev-parse", "HEAD")
     manifest = {
-        "commit": git("rev-parse", "HEAD"),
+        "commit": commit,
+        "report_generator_commit": commit,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "platform": platform.platform(),
         "machine": platform.machine(),

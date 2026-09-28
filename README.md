@@ -21,7 +21,9 @@ Measurement does not guarantee an improvement or a floor relative to a fixed
 policy. The [current results](bench/results/current/README.md) report repeated
 observations, small margins and ties, effective sampling, an object/byte
 comparison and an offline [ObserveOnly](docs/advisor-mode.md) sweep. ObserveOnly
-collects advice while keeping the configured policy active.
+collects advice while keeping the configured policy active. Its final choices
+are compared retrospectively with standalone policy medians; those differences
+do not measure a serving loss from following advice.
 
 It is pre-1.0, the API may change, and production use has not been established.
 The repository includes nine policy arms; S3-FIFO and SIEVE are experimental
@@ -30,7 +32,8 @@ adapters planned for v0.5; their module is excluded from v0.4. The
 measured revision. Reproduce the dataset with the
 [three-batch recorder](docs/benchmarking.md#saved-baseline); `make evidence` runs
 one diagnostic batch. Random sampling, Random and asynchronous W-TinyLFU mean
-some numbers vary between runs.
+some numbers vary between runs. `make evidence-check` verifies the retained
+measurements and exact generated tables without rerunning the experiments.
 
 ## Documentation
 

@@ -313,7 +313,7 @@ v, ok := cache.Get("k")</code></pre>
           <tr><td>Fixed and adaptive policies</td><td>All nine arms; 10/20/50 request epochs; fifteen observations for each nondeterministic cell. No guaranteed improvement or worst-policy floor.</td></tr>
           <tr><td>Workload context</td><td>Distinct keys, cache/keyspace fraction, compulsory-miss ceilings and effective sampling are published. On MSR prn/web leading policies tie; src1_2/usr margins are below 0.04 points.</td></tr>
           <tr><td>Sampling</td><td>Requested rate 5%, experimental floor 64. Effective rates are 12.8% and 6.4% on the small LIRS caches, 5% elsewhere.</td></tr>
-          <tr><td>ObserveOnly</td><td>LRU stays active on all twelve traces; per-arm advice is retained. This offline sweep is not a real-service trial.</td></tr>
+          <tr><td>ObserveOnly</td><td>LRU stays active on all twelve traces; per-arm advice and retrospective comparisons with standalone policy medians are retained. These comparisons do not measure serving losses from following advice; the sweep is not a real-service trial.</td></tr>
           <tr><td>Object versus byte budgets</td><td>Meta GET traffic is compared in both libCacheSim LRU modes under an explicit byte-budget convention. The nine-policy matrix remains an entry-count comparison.</td></tr>
           <tr><td>Cost</td><td>Shadows retain keys and metadata and add work on the request path. Host-specific timings remain raw diagnostics, not stable product claims.</td></tr>
         </tbody>

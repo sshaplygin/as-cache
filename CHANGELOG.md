@@ -8,6 +8,9 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+- The rendered social-preview image (`site/og.png`) and image-card metadata.
+  The site uses a summary card while evidence materials show the current version.
+
 - **Breaking API change:** removed the distributed bandit and the
   `bandit/redis` module. This includes `Distributed`/`NewDistributed`, `Config`,
   `Mode`, `EvidenceMode`, `MemStore`/`NewMemStore`, `Store`, `Bucket`, `Role`,

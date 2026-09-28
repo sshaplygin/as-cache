@@ -5,7 +5,7 @@ MODULES := . lfu policies policies/arc policies/fifo policies/tinylfu metrics ba
 GOLANGCI_LINT_VERSION := v2.8.0
 
 .PHONY: all
-all: fmt vet lint test python-check script-test release-check ## Format, vet, lint, test and check releasability
+all: fmt vet lint test python-check script-test evidence-check release-check ## Format, vet, lint, test and check releasability
 
 .PHONY: lint
 lint: ## Run golangci-lint across all modules
@@ -87,3 +87,7 @@ script-test: ## Check trace integrity and simulator export regressions
 .PHONY: measure-bytes
 measure-bytes: ## Compare Meta LRU with object and byte capacities
 	@python3 scripts/measure_bytes.py "$${AS_CACHE_TRACES:?set AS_CACHE_TRACES}" "$${AS_CACHE_BYTES_OUT:?set AS_CACHE_BYTES_OUT}"
+
+.PHONY: evidence-check
+evidence-check: ## Verify retained evidence and generated tables without rerunning measurements
+	@python3 -B scripts/record_evidence.py --verify bench/results/current

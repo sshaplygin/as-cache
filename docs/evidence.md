@@ -66,7 +66,10 @@ retained-entry counts. Versions and adapters are pinned in
 
 The [request-counted matrix](../bench/results/current/README.md#trace-matrix)
 compares each adaptive setting with the best fixed median on the same trace.
-It reports all three epoch settings, not just whichever looks best. No maximum
+It reports all three epoch settings, not just whichever looks best. Its generated
+summary counts how many traces trail the best fixed median at each setting and
+across all settings; those counts are observations from the current dataset.
+No maximum
 future deficit, statistical significance or guaranteed improvement follows
 from these observed ranges.
 
@@ -120,7 +123,8 @@ Reference calibration pins libCacheSim to
 the same documented trace interpretation, then independent LRU counting at five
 capacities. A shared interpretation error can survive this check. Every trace
 read by the suite must have coverage, request counts must match, and the miss
-ratio tolerance is 0.0051 percentage points, just above four-decimal rounding.
+ratio tolerance is 0.0051 percentage points. Reference ratios must be finite,
+in [0, 1], with exactly four decimals; coarser input cannot widen the tolerance.
 
 <a id="one-loop-row-two-answers-one-run"></a>
 
@@ -171,7 +175,11 @@ The [ObserveOnly sweep](../bench/results/current/README.md#observeonly) holds LR
 active on all twelve traces, measures all nine policies and records every final
 Advice report. Serving hits must exactly match standalone LRU. Advice measures
 sampled shadow behavior, not the hit rate guaranteed after a policy switch.
-This offline sweep is separate from the still-pending real-service trial.
+The generated table also compares final recommendations retrospectively with
+the best standalone full-cache medians, retaining ties and every run. Its modal
+mismatches include worked median differences; these are not measured serving
+losses from following advice. This offline sweep is separate from the still-pending
+real-service trial.
 
 ## What does a switch cost right after it?
 

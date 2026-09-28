@@ -2,6 +2,11 @@
 
 How this experimental library measures and studies adaptive policy selection.
 
+The [current trace matrix](../bench/results/current/README.md#trace-matrix)
+reports how often adaptive medians trail the best fixed median at each epoch
+setting and at all three settings. These counts describe the retained runs;
+they are not a guaranteed ranking on future traffic.
+
 ## Problem
 
 Choosing the right cache replacement algorithm for a workload is a separate

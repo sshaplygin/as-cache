@@ -34,7 +34,8 @@ policy      hit rate         hits       misses
 * currently active
 ```
 
-The output above illustrates the report format. It compares measured rates,
+The output above is a synthetic example of the report format, not measured
+output from a retained run. In use, the report compares measured rates,
 not guaranteed full-cache outcomes. In particular, sampled miniatures can
 change rankings and absolute hit rates; validate a recommendation with a
 standalone replay before acting on it. See

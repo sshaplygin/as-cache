@@ -246,3 +246,10 @@ every run; new downloads are verified as `.part` files before rename. Corrupt
 cached files fail with their name. The complete evidence command verifies the
 same catalog before loading any trace, so partial input sets cannot quietly
 become a publication dataset.
+
+`make evidence-check` verifies the retained artifact hashes, pooled observations,
+and exact generated report without downloading traces or running measurements.
+It is part of `make all` and CI. After committing a report-template change, use
+`python3 scripts/record_evidence.py --render bench/results/current` to validate
+the existing inputs and regenerate presentation; the manifest records the new
+report-generator commit. Strict verification then checks the new report too.

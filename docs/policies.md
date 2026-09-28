@@ -67,19 +67,14 @@ Note that otter reports an approximate size, so this policy's `Len()` is
 approximate. Set `EvictPartialCapacityFilling: true` when using it, since the
 capacity gate compares `Len()` against `Cap()` for exact equality.
 
-**It also runs slightly over the capacity it was given, and that flatters it.**
-otter admits on the calling goroutine and evicts on a maintenance pass, so the
-cache sits above its limit whenever writes arrive faster than maintenance
-drains them. Measured at a nominal 500 entries under read-through replay: 514
-on `zipf` (1.03x), 533 on `loop` (1.06x), 611 on `uniform` (1.22x) — the
-overshoot tracks the write rate, and `uniform` misses on almost every request.
-On that workload it is the whole story: the arm held 611 of a 5000-key
-keyspace and served 12.18%, and 611/5000 is 12.2%, so its edge over the other
-policies there is capacity rather than eviction. Under a pure write flood the
-gap is far wider — 1916 entries retained against a limit of 500 — which is why
-the competitor harness calls `CleanUp`. Read its wins on write-heavy workloads
-with that in mind; on read-heavy ones the overshoot is a few percent and the
-comparison is sound.
+Asynchronous admission and eviction can let a tight write workload outrun
+maintenance. Equal nominal capacity therefore does not establish equal resident
+entries or memory. The competitor harness calls `CleanUp` to drain pending work;
+that changes its timing too. `TestCompetitorCapacityHonesty` records retained
+entries after a separate write flood in the [current evidence logs](../bench/results/current/README.md).
+Those counts do not measure occupancy during the zipf, loop or uniform replays,
+or establish why one policy has a higher hit rate on them. The current trace
+matrix retains all W-TinyLFU observations and their range.
 
 It is one of two arms that are not deterministic, which matters for
 [reproducible replays](benchmarking.md). `Random` is the other, and for a

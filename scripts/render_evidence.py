@@ -1,5 +1,6 @@
 """Render current trace tables directly from retained measurements."""
 
+from collections import Counter
 import json
 from pathlib import Path
 from statistics import median
@@ -10,7 +11,23 @@ def spread(values):
     return f"{median(values):.2f}% [{min(values):.2f}–{max(values):.2f}]"
 
 
-def render(directory):
+def fixed_rates(trace):
+    return {
+        name: median(value["runs"])
+        for name, value in trace["fixed_hit_rate_percent"].items()
+    }
+
+
+def baseline(trace, value):
+    fixed = trace["fixed_hit_rate_percent"]
+    return "<br>".join(
+        f"{name} {spread(fixed[name]['runs'])}"
+        for name, rate in sorted(fixed_rates(trace).items())
+        if rate == value
+    )
+
+
+def report_text(directory):
     data = json.loads((directory / "traces.json").read_text())
     traces = data["traces"]
     lines = [
@@ -26,37 +43,53 @@ def render(directory):
         "All nine arms; request-counted epochs. Actual constructor settings are retained for every adaptive and ObserveOnly cell.",
         "Effective sample rates come from the measured caches' Advice and are shown in the context table.",
         "",
-        "| Trace | Best fixed median (ties retained) | Worst fixed median | 10 epochs | 20 epochs | 50 epochs |",
+        "| Trace | Best fixed median [min–max] (ties retained) | Worst fixed median [min–max] (ties retained) | 10 epochs | 20 epochs | 50 epochs |",
         "| --- | --- | --- | --- | --- | --- |",
     ]
-    gaps = []
     below = []
+    deficits = Counter()
+    below_every_epoch = 0
+    above_every_epoch = []
     for trace in traces:
-        fixed = trace["fixed_hit_rate_percent"]
-        rates = {name: median(value["runs"]) for name, value in fixed.items()}
+        rates = fixed_rates(trace)
         best, worst = max(rates.values()), min(rates.values())
-        winners = "/".join(sorted(name for name, rate in rates.items() if rate == best))
         cells = []
+        gaps = []
         for adaptive in trace["adaptive"]:
             values = adaptive["hit_rate_percent"]["runs"]
             gap = median(values) - best
             gaps.append(gap)
+            deficits[adaptive["epochs_per_trace"]] += gap < 0
             if median(values) < worst:
                 below.append(
                     (
                         trace["trace"],
                         adaptive["epochs_per_trace"],
                         median(values) - worst,
+                        baseline(trace, worst),
                     )
                 )
             cells.append(f"{spread(values)} ({gap:+.2f} pp)")
         lines.append(
-            f"| {trace['trace']} | {winners} {best:.2f}% | {worst:.2f}% | "
+            f"| {trace['trace']} | {baseline(trace, best)} | {baseline(trace, worst)} | "
             + " | ".join(cells)
             + " |"
         )
+        below_every_epoch += all(gap < 0 for gap in gaps)
+        if all(gap > 0 for gap in gaps):
+            above_every_epoch.append(trace["trace"])
     lines += [
         "",
+        f"Adaptive medians trail the best fixed median on {below_every_epoch}/{len(traces)} traces at every tested epoch setting.",
+        "Counts below the best fixed median by setting: "
+        + "; ".join(
+            f"{epochs} epochs: {deficits[epochs]}/{len(traces)}"
+            for epochs in (10, 20, 50)
+        )
+        + ".",
+        "Traces above the best fixed median at every setting: "
+        + (", ".join(above_every_epoch) or "none")
+        + ".",
         "The table compares medians with the best fixed median in this dataset. It makes no claim of a universal maximum deficit.",
         "W-TinyLFU is asynchronous: a short batch may miss another performance mode, especially on LIRS loop.",
         "A winning policy name is not evidence of a material or statistically established advantage.",
@@ -66,8 +99,8 @@ def render(directory):
     ]
     if below:
         lines += [
-            f"- {name}, {epochs} epochs: {gap:+.4f} percentage points."
-            for name, epochs, gap in below
+            f"- {name}, {epochs} epochs: {gap:+.4f} percentage points versus {worst}."
+            for name, epochs, gap, worst in below
         ]
     else:
         lines += [
@@ -98,7 +131,7 @@ def render(directory):
         )
     lines += [
         "",
-        "On MSR prn and web the leading LFU/SIEVE rates tie exactly; on src1_2 and usr the best–runner-up margins are below 0.04 points.",
+        "Use the margins and ties above when interpreting policy names; small differences do not establish a useful ranking.",
         "The cache is roughly 1% of the distinct keyspace on most MSR prefixes; the ceilings above limit the available hit-rate signal.",
         "",
         "## Every fixed arm",
@@ -120,16 +153,56 @@ def render(directory):
         "| Trace | Serving hit rate | Recommended policies (count) |",
         "| --- | --- | --- |",
     ]
+    modal_agreement = individual_agreement = total_runs = 0
+    mismatches = []
     for trace in traces:
-        counts = {}
-        for run in trace["observe_only"]:
-            name = trace["policy_names"][run["best_policy_name"]]
-            counts[name] = counts.get(name, 0) + 1
+        counts = Counter(
+            trace["policy_names"][run["best_policy_name"]]
+            for run in trace["observe_only"]
+        )
+        rates = fixed_rates(trace)
+        best = max(rates.values())
+        winners = {name for name, rate in rates.items() if rate == best}
+        modes = sorted(
+            name for name, count in counts.items() if count == max(counts.values())
+        )
+        modal_agreement += all(name in winners for name in modes)
+        individual_agreement += sum(
+            count for name, count in counts.items() if name in winners
+        )
+        total_runs += sum(counts.values())
         lines.append(
             f"| {trace['trace']} | {spread([r['hit_rate_percent'] for r in trace['observe_only']])} | "
             + ", ".join(f"{name}: {count}" for name, count in sorted(counts.items()))
             + " |"
         )
+        for name in modes:
+            if name not in winners:
+                mismatches.append((trace, name, rates[name] - best))
+    lines += [
+        "",
+        f"Retrospective modal agreement: {modal_agreement}/{len(traces)} traces. Each trace counts once, and all tied modal choices must belong to the tied best-fixed set to count as agreement.",
+        f"Individual final recommendations in the best-fixed set: {individual_agreement}/{total_runs} ({100 * individual_agreement / total_runs:.2f}%). Every run counts once; any tied best-fixed arm counts as agreement.",
+        "These compare final sampled Advice choices with standalone full-cache medians in this dataset, not forecast accuracy or a causal cost of following Advice. Serving remained LRU.",
+    ]
+    if mismatches:
+        lines += [
+            "",
+            "Modal mismatches (each tied nonwinning mode has its own row):",
+            "",
+            "| Trace | Modal recommendation: standalone median [min–max] | Best fixed median [min–max] | Standalone median difference |",
+            "| --- | --- | --- | --- |",
+        ]
+        for trace, name, gap in mismatches:
+            lines.append(
+                f"| {trace['trace']} | {name} {spread(trace['fixed_hit_rate_percent'][name]['runs'])} | "
+                f"{baseline(trace, max(fixed_rates(trace).values()))} | {gap:+.4f} pp |"
+            )
+        trace, name, gap = mismatches[0]
+        lines += [
+            "",
+            f"For example, on {trace['trace']} the modal {name} recommendation has a standalone median {gap:+.4f} points relative to the best fixed median. This subtraction compares separate full-cache replays; the sampled ObserveOnly cache did not switch to {name} or measure that difference as a serving loss.",
+        ]
     lines += [
         "",
         "This is an offline sweep, not a service trial or proof that following Advice will improve production traffic.",
@@ -186,6 +259,7 @@ def render(directory):
         "## Provenance and limits",
         "",
         "manifest.json is generated by scripts/record_evidence.py and hashes every retained input/output.",
+        "The pinned input catalog has 13 files. lirs_multi2.trace.gz is inventoried but not replayed in the 12-trace matrix or reference gate.",
         "Verify with `python3 scripts/record_evidence.py --verify bench/results/current`.",
         "Reference calibration compares independent expansions of the same interpretation and LRU counting; it cannot detect a shared interpretation error.",
         "The reference accepts finite ratios in [0, 1] with exactly four decimals. Tolerance is half that rounding quantum plus numerical slack: 0.0051 percentage points. All loaded traces must have reference coverage.",
@@ -196,7 +270,11 @@ def render(directory):
         "A complete run requires the pinned libCacheSim build and three sequential evidence runs. Replace current results after validation; do not create a historical archive.",
         "",
     ]
-    (directory / "README.md").write_text("\n".join(lines))
+    return "\n".join(lines)
+
+
+def render(directory):
+    (directory / "README.md").write_text(report_text(directory))
 
 
 if __name__ == "__main__":
