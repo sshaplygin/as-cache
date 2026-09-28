@@ -1,0 +1,5460 @@
+{
+  "bandit": "bandit.NewThompson(0.7, 13)",
+  "commit": "3331d5f6156c969b31bf70e438ebc8ca25b501b6",
+  "cpus": 10,
+  "go": "go1.25.5",
+  "measured_at": "2026-09-28T20:50:18Z",
+  "platform": "darwin/arm64",
+  "runs": 5,
+  "settings": {
+    "EvictPartialCapacityFilling": true,
+    "MigrationStrategy": "warm",
+    "MinShadowCapacity": 64,
+    "ShadowSampleRate": 0.05,
+    "epoch_mode": "requests",
+    "epochs_per_trace": [
+      10,
+      20,
+      50
+    ]
+  },
+  "traces": [
+    {
+      "trace": "twitter_cluster052.csv",
+      "source": "Twitter Twemcache production KV cache (OSDI '20)",
+      "requests": 1000000,
+      "distinct_keys": 255333,
+      "capacity": 10000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            59.6242
+          ]
+        },
+        "ARC": {
+          "runs": [
+            58.9894
+          ]
+        },
+        "LFU": {
+          "runs": [
+            41.4436
+          ]
+        },
+        "LRU": {
+          "runs": [
+            58.391000000000005
+          ]
+        },
+        "Random": {
+          "runs": [
+            54.789500000000004,
+            54.816500000000005,
+            54.8316,
+            54.7961,
+            54.791000000000004
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            59.7291
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            59.785
+          ]
+        },
+        "TTL": {
+          "runs": [
+            58.391000000000005
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            55.9778,
+            58.939,
+            58.837799999999994,
+            58.8139,
+            58.9153
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              58.7539,
+              58.61730000000001,
+              58.6589,
+              58.64509999999999,
+              58.6652
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 50000,
+          "hit_rate_percent": {
+            "runs": [
+              58.815200000000004,
+              58.709900000000005,
+              58.9128,
+              58.6309,
+              58.771300000000004
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 20000,
+          "hit_rate_percent": {
+            "runs": [
+              57.9454,
+              58.193799999999996,
+              58.408300000000004,
+              58.0142,
+              58.12310000000001
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.02300688752794089,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 35120,
+                "Misses": 19907,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 34646,
+                "Misses": 20381,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 34611,
+                "Misses": 20416,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 34465,
+                "Misses": 20562,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 34255,
+                "Misses": 20772,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 33854,
+                "Misses": 21173,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 33720,
+                "Misses": 21307,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 31711,
+                "Misses": 23316,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 28327,
+                "Misses": 26700,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.016230875929031385,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 28303,
+                "Misses": 20000,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 28262,
+                "Misses": 20041,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 28117,
+                "Misses": 20186,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 27901,
+                "Misses": 20402,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 27727,
+                "Misses": 20576,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 27519,
+                "Misses": 20784,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 27502,
+                "Misses": 20801,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 25606,
+                "Misses": 22697,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 21771,
+                "Misses": 26532,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.021920511335606907,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 26829,
+                "Misses": 19794,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 26461,
+                "Misses": 20162,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 26404,
+                "Misses": 20219,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 26386,
+                "Misses": 20237,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 26299,
+                "Misses": 20324,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 25840,
+                "Misses": 20783,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 25807,
+                "Misses": 20816,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 24157,
+                "Misses": 22466,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 19694,
+                "Misses": 26929,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.02331717362392216,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 26585,
+                "Misses": 20033,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 26387,
+                "Misses": 20231,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 26361,
+                "Misses": 20257,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 26181,
+                "Misses": 20437,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 26053,
+                "Misses": 20565,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 25498,
+                "Misses": 21120,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 25423,
+                "Misses": 21195,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 23615,
+                "Misses": 23003,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 19793,
+                "Misses": 26825,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.016886592230322073,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 34086,
+                "Misses": 20099,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 34026,
+                "Misses": 20159,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 33935,
+                "Misses": 20250,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 33806,
+                "Misses": 20379,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 33636,
+                "Misses": 20549,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 33171,
+                "Misses": 21014,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 33112,
+                "Misses": 21073,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 31229,
+                "Misses": 22956,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 27533,
+                "Misses": 26652,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 414436,
+        "sieve_hits": 597850,
+        "fifo_hits": 555634,
+        "different_lfu_sieve_decisions": 216148,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "lirs_loop.trace",
+      "source": "LIRS loop: cyclic scan, adversarial for LRU (SIGMETRICS '02)",
+      "requests": 505500,
+      "distinct_keys": 1011,
+      "capacity": 500,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            0
+          ]
+        },
+        "ARC": {
+          "runs": [
+            0
+          ]
+        },
+        "LFU": {
+          "runs": [
+            0
+          ]
+        },
+        "LRU": {
+          "runs": [
+            0
+          ]
+        },
+        "Random": {
+          "runs": [
+            19.57982195845697,
+            19.71730959446093,
+            19.61681503461919,
+            19.626706231454005,
+            19.59406528189911
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            0
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            0
+          ]
+        },
+        "TTL": {
+          "runs": [
+            0
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            42.77052423343225,
+            40.979426310583584,
+            44.4482690405539,
+            45.48249258160237,
+            36.82551928783383
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 50550,
+          "hit_rate_percent": {
+            "runs": [
+              39.106627101879326,
+              40.743422354104844,
+              40.571513353115726,
+              40.087240356083086,
+              41.13966369930762
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 25275,
+          "hit_rate_percent": {
+            "runs": [
+              40.68466864490603,
+              44.00059347181009,
+              43.15845697329377,
+              43.03936696340257,
+              42.526211671612266
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 10110,
+          "hit_rate_percent": {
+            "runs": [
+              43.93076162215628,
+              44.03719090009891,
+              43.83541048466865,
+              45.33590504451039,
+              44.172304648862514
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.128,
+      "observe_only": [
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.4465496183206107,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 29249,
+                "Misses": 36251,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 12332,
+                "Misses": 53168,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.5329655172413793,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 30912,
+                "Misses": 27088,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 21546,
+                "Misses": 36454,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 15300,
+                "Misses": 42700,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 32,
+                "Misses": 57968,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 58000,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 58000,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 58000,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 58000,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 58000,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.4671111111111111,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 29428,
+                "Misses": 33572,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 20922,
+                "Misses": 42078,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 13294,
+                "Misses": 49706,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 32,
+                "Misses": 62968,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 63000,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 63000,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 63000,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 63000,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 63000,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.531025641025641,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 31065,
+                "Misses": 27435,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 21483,
+                "Misses": 37017,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 14971,
+                "Misses": 43529,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 32,
+                "Misses": 58468,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 58500,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 58500,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 58500,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 58500,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 58500,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.4513939393939394,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 29792,
+                "Misses": 36208,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 12132,
+                "Misses": 53868,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 66000,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 66000,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 66000,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 0,
+                "Misses": 66000,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 66000,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 0,
+                "Misses": 66000,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 66000,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 0,
+        "sieve_hits": 0,
+        "fifo_hits": 0,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "lirs_2_pools.trace",
+      "source": "LIRS 2_pools: two interleaved pools with different locality",
+      "requests": 100000,
+      "distinct_keys": 9939,
+      "capacity": 1000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            54.397
+          ]
+        },
+        "ARC": {
+          "runs": [
+            54.37499999999999
+          ]
+        },
+        "LFU": {
+          "runs": [
+            54.361000000000004
+          ]
+        },
+        "LRU": {
+          "runs": [
+            54.415
+          ]
+        },
+        "Random": {
+          "runs": [
+            50.002,
+            50.136,
+            49.969,
+            50.144999999999996,
+            49.933
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            54.37
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            54.361000000000004
+          ]
+        },
+        "TTL": {
+          "runs": [
+            54.415
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            54.757999999999996,
+            54.86,
+            54.788000000000004,
+            54.839000000000006,
+            54.871
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 10000,
+          "hit_rate_percent": {
+            "runs": [
+              54.447,
+              54.407000000000004,
+              54.408,
+              54.417,
+              54.394
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 5000,
+          "hit_rate_percent": {
+            "runs": [
+              54.418,
+              54.388999999999996,
+              54.147999999999996,
+              54.357,
+              54.410000000000004
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 2000,
+          "hit_rate_percent": {
+            "runs": [
+              53.969,
+              54.289,
+              54.218999999999994,
+              54.236,
+              54.224000000000004
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.064,
+      "observe_only": [
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.004072987943955719,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 3302,
+                "Misses": 2836,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3292,
+                "Misses": 2846,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3277,
+                "Misses": 2861,
+                "Active": true
+              },
+              {
+                "Policy": 9,
+                "Hits": 3276,
+                "Misses": 2862,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 3271,
+                "Misses": 2867,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3270,
+                "Misses": 2868,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 3267,
+                "Misses": 2871,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 3259,
+                "Misses": 2879,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3021,
+                "Misses": 3117,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 1,
+            "Improvement": 0,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 1,
+                "Hits": 4796,
+                "Misses": 2837,
+                "Active": true
+              },
+              {
+                "Policy": 4,
+                "Hits": 4791,
+                "Misses": 2842,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 4784,
+                "Misses": 2849,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 4771,
+                "Misses": 2862,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 4769,
+                "Misses": 2864,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4762,
+                "Misses": 2871,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 4758,
+                "Misses": 2875,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4757,
+                "Misses": 2876,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 4361,
+                "Misses": 3272,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 1,
+            "Improvement": 0,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 1,
+                "Hits": 3742,
+                "Misses": 2832,
+                "Active": true
+              },
+              {
+                "Policy": 3,
+                "Hits": 3738,
+                "Misses": 2836,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3736,
+                "Misses": 2838,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 3733,
+                "Misses": 2841,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 3730,
+                "Misses": 2844,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3730,
+                "Misses": 2844,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 3719,
+                "Misses": 2855,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 3716,
+                "Misses": 2858,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3427,
+                "Misses": 3147,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 1,
+            "Improvement": 0,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 1,
+                "Hits": 3813,
+                "Misses": 2851,
+                "Active": true
+              },
+              {
+                "Policy": 4,
+                "Hits": 3813,
+                "Misses": 2851,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3811,
+                "Misses": 2853,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3810,
+                "Misses": 2854,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 3808,
+                "Misses": 2856,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 3805,
+                "Misses": 2859,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 3800,
+                "Misses": 2864,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3794,
+                "Misses": 2870,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3471,
+                "Misses": 3193,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 4,
+            "Improvement": 0.007086764987550287,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 4,
+                "Hits": 2333,
+                "Misses": 2888,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 2324,
+                "Misses": 2897,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2323,
+                "Misses": 2898,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2320,
+                "Misses": 2901,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 2306,
+                "Misses": 2915,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 2299,
+                "Misses": 2922,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2299,
+                "Misses": 2922,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2296,
+                "Misses": 2925,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 2114,
+                "Misses": 3107,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 54361,
+        "sieve_hits": 54361,
+        "fifo_hits": 49957,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "source": "ARC paper P3 workstation trace (FAST '03)",
+      "requests": 2000000,
+      "distinct_keys": 426527,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            7.74445
+          ]
+        },
+        "ARC": {
+          "runs": [
+            10.25295
+          ]
+        },
+        "LFU": {
+          "runs": [
+            4.8162
+          ]
+        },
+        "LRU": {
+          "runs": [
+            1.8679500000000002
+          ]
+        },
+        "Random": {
+          "runs": [
+            3.0643,
+            3.0801,
+            3.0667,
+            3.08265,
+            3.0869500000000003
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            10.75245
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            4.8162
+          ]
+        },
+        "TTL": {
+          "runs": [
+            1.8679500000000002
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            11.7706,
+            11.7641,
+            11.4935,
+            11.75015,
+            11.60855
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              12.353250000000001,
+              12.548200000000001,
+              12.1285,
+              12.261800000000001,
+              12.2172
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              12.9241,
+              13.114600000000001,
+              12.685949999999998,
+              12.7039,
+              12.65325
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              12.23355,
+              12.44465,
+              12.36325,
+              12.338849999999999,
+              12.20995
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.1192465884293199,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 13522,
+                "Misses": 85919,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 10604,
+                "Misses": 88837,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10292,
+                "Misses": 89149,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 6771,
+                "Misses": 92670,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4607,
+                "Misses": 94834,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4607,
+                "Misses": 94834,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2956,
+                "Misses": 96485,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1664,
+                "Misses": 97777,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1649,
+                "Misses": 97792,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.11746322206573252,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 13190,
+                "Misses": 84083,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 10182,
+                "Misses": 87091,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10081,
+                "Misses": 87192,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 7832,
+                "Misses": 89441,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4933,
+                "Misses": 92340,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4933,
+                "Misses": 92340,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3068,
+                "Misses": 94205,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1840,
+                "Misses": 95433,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1764,
+                "Misses": 95509,
+                "Active": true
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.11359322237097128,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 13313,
+                "Misses": 86781,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 10820,
+                "Misses": 89274,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10370,
+                "Misses": 89724,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 7885,
+                "Misses": 92209,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 5442,
+                "Misses": 94652,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 5442,
+                "Misses": 94652,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3146,
+                "Misses": 96948,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1953,
+                "Misses": 98141,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1943,
+                "Misses": 98151,
+                "Active": true
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.11325883113733731,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 13129,
+                "Misses": 85839,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 10775,
+                "Misses": 88193,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10028,
+                "Misses": 88940,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 8316,
+                "Misses": 90652,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 5101,
+                "Misses": 93867,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 5101,
+                "Misses": 93867,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3125,
+                "Misses": 95843,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1957,
+                "Misses": 97011,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1920,
+                "Misses": 97048,
+                "Active": true
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.11308376283589724,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 13435,
+                "Misses": 88233,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 10503,
+                "Misses": 91165,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10400,
+                "Misses": 91268,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 7024,
+                "Misses": 94644,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4909,
+                "Misses": 96759,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4909,
+                "Misses": 96759,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2996,
+                "Misses": 98672,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1938,
+                "Misses": 99730,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1862,
+                "Misses": 99806,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 96324,
+        "sieve_hits": 96324,
+        "fifo_hits": 38093,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "arc_oltp",
+      "source": "ARC paper OLTP database trace (FAST '03)",
+      "requests": 914145,
+      "distinct_keys": 186880,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            68.25427038380126
+          ]
+        },
+        "ARC": {
+          "runs": [
+            67.8008412232195
+          ]
+        },
+        "LFU": {
+          "runs": [
+            45.426053853600905
+          ]
+        },
+        "LRU": {
+          "runs": [
+            67.0592739663839
+          ]
+        },
+        "Random": {
+          "runs": [
+            63.00630643935043,
+            63.01101028830218,
+            63.033326222863984,
+            62.98880374557647,
+            63.02927872492876
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            67.79460588856253
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            67.717484644121
+          ]
+        },
+        "TTL": {
+          "runs": [
+            67.0592739663839
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            63.19117864233792,
+            63.22705916457455,
+            63.26884684595988,
+            63.25747009500681,
+            63.233732066575875
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 91414,
+          "hit_rate_percent": {
+            "runs": [
+              67.3695092135274,
+              67.5413637880205,
+              67.63489380787512,
+              67.46030443747983,
+              67.3695092135274
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 45707,
+          "hit_rate_percent": {
+            "runs": [
+              67.00042115856894,
+              67.00840676260331,
+              66.80121862505402,
+              66.96957266079232,
+              66.93445788140832
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 18282,
+          "hit_rate_percent": {
+            "runs": [
+              65.87849848765786,
+              66.35314966444055,
+              66.06523035185884,
+              66.21498777546232,
+              66.22078554277493
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.011484220680784585,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 29017,
+                "Misses": 14521,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 28928,
+                "Misses": 14610,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 28795,
+                "Misses": 14743,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 28754,
+                "Misses": 14784,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 28517,
+                "Misses": 15021,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 28495,
+                "Misses": 15043,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 26767,
+                "Misses": 16771,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 26603,
+                "Misses": 16935,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 23196,
+                "Misses": 20342,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.014404925089579801,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 27344,
+                "Misses": 14239,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 27242,
+                "Misses": 14341,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 27215,
+                "Misses": 14368,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 27209,
+                "Misses": 14374,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 26810,
+                "Misses": 14773,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 26745,
+                "Misses": 14838,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 25003,
+                "Misses": 16580,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 24937,
+                "Misses": 16646,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 21655,
+                "Misses": 19928,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.011240529232161012,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 29813,
+                "Misses": 14402,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 29673,
+                "Misses": 14542,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 29629,
+                "Misses": 14586,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 29545,
+                "Misses": 14670,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 29356,
+                "Misses": 14859,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 29316,
+                "Misses": 14899,
+                "Active": true
+              },
+              {
+                "Policy": 7,
+                "Hits": 27401,
+                "Misses": 16814,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 27394,
+                "Misses": 16821,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 23491,
+                "Misses": 20724,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.01159210287991308,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 29737,
+                "Misses": 14431,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 29725,
+                "Misses": 14443,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 29484,
+                "Misses": 14684,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 29478,
+                "Misses": 14690,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 29271,
+                "Misses": 14897,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 29225,
+                "Misses": 14943,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 27473,
+                "Misses": 16695,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 27302,
+                "Misses": 16866,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 24223,
+                "Misses": 19945,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.011371339849985729,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 31136,
+                "Misses": 14593,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 31113,
+                "Misses": 14616,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 30984,
+                "Misses": 14745,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 30938,
+                "Misses": 14791,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 30688,
+                "Misses": 15041,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 30616,
+                "Misses": 15113,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 29016,
+                "Misses": 16713,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 28810,
+                "Misses": 16919,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 24641,
+                "Misses": 21088,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 415260,
+        "sieve_hits": 619036,
+        "fifo_hits": 584567,
+        "different_lfu_sieve_decisions": 230770,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "meta_kvcache_202206_1",
+      "source": "Meta production key-value cache, 500 hosts over 5 days (CacheBench kvcache/202206)",
+      "requests": 2000000,
+      "distinct_keys": 340723,
+      "capacity": 10000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            68.15679999999999
+          ]
+        },
+        "ARC": {
+          "runs": [
+            68.2667
+          ]
+        },
+        "LFU": {
+          "runs": [
+            66.86565
+          ]
+        },
+        "LRU": {
+          "runs": [
+            66.389
+          ]
+        },
+        "Random": {
+          "runs": [
+            65.19319999999999,
+            65.2106,
+            65.1984,
+            65.18775,
+            65.1772
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            69.05425
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            68.92399999999999
+          ]
+        },
+        "TTL": {
+          "runs": [
+            66.389
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            68.38925,
+            68.38284999999999,
+            68.32249999999999,
+            68.41795,
+            68.3224
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              67.99945,
+              68.00745,
+              67.97475,
+              67.90285,
+              67.7323
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              67.78755,
+              67.5774,
+              67.65755,
+              67.57235,
+              67.54155
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              67.1555,
+              66.82375,
+              66.8634,
+              66.64915,
+              67.0203
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.032974846680295156,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 58992,
+                "Misses": 31016,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 58613,
+                "Misses": 31395,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 58581,
+                "Misses": 31427,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 57892,
+                "Misses": 32116,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 57859,
+                "Misses": 32149,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 57766,
+                "Misses": 32242,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 56036,
+                "Misses": 33972,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 56024,
+                "Misses": 33984,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 54693,
+                "Misses": 35315,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.03748181807253537,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 52715,
+                "Misses": 30472,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 52226,
+                "Misses": 30961,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 52054,
+                "Misses": 31133,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 51415,
+                "Misses": 31772,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 51403,
+                "Misses": 31784,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 51254,
+                "Misses": 31933,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 49657,
+                "Misses": 33530,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 49597,
+                "Misses": 33590,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 48280,
+                "Misses": 34907,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.03208608653817835,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 71244,
+                "Misses": 30607,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 70694,
+                "Misses": 31157,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 70654,
+                "Misses": 31197,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 69870,
+                "Misses": 31981,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 69859,
+                "Misses": 31992,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 69690,
+                "Misses": 32161,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 68003,
+                "Misses": 33848,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 67976,
+                "Misses": 33875,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 66709,
+                "Misses": 35142,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.03615563957913048,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 51698,
+                "Misses": 31083,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 51202,
+                "Misses": 31579,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 51175,
+                "Misses": 31606,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 50515,
+                "Misses": 32266,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 50475,
+                "Misses": 32306,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 50443,
+                "Misses": 32338,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 48738,
+                "Misses": 34043,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 48705,
+                "Misses": 34076,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 47510,
+                "Misses": 35271,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.03817334212003609,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 51362,
+                "Misses": 30580,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 50911,
+                "Misses": 31031,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 50691,
+                "Misses": 31251,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 50126,
+                "Misses": 31816,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 50072,
+                "Misses": 31870,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 49721,
+                "Misses": 32221,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 48334,
+                "Misses": 33608,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 48234,
+                "Misses": 33708,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 47096,
+                "Misses": 34846,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 1337313,
+        "sieve_hits": 1378480,
+        "fifo_hits": 1313815,
+        "different_lfu_sieve_decisions": 130305,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_hm_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 818034,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            17.0071
+          ]
+        },
+        "ARC": {
+          "runs": [
+            16.64985
+          ]
+        },
+        "LFU": {
+          "runs": [
+            14.9886
+          ]
+        },
+        "LRU": {
+          "runs": [
+            11.397350000000001
+          ]
+        },
+        "Random": {
+          "runs": [
+            12.605849999999998,
+            12.61835,
+            12.625049999999998,
+            12.626000000000001,
+            12.64395
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            15.8427
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            15.187249999999999
+          ]
+        },
+        "TTL": {
+          "runs": [
+            11.397350000000001
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            16.4697,
+            16.6051,
+            16.36715,
+            16.4279,
+            15.81245
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              14.370550000000001,
+              15.514800000000001,
+              15.531400000000001,
+              14.4374,
+              15.521550000000001
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              12.8919,
+              12.770950000000001,
+              14.4594,
+              12.878,
+              12.538750000000002
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              14.957,
+              16.06525,
+              13.940050000000001,
+              13.983899999999998,
+              16.38
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.05613922205354541,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 16197,
+                "Misses": 83270,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 15760,
+                "Misses": 83707,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 15340,
+                "Misses": 84127,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 15031,
+                "Misses": 84436,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 14414,
+                "Misses": 85053,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 13199,
+                "Misses": 86268,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 12038,
+                "Misses": 87429,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 10630,
+                "Misses": 88837,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 10613,
+                "Misses": 88854,
+                "Active": true
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.05666489484399605,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 16276,
+                "Misses": 83433,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 15833,
+                "Misses": 83876,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 15739,
+                "Misses": 83970,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 14801,
+                "Misses": 84908,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 14323,
+                "Misses": 85386,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 13468,
+                "Misses": 86241,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 11808,
+                "Misses": 87901,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 10626,
+                "Misses": 89083,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 10560,
+                "Misses": 89149,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.05665742517949812,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 15605,
+                "Misses": 82864,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 15338,
+                "Misses": 83131,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 15256,
+                "Misses": 83213,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 13990,
+                "Misses": 84479,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 13365,
+                "Misses": 85104,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 12133,
+                "Misses": 86336,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 11214,
+                "Misses": 87255,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 10026,
+                "Misses": 88443,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 9954,
+                "Misses": 88515,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.054003724394785846,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 18399,
+                "Misses": 83631,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 18386,
+                "Misses": 83644,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 18067,
+                "Misses": 83963,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 17143,
+                "Misses": 84887,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 16450,
+                "Misses": 85580,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 15097,
+                "Misses": 86933,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 14015,
+                "Misses": 88015,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 12889,
+                "Misses": 89141,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 12755,
+                "Misses": 89275,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.057334772700011985,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 17544,
+                "Misses": 82500,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 17273,
+                "Misses": 82771,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 17116,
+                "Misses": 82928,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 16178,
+                "Misses": 83866,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 15622,
+                "Misses": 84422,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 14422,
+                "Misses": 85622,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 13014,
+                "Misses": 87030,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 11808,
+                "Misses": 88236,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 11797,
+                "Misses": 88247,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 299772,
+        "sieve_hits": 303745,
+        "fifo_hits": 228175,
+        "different_lfu_sieve_decisions": 34189,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_prn_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1900653,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            1.03775
+          ]
+        },
+        "ARC": {
+          "runs": [
+            1.02225
+          ]
+        },
+        "LFU": {
+          "runs": [
+            1.05595
+          ]
+        },
+        "LRU": {
+          "runs": [
+            1.0038
+          ]
+        },
+        "Random": {
+          "runs": [
+            0.9474,
+            0.94405,
+            0.94585,
+            0.94535,
+            0.94475
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            1.008
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            1.05595
+          ]
+        },
+        "TTL": {
+          "runs": [
+            1.0038
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            0.80835,
+            0.7291,
+            0.78595,
+            0.8225,
+            0.6876
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              0.8674,
+              0.8366,
+              0.8657,
+              0.86705,
+              0.86725
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              0.7266,
+              0.9646,
+              0.70945,
+              0.8691000000000001,
+              0.67805
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              1.0075,
+              1.0507,
+              1.01895,
+              1.0493000000000001,
+              1.089
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0006022705600112425,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1020,
+                "Misses": 98603,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1020,
+                "Misses": 98603,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1001,
+                "Misses": 98622,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 998,
+                "Misses": 98625,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 988,
+                "Misses": 98635,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 962,
+                "Misses": 98661,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 960,
+                "Misses": 98663,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 893,
+                "Misses": 98730,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 609,
+                "Misses": 99014,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0006874221668742211,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1127,
+                "Misses": 99248,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1127,
+                "Misses": 99248,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1114,
+                "Misses": 99261,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1107,
+                "Misses": 99268,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1065,
+                "Misses": 99310,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1060,
+                "Misses": 99315,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1058,
+                "Misses": 99317,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 1026,
+                "Misses": 99349,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 885,
+                "Misses": 99490,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.000509088731171203,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1259,
+                "Misses": 98920,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1259,
+                "Misses": 98920,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1231,
+                "Misses": 98948,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1229,
+                "Misses": 98950,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1215,
+                "Misses": 98964,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1208,
+                "Misses": 98971,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1208,
+                "Misses": 98971,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1152,
+                "Misses": 99027,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 815,
+                "Misses": 99364,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0004622697444452255,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1053,
+                "Misses": 98456,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1053,
+                "Misses": 98456,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1034,
+                "Misses": 98475,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1030,
+                "Misses": 98479,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1011,
+                "Misses": 98498,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1009,
+                "Misses": 98500,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1007,
+                "Misses": 98502,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 954,
+                "Misses": 98555,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 613,
+                "Misses": 98896,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0003500630113420413,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1107,
+                "Misses": 98875,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1107,
+                "Misses": 98875,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1084,
+                "Misses": 98898,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1078,
+                "Misses": 98904,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1077,
+                "Misses": 98905,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1072,
+                "Misses": 98910,
+                "Active": true
+              },
+              {
+                "Policy": 8,
+                "Hits": 1069,
+                "Misses": 98913,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1006,
+                "Misses": 98976,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 658,
+                "Misses": 99324,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 21119,
+        "sieve_hits": 21119,
+        "fifo_hits": 20052,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_proj_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1748195,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            5.38475
+          ]
+        },
+        "ARC": {
+          "runs": [
+            5.38475
+          ]
+        },
+        "LFU": {
+          "runs": [
+            4.72735
+          ]
+        },
+        "LRU": {
+          "runs": [
+            5.3511999999999995
+          ]
+        },
+        "Random": {
+          "runs": [
+            5.1998500000000005,
+            5.20975,
+            5.20115,
+            5.2147,
+            5.2040500000000005
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            5.7946
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            4.72735
+          ]
+        },
+        "TTL": {
+          "runs": [
+            5.3511999999999995
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            5.0865,
+            4.091150000000001,
+            5.300549999999999,
+            4.240349999999999,
+            4.377000000000001
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              5.13845,
+              5.1522499999999996,
+              5.1315,
+              4.3469500000000005,
+              5.14015
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              5.4198,
+              5.12365,
+              5.0790500000000005,
+              5.09705,
+              5.08165
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              5.27565,
+              5.3607000000000005,
+              5.53295,
+              5.416449999999999,
+              5.37565
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.004854562094624176,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 6307,
+                "Misses": 94217,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 5869,
+                "Misses": 94655,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 5855,
+                "Misses": 94669,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 5822,
+                "Misses": 94702,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 5819,
+                "Misses": 94705,
+                "Active": true
+              },
+              {
+                "Policy": 7,
+                "Hits": 5719,
+                "Misses": 94805,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 5637,
+                "Misses": 94887,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 5461,
+                "Misses": 95063,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 5196,
+                "Misses": 95328,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.005432368027787876,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 4902,
+                "Misses": 94134,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 4430,
+                "Misses": 94606,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 4425,
+                "Misses": 94611,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 4424,
+                "Misses": 94612,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 4403,
+                "Misses": 94633,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 4364,
+                "Misses": 94672,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 4256,
+                "Misses": 94780,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4170,
+                "Misses": 94866,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 3753,
+                "Misses": 95283,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.0045255664467294746,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 5767,
+                "Misses": 94110,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 5371,
+                "Misses": 94506,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 5365,
+                "Misses": 94512,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 5324,
+                "Misses": 94553,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 5315,
+                "Misses": 94562,
+                "Active": true
+              },
+              {
+                "Policy": 7,
+                "Hits": 5268,
+                "Misses": 94609,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 5179,
+                "Misses": 94698,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 5032,
+                "Misses": 94845,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4648,
+                "Misses": 95229,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.004853541380451458,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 5548,
+                "Misses": 94173,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 5415,
+                "Misses": 94306,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 5185,
+                "Misses": 94536,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 5090,
+                "Misses": 94631,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 5073,
+                "Misses": 94648,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 5064,
+                "Misses": 94657,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 4891,
+                "Misses": 94830,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4811,
+                "Misses": 94910,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4389,
+                "Misses": 95332,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.003636799616337623,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 6047,
+                "Misses": 94041,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 5838,
+                "Misses": 94250,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 5801,
+                "Misses": 94287,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 5683,
+                "Misses": 94405,
+                "Active": true
+              },
+              {
+                "Policy": 3,
+                "Hits": 5652,
+                "Misses": 94436,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 5648,
+                "Misses": 94440,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 5591,
+                "Misses": 94497,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 5448,
+                "Misses": 94640,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4983,
+                "Misses": 95105,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 94547,
+        "sieve_hits": 94547,
+        "fifo_hits": 102774,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_src1_2",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1947636,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            1.7661
+          ]
+        },
+        "ARC": {
+          "runs": [
+            1.72685
+          ]
+        },
+        "LFU": {
+          "runs": [
+            1.4181
+          ]
+        },
+        "LRU": {
+          "runs": [
+            1.7021499999999998
+          ]
+        },
+        "Random": {
+          "runs": [
+            1.6340000000000001,
+            1.6357,
+            1.62955,
+            1.63055,
+            1.6362
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            1.7013500000000001
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            1.4181
+          ]
+        },
+        "TTL": {
+          "runs": [
+            1.7021499999999998
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            0.9696,
+            1.199,
+            1.2016499999999999,
+            0.9121,
+            1.2635
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              1.7021499999999998,
+              1.7021499999999998,
+              1.5412000000000001,
+              1.7021499999999998,
+              1.7021499999999998
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              1.7013500000000001,
+              1.70125,
+              1.7013500000000001,
+              1.70125,
+              1.2382499999999999
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0006795514960126307,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1713,
+                "Misses": 98353,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1671,
+                "Misses": 98395,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1647,
+                "Misses": 98419,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1645,
+                "Misses": 98421,
+                "Active": true
+              },
+              {
+                "Policy": 8,
+                "Hits": 1644,
+                "Misses": 98422,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1580,
+                "Misses": 98486,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1562,
+                "Misses": 98504,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1379,
+                "Misses": 98687,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1202,
+                "Misses": 98864,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0005492859282932201,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1742,
+                "Misses": 98388,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1701,
+                "Misses": 98429,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1687,
+                "Misses": 98443,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1687,
+                "Misses": 98443,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1683,
+                "Misses": 98447,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1612,
+                "Misses": 98518,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1540,
+                "Misses": 98590,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1401,
+                "Misses": 98729,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 866,
+                "Misses": 99264,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0006326889279437628,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1779,
+                "Misses": 97796,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1734,
+                "Misses": 97841,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1717,
+                "Misses": 97858,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1716,
+                "Misses": 97859,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1715,
+                "Misses": 97860,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1643,
+                "Misses": 97932,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1622,
+                "Misses": 97953,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1441,
+                "Misses": 98134,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1345,
+                "Misses": 98230,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0007185126787549768,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1787,
+                "Misses": 98420,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1742,
+                "Misses": 98465,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1716,
+                "Misses": 98491,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1715,
+                "Misses": 98492,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1715,
+                "Misses": 98492,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1678,
+                "Misses": 98529,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1658,
+                "Misses": 98549,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1430,
+                "Misses": 98777,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1227,
+                "Misses": 98980,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0005406325400718857,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1732,
+                "Misses": 98151,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1701,
+                "Misses": 98182,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1682,
+                "Misses": 98201,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1678,
+                "Misses": 98205,
+                "Active": true
+              },
+              {
+                "Policy": 8,
+                "Hits": 1678,
+                "Misses": 98205,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1651,
+                "Misses": 98232,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1631,
+                "Misses": 98252,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1419,
+                "Misses": 98464,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1327,
+                "Misses": 98556,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 28362,
+        "sieve_hits": 28362,
+        "fifo_hits": 34051,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_usr_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1778953,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            3.5717499999999998
+          ]
+        },
+        "ARC": {
+          "runs": [
+            3.5526500000000003
+          ]
+        },
+        "LFU": {
+          "runs": [
+            1.4588
+          ]
+        },
+        "LRU": {
+          "runs": [
+            3.5715999999999997
+          ]
+        },
+        "Random": {
+          "runs": [
+            3.4989,
+            3.4951000000000003,
+            3.5000000000000004,
+            3.4896000000000003,
+            3.4949
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            3.5838
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            1.4588
+          ]
+        },
+        "TTL": {
+          "runs": [
+            3.5715999999999997
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            2.0708,
+            2.83275,
+            2.8615000000000004,
+            2.82755,
+            2.89025
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              3.5715999999999997,
+              2.9993499999999997,
+              3.5715999999999997,
+              3.5715999999999997,
+              2.9993499999999997
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              3.5027999999999997,
+              3.5027999999999997,
+              3.5027999999999997,
+              3.5027000000000004,
+              3.50265
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              3.65795,
+              3.4173500000000003,
+              3.41985,
+              3.4123,
+              3.64765
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.00019981816546942033,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 3604,
+                "Misses": 96487,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3600,
+                "Misses": 96491,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3598,
+                "Misses": 96493,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3584,
+                "Misses": 96507,
+                "Active": true
+              },
+              {
+                "Policy": 4,
+                "Hits": 3578,
+                "Misses": 96513,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3515,
+                "Misses": 96576,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3322,
+                "Misses": 96769,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2881,
+                "Misses": 97210,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1889,
+                "Misses": 98202,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 1,
+            "Improvement": 0,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 1,
+                "Hits": 3526,
+                "Misses": 96771,
+                "Active": true
+              },
+              {
+                "Policy": 3,
+                "Hits": 3525,
+                "Misses": 96772,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 3525,
+                "Misses": 96772,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3508,
+                "Misses": 96789,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 3497,
+                "Misses": 96800,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3445,
+                "Misses": 96852,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3006,
+                "Misses": 97291,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2596,
+                "Misses": 97701,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1820,
+                "Misses": 98477,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.0004012800834662586,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 3493,
+                "Misses": 96188,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3458,
+                "Misses": 96223,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3453,
+                "Misses": 96228,
+                "Active": true
+              },
+              {
+                "Policy": 4,
+                "Hits": 3438,
+                "Misses": 96243,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3432,
+                "Misses": 96249,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3334,
+                "Misses": 96347,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2903,
+                "Misses": 96778,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2743,
+                "Misses": 96938,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1693,
+                "Misses": 97988,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.00013064144951713264,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 3639,
+                "Misses": 95870,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3626,
+                "Misses": 95883,
+                "Active": true
+              },
+              {
+                "Policy": 3,
+                "Hits": 3615,
+                "Misses": 95894,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3610,
+                "Misses": 95899,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 3579,
+                "Misses": 95930,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3518,
+                "Misses": 95991,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3013,
+                "Misses": 96496,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2379,
+                "Misses": 97130,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1753,
+                "Misses": 97756,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.00023955442876250066,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 3479,
+                "Misses": 96707,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 3459,
+                "Misses": 96727,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3455,
+                "Misses": 96731,
+                "Active": true
+              },
+              {
+                "Policy": 4,
+                "Hits": 3453,
+                "Misses": 96733,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3450,
+                "Misses": 96736,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3383,
+                "Misses": 96803,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2727,
+                "Misses": 97459,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2146,
+                "Misses": 98040,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1735,
+                "Misses": 98451,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 29176,
+        "sieve_hits": 29176,
+        "fifo_hits": 70272,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_web_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1855956,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            2.6100000000000003
+          ]
+        },
+        "ARC": {
+          "runs": [
+            2.6045
+          ]
+        },
+        "LFU": {
+          "runs": [
+            2.61025
+          ]
+        },
+        "LRU": {
+          "runs": [
+            2.2991
+          ]
+        },
+        "Random": {
+          "runs": [
+            2.5575,
+            2.56,
+            2.5591,
+            2.5578,
+            2.55355
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            2.49225
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            2.61025
+          ]
+        },
+        "TTL": {
+          "runs": [
+            2.2991
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            2.19355,
+            2.2877,
+            2.2384,
+            2.2937,
+            2.2238
+          ]
+        }
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              2.21845,
+              2.3472,
+              2.3472,
+              2.3472,
+              2.3472
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              2.4063,
+              2.4047,
+              2.4053,
+              2.4082,
+              2.384
+            ]
+          }
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              2.4467,
+              2.43975,
+              2.4427999999999996,
+              2.4486999999999997,
+              2.4526
+            ]
+          }
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.003241295310187936,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 2380,
+                "Misses": 96963,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2380,
+                "Misses": 96963,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 2369,
+                "Misses": 96974,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 2367,
+                "Misses": 96976,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2357,
+                "Misses": 96986,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2239,
+                "Misses": 97104,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2232,
+                "Misses": 97111,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2058,
+                "Misses": 97285,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 2058,
+                "Misses": 97285,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0031684474607442357,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 2650,
+                "Misses": 97399,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 2647,
+                "Misses": 97402,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 2645,
+                "Misses": 97404,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2645,
+                "Misses": 97404,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2545,
+                "Misses": 97504,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2521,
+                "Misses": 97528,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2478,
+                "Misses": 97571,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2333,
+                "Misses": 97716,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 2327,
+                "Misses": 97722,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0030672708260718017,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 2752,
+                "Misses": 97663,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2752,
+                "Misses": 97663,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 2743,
+                "Misses": 97672,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 2733,
+                "Misses": 97682,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2712,
+                "Misses": 97703,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2643,
+                "Misses": 97772,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2538,
+                "Misses": 97877,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2444,
+                "Misses": 97971,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 2442,
+                "Misses": 97973,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.002826348735607019,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 2437,
+                "Misses": 98046,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 2434,
+                "Misses": 98049,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2434,
+                "Misses": 98049,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 2433,
+                "Misses": 98050,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2380,
+                "Misses": 98103,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2323,
+                "Misses": 98160,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2253,
+                "Misses": 98230,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2153,
+                "Misses": 98330,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 2129,
+                "Misses": 98354,
+                "Active": false
+              }
+            ]
+          }
+        },
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0032553326166243,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 2839,
+                "Misses": 96690,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2839,
+                "Misses": 96690,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 2838,
+                "Misses": 96691,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 2831,
+                "Misses": 96698,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2770,
+                "Misses": 96759,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2732,
+                "Misses": 96797,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2703,
+                "Misses": 96826,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2515,
+                "Misses": 97014,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 2512,
+                "Misses": 97017,
+                "Active": false
+              }
+            ]
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 52205,
+        "sieve_hits": 52205,
+        "fifo_hits": 45560,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    }
+  ],
+  "tree_modified": false
+}

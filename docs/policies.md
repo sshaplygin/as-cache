@@ -31,7 +31,7 @@ cache, err := ascache.NewAdaptiveCache(
 | Random | `policies.NewRandomPolicy` | no bookkeeping; the control arm worth beating |
 | TTL | `policies.NewTTL` | expiry as well as recency; expiry runs on the wall clock, so its hit rate depends on how fast traffic arrives, and a replay is reproducible only while the TTL is far longer than the run |
 | ARC | `policies/arc.NewPolicy` | separate module — see below |
-| W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; the strongest baseline |
+| W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; asynchronous, workload-dependent baseline |
 | S3-FIFO | `policies/fifo.NewS3FIFOPolicy` | separate module; three FIFO queues, and deterministic |
 | SIEVE | `policies/fifo.NewSievePolicy` | same module; one FIFO queue and a sweeping hand |
 
@@ -88,6 +88,11 @@ arm is for.
 
 ## S3-FIFO and SIEVE
 
+These adapters are experimental source in this repository. The
+`policies/fifo` module has not been tagged; inclusion in the evidence suite
+does not imply a published package. They are deferred from the v0.4 release
+plan while native implementations are planned for v0.5.
+
 Both constructors reject a size of zero or less, as `NewLRU`, `NewLFU` and
 `NewTwoQueue` do: a cache built at zero would accept nothing and report no hits
 for as long as it existed, which as a bandit arm is a silent no-op rather than
@@ -118,9 +123,7 @@ W-TinyLFU for a different reason. It is hard to reach from ordinary traffic
 to capacity, read everything several times, then write once) it is real. Set
 `EvictPartialCapacityFilling: true` if you would rather not think about it.
 
-```bash
-go get github.com/sshaplygin/as-cache/policies/fifo
-```
+Use a repository checkout for these experiments:
 
 ```go
 s3, err := fifo.NewS3FIFOPolicy[string, int](10000)
@@ -155,9 +158,14 @@ miss ratios than the LRU-based state of the art across several thousand traces
 (Yang, Zhang, Qiu, Yue & Rashmi, *FIFO Queues are All You Need for Cache
 Eviction*, SOSP '23).
 
-It is in `benchclient.DefaultArms` for that reason.
+It participates in the research benchmarks. The unpublished FIFO module is
+excluded from `benchclient.DefaultArms` and the v0.4 release.
 
 ### SIEVE
+
+The current evidence includes an independent visited-bit model and a FIFO
+control. Identical LFU/SIEVE hit counts on some traces do not mean the algorithms
+are interchangeable; see the [diagnostic and worked examples](evidence.md#the-two-fifo-policies).
 
 SIEVE is simpler still: **one** FIFO queue and a hand that sweeps it from the
 oldest end. Each entry carries a single visited bit, set when it is read. The

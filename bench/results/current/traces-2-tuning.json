@@ -1,0 +1,194 @@
+[
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        11.9515,
+        11.97175,
+        12.00045,
+        12.024849999999999,
+        12.002749999999999
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        4.64815,
+        4.535200000000001,
+        4.60905,
+        7.6229000000000005,
+        4.4606
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        12.59835,
+        12.225800000000001,
+        12.28195,
+        12.49925,
+        12.23655
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        7.86115,
+        7.9136999999999995,
+        7.854849999999999,
+        7.87415,
+        7.987550000000001
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        13.2218,
+        11.226849999999999,
+        13.3145,
+        13.22305,
+        11.58675
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        10.07335,
+        7.430200000000001,
+        7.2200500000000005,
+        10.405100000000001,
+        10.34995
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        12.802900000000001,
+        12.678749999999999,
+        12.571399999999999,
+        12.58335,
+        12.736749999999999
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        9.8414,
+        9.26715,
+        9.18065,
+        9.06475,
+        9.13325
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        12.084,
+        11.842500000000001,
+        11.768,
+        11.9401,
+        12.0756
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        10.29435,
+        10.44945,
+        10.360149999999999,
+        8.2564,
+        10.17195
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        11.85015,
+        13.124749999999999,
+        12.356150000000001,
+        12.385250000000001,
+        13.411200000000001
+      ]
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        11.32045,
+        11.6258,
+        10.72415,
+        11.6435,
+        9.76385
+      ]
+    }
+  }
+]

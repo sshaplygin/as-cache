@@ -5,31 +5,32 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/sshaplygin/as-cache)](https://goreportcard.com/report/github.com/sshaplygin/as-cache)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](LICENSE)
 
-Choosing a cache eviction policy is a decision most projects make once, from
-intuition, and never revisit. The trouble is that the right answer depends on
-traffic you have not seen yet, and it is not stable: replayed against six
-published traces, **four different policies win**, and the strongest
-general-purpose baseline of them all comes near the bottom on one. Guessing
-wrong is not a rounding error either — on one of those traces seven of the nine
-policies here serve **0.0%** while one serves 45%.
+as-cache is an experimental Go library for studying adaptive cache-policy
+selection. For a general-purpose production cache, start with **otter or
+theine**; see the [measured comparison](docs/evidence.md#how-does-it-compare-with-other-go-cache-libraries).
 
-as-cache makes the choice at runtime instead. One policy is **active** and
-serves every request. The others run as **shadows**: they see each key but
-never its value, and answer "would I have had this?" Once per epoch every arm
-reports its hit rate, a multi-armed bandit names the winner, and the cache
-switches to it — unconditionally by default, or subject to [stability
-gates](docs/configuration.md#keeping-switches-stable) you opt into. There is also an observe-only mode
-where nothing ever switches and the library simply tells you which policy your
-traffic wants — often the more useful half of it.
+The best eviction policy depends on the workload. Across twelve published
+trace workloads, different fixed policies lead. This library measures that
+choice at runtime: one policy is **active** and serves requests, while the
+others run as **shadows** that track keys and eviction state without payload
+values. Once per epoch a multi-armed bandit selects a policy. Switching is
+unconditional by default; optional [stability gates](docs/configuration.md#keeping-switches-stable)
+can restrict it.
 
-It is pre-1.0, the API may still change, and nothing here has run in production
-that I know of. What it does have is measurement: every number in these
-documents comes from a run you can repeat with `make evidence`, over published
-traces and generated workloads both, and the two arms whose results do not
-repeat exactly are named wherever their numbers appear. The concurrency has
-been exercised under the race detector and adversarially reviewed. It is all in
-[the evidence](docs/evidence.md), so you do not have to take "experimental" or
-"production-ready" on trust.
+Measurement does not guarantee an improvement or a floor relative to a fixed
+policy. The [current results](bench/results/current/README.md) report repeated
+observations, small margins and ties, effective sampling, an object/byte
+comparison and an offline [ObserveOnly](docs/advisor-mode.md) sweep. ObserveOnly
+collects advice while keeping the configured policy active.
+
+It is pre-1.0, the API may change, and production use has not been established.
+The repository includes nine policy arms; S3-FIFO and SIEVE are experimental
+adapters planned for v0.5; their module is excluded from v0.4. The
+[evidence](docs/evidence.md) links to raw results, input checksums and the
+measured revision. Reproduce the dataset with the
+[three-batch recorder](docs/benchmarking.md#saved-baseline); `make evidence` runs
+one diagnostic batch. Random sampling, Random and asynchronous W-TinyLFU mean
+some numbers vary between runs.
 
 ## Documentation
 
@@ -42,7 +43,8 @@ been exercised under the race detector and adversarially reviewed. It is all in
 | [Advisor mode](docs/advisor-mode.md) | `ObserveOnly`, `Advice()`, and the `metrics` module |
 | [Evidence](docs/evidence.md) | Every measured claim: policy tables, competing libraries, real traces, sampling fidelity |
 | [Benchmarking](docs/benchmarking.md) | Reproducible replays, `benchclient`, `make evidence` |
-| [Project site](https://sshaplygin.github.io/as-cache/) | Landing page, plus an interactive explorer of the bandit's decisions on a phase-shift run |
+| [Releasing](docs/releasing.md) | Development workspace, candidate checks, publication and upgrade notes |
+| [Project site](https://sshaplygin.github.io/as-cache/) | Project overview and documentation |
 
 Past releases are recorded in the [changelog](CHANGELOG.md) and on the
 [releases page](https://github.com/sshaplygin/as-cache/releases).

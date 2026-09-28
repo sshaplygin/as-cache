@@ -1,0 +1,147 @@
+{
+  "commit": "3331d5f6156c969b31bf70e438ebc8ca25b501b6",
+  "started_at": "2026-09-28T20:41:29.534881+00:00",
+  "platform": "macOS-26.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "go": "go version go1.25.5 darwin/arm64",
+  "files": [
+    {
+      "file": "arc_oltp.gz",
+      "bytes": 2246479,
+      "sha256": "9599b313a5662e72734fb499b3513759144d7f80847134f29638567b6a5ab151"
+    },
+    {
+      "file": "arc_p3.gz",
+      "bytes": 1441128,
+      "sha256": "71be839be560a64cc260c6a93fe002b6de5b4d24bdbc885f4a81a65ff84e4cbf"
+    },
+    {
+      "file": "lirs_2_pools.trace.gz",
+      "bytes": 171161,
+      "sha256": "12370af6d9e1b5a4d16642c6a5d0322565f20aed54bed8176901e74f70a4c3ee"
+    },
+    {
+      "file": "lirs_loop.trace.gz",
+      "bytes": 17848,
+      "sha256": "465c1cc6bb08993034fd3597106cb0edc55b25a5984a17a12018f30a06ba60e9"
+    },
+    {
+      "file": "lirs_multi2.trace.gz",
+      "bytes": 43980,
+      "sha256": "3576bc20286f4d204a3c2b6647bb691ed9dde9a923a32624e145873ed830dad5"
+    },
+    {
+      "file": "meta_kvcache_202206_1.csv",
+      "bytes": 134217728,
+      "sha256": "faaf993d0267a3b68430ec079de6074060cb3593ddff4a9e987c25a5d68cd277"
+    },
+    {
+      "file": "msr_hm_0.csv.gz",
+      "bytes": 41967571,
+      "sha256": "06d414bd428b9b77e7ff803c7cc9ec14351283fd9eb45a5d00fdca3aaeeba468"
+    },
+    {
+      "file": "msr_prn_0.csv.gz",
+      "bytes": 44469556,
+      "sha256": "cc98e9e6f0d1d41ae050a78a6bebf1f6031e9c824d84685c7b3d6be73080c1ba"
+    },
+    {
+      "file": "msr_proj_0.csv.gz",
+      "bytes": 54999265,
+      "sha256": "b972f0e6d396a9db13653d7f51a04554dd1f83ea9e91458536bd5e0e9eb24fc2"
+    },
+    {
+      "file": "msr_src1_2.csv.gz",
+      "bytes": 21339692,
+      "sha256": "34539f303ee98222237852610756dc77cac59739e909557fa40baf92c980e12c"
+    },
+    {
+      "file": "msr_usr_0.csv.gz",
+      "bytes": 25999401,
+      "sha256": "094eb4e7c871e4e339682d149ed90fbb8a034968f51ab71da85853f7a2ad8d9c"
+    },
+    {
+      "file": "msr_web_0.csv.gz",
+      "bytes": 24066938,
+      "sha256": "80d026313b52c8288ef2878173b344895637a26a960b1bccde91da9abf34deaa"
+    },
+    {
+      "file": "twitter_cluster052.csv",
+      "bytes": 44110178,
+      "sha256": "f3f47903f0aad7a83260f5df63910c694da94ec7eee91bbde98cc34d46dabfe6"
+    }
+  ],
+  "commands": [
+    {
+      "args": [
+        "make",
+        "verify-ref"
+      ],
+      "log": "reference.log",
+      "exit_code": 0,
+      "duration_seconds": 66.92003770871088
+    },
+    {
+      "args": [
+        "python3",
+        "scripts/measure_bytes.py",
+        "/Users/sshaplygin/GithubProjects/as-cache/traces",
+        "/Users/sshaplygin/GithubProjects/as-cache/.reports/pr17-fixes/current/bytes.json",
+        "--libcachesim",
+        "/Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim"
+      ],
+      "log": "bytes.log",
+      "exit_code": 0,
+      "duration_seconds": 4.58590287482366
+    },
+    {
+      "args": [
+        "make",
+        "evidence"
+      ],
+      "log": "evidence-1.log",
+      "exit_code": 0,
+      "duration_seconds": 572.9694744166918
+    },
+    {
+      "args": [
+        "make",
+        "evidence"
+      ],
+      "log": "evidence-2.log",
+      "exit_code": 0,
+      "duration_seconds": 647.1927176662721
+    },
+    {
+      "args": [
+        "make",
+        "evidence"
+      ],
+      "log": "evidence-3.log",
+      "exit_code": 0,
+      "duration_seconds": 639.9983648331836
+    }
+  ],
+  "libcachesim_commit": "1d7415569978330ea95c9cff06a260630406f7e3",
+  "libcachesim_binary_sha256": "a6a60ec8d17c68f00130591cda32e119fa68b7bcbbc7c0c942005dbad8d0597e",
+  "completed_at": "2026-09-28T21:13:41.319870+00:00",
+  "artifacts_sha256": {
+    "README.md": "2080cf238f7c335383d7a1405ef4576d6caed3042509156c7d4a1cb6025e3c4a",
+    "bytes.json": "6f30c06d547c9b84526712f576f302d11c0d20dc72ebbf1c2c2d506b2b571303",
+    "bytes.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "evidence-1.log": "6924e4c6aa8246f97217dbcb4494ad320a8db3e820d1b0e9dea57f1aff3db928",
+    "evidence-2.log": "9be942778c1162443d0d54b59b1bd3f81c27e0c3cdf7a8e8249acf4431a9c55d",
+    "evidence-3.log": "17ded0f1d8bfc28a29d9d20b988bcd2d3642b371e1d1932f51302c66c0124f05",
+    "reference.log": "fd9bcab53c9c29660706577ab0673f58396856c5712649416da9ba426eb2d4e4",
+    "reference.tsv": "08b801df457a1c5daa05b4edee0d6e4b7361fe3278c6b19ea522a47203363bd2",
+    "traces-1-tuning.json": "6f1d84aa987e290ea76db639211ae17bf8af2c6563d605c74fd21ae8628a16fd",
+    "traces-1.json": "e04c7711bcd70fceaf2bdbc3ee865bd33139c5822f6f3db4027a4ecacd875b1b",
+    "traces-2-tuning.json": "ab7428ab2a2f0e4a3934c0ea3f74d1b257da59d8f246e613c3019a55cd677af6",
+    "traces-2.json": "64405d9b381251ab8d611bc76c1a96b95b4519f34a483cc3d99db6add18c758e",
+    "traces-3-tuning.json": "3324778af25b2326b8900b633f94d0c7c990e6acb3edf0af68d4d2b1fb9a0dfb",
+    "traces-3.json": "73a2a6809ebf84fb628f768c90f83b346d2d5869030caddcf66819277cb3f90f",
+    "traces.json": "c0eba016d61493686b9414c0eb4dc734a6c49217889fde26e5f3f31229932c13",
+    "tuning.json": "b8f4592d1578a507bd306573150d346b537e172df7c23ea7a9bf3f63c44ac4f2"
+  },
+  "report_generator_commit": "886844da1e69d075bb8c012ff87232aac4056af5"
+}

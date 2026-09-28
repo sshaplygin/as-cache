@@ -5,7 +5,7 @@ MODULES := . lfu policies policies/arc policies/fifo policies/tinylfu metrics ba
 GOLANGCI_LINT_VERSION := v2.8.0
 
 .PHONY: all
-all: fmt vet lint test release-check ## Format, vet, lint, test and check releasability
+all: fmt vet lint test python-check script-test release-check ## Format, vet, lint, test and check releasability
 
 .PHONY: lint
 lint: ## Run golangci-lint across all modules
@@ -43,19 +43,29 @@ test: ## Run tests with the race detector across all modules
 	done
 
 .PHONY: release-check
-release-check: ## Check the repository could actually be released today
+release-check: release-check-test ## Build eight candidate modules as external consumers
 	@./scripts/release-check.sh
+
+.PHONY: release-check-test
+release-check-test: ## Test the release checker against broken module fixtures
+	@python3 -m unittest discover -s scripts -p 'release_check_test.py'
+
+.PHONY: release-check-published
+release-check-published: ## Verify actual published tags (only after publication)
+	@./scripts/release-check.sh --published
 
 .PHONY: evidence
 evidence: ## Replay the workload suite and print the policy comparison tables
-	( cd bench && go test -count=1 -timeout 20m -v ./... )
+	@python3 scripts/trace_inputs.py "$${AS_CACHE_TRACES:?set AS_CACHE_TRACES}"
+	( cd bench && go test -count=1 -timeout 45m -v ./... )
+
+.PHONY: verify-ref
+verify-ref: ## Calibrate the trace loaders and LRU against libCacheSim (needs AS_CACHE_TRACES)
+	@./scripts/verify-ref.sh
 
 .PHONY: tidy
 tidy: ## Run go mod tidy across all modules
-	@set -e; for m in $(MODULES); do \
-		echo "==> tidy $$m"; \
-		( cd $$m && go mod tidy ); \
-	done
+	@python3 scripts/tidy.py
 
 .PHONY: install-tools
 install-tools: ## Install golangci-lint at the pinned version
@@ -65,3 +75,15 @@ install-tools: ## Install golangci-lint at the pinned version
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: python-check
+python-check: ## Lint and check formatting with pinned Ruff
+	@./scripts/python-check.sh
+
+.PHONY: script-test
+script-test: ## Check trace integrity and simulator export regressions
+	@python3 -m unittest discover -s scripts -p '*_test.py'
+
+.PHONY: measure-bytes
+measure-bytes: ## Compare Meta LRU with object and byte capacities
+	@python3 scripts/measure_bytes.py "$${AS_CACHE_TRACES:?set AS_CACHE_TRACES}" "$${AS_CACHE_BYTES_OUT:?set AS_CACHE_BYTES_OUT}"
