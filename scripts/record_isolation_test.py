@@ -5,11 +5,14 @@ from contextlib import nullcontext
 import os
 from pathlib import Path
 import subprocess
+import shutil
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
 import record_evidence
+from record_evidence_test import complete_manifest
 
 
 class RecordingIsolationTest(unittest.TestCase):
@@ -176,6 +179,68 @@ class RecordingIsolationTest(unittest.TestCase):
             record_evidence.record(Path(self.work.name) / "results")
         self.assertEqual(before, index.read_bytes())
         self.assertIn("staged developer edit", self.git("diff", "--cached"))
+
+    def test_report_refresh_executes_committed_generator_despite_git_flags(self):
+        repository_scripts = Path(__file__).resolve().parent
+        shutil.copytree(
+            repository_scripts,
+            self.root / "scripts",
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("__pycache__"),
+        )
+        self.git("add", "scripts")
+        self.git("commit", "-qm", "committed report generator")
+        commit = self.git("rev-parse", "HEAD").strip()
+        generator = self.root / "scripts/render_evidence.py"
+        committed = generator.read_bytes()
+        for flag in ("assume-unchanged", "skip-worktree"):
+            with self.subTest(flag=flag):
+                destination = Path(self.work.name) / flag
+                destination.mkdir()
+                complete_manifest(destination)
+                before = {
+                    p.name: p.read_bytes()
+                    for p in destination.iterdir()
+                    if p.name not in ("README.md", "manifest.json")
+                }
+                self.git("update-index", "--" + flag, "scripts/render_evidence.py")
+                generator.write_bytes(
+                    committed.replace(
+                        b"# Current measurement results", b"# UNCOMMITTED GENERATOR"
+                    )
+                )
+                self.assertEqual(
+                    "", self.git("status", "--porcelain", "--", "scripts").strip()
+                )
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-B",
+                        str(self.root / "scripts/record_evidence.py"),
+                        "--render",
+                        str(destination),
+                    ],
+                    cwd=self.root,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertNotIn(
+                    b"UNCOMMITTED GENERATOR", (destination / "README.md").read_bytes()
+                )
+                self.assertIn(b"UNCOMMITTED GENERATOR", generator.read_bytes())
+                manifest = json.loads((destination / "manifest.json").read_text())
+                self.assertEqual(commit, manifest["report_generator_commit"])
+                self.assertEqual(
+                    before,
+                    {
+                        p.name: p.read_bytes()
+                        for p in destination.iterdir()
+                        if p.name in before
+                    },
+                )
+                generator.write_bytes(committed)
+                self.git("update-index", "--no-" + flag, "scripts/render_evidence.py")
 
     def test_output_is_validated_before_starting_measurements(self):
         with patch.object(record_evidence, "ROOT", self.root):
