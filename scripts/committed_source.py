@@ -1,13 +1,23 @@
 """Export exactly one Git commit, independent of index and working-tree flags."""
 
 import io
+import os
 from pathlib import Path
 import subprocess
 
 
+def git_environment():
+    """Keep local Git operations independent of caller repository overrides."""
+    env = {
+        key: value for key, value in os.environ.items() if not key.startswith("GIT_")
+    }
+    env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+    return env
+
+
 class CommittedSource:
     def __init__(self, repository, revision="HEAD"):
-        self.repository = Path(repository)
+        self.repository = Path(repository).resolve()
         self.commit = (
             self.git("rev-parse", "--verify", f"{revision}^{{commit}}").decode().strip()
         )
@@ -30,12 +40,12 @@ class CommittedSource:
 
     def git(self, *arguments, data=None):
         return subprocess.check_output(
-            ["git", *arguments], cwd=self.repository, input=data
+            ["git", *arguments], cwd=self.repository, input=data, env=git_environment()
         )
 
     def export(self, destination):
         """Materialize blobs without checkout filters, attributes or disk reads."""
-        destination = Path(destination)
+        destination = Path(destination).resolve()
         destination.mkdir(parents=True, exist_ok=False)
         objects = "".join(f"{oid}\n" for _, _, oid in self.entries).encode()
         stream = io.BytesIO(self.git("cat-file", "--batch", data=objects))
@@ -56,7 +66,9 @@ class CommittedSource:
         """Give exported blobs private Git metadata for measurement provenance."""
         destination = self.export(destination)
         subprocess.run(
-            ["git", "init", "--quiet", "--template=", str(destination)], check=True
+            ["git", "init", "--quiet", "--template=", str(destination)],
+            check=True,
+            env=git_environment(),
         )
         objects = (
             self.git("rev-parse", "--path-format=absolute", "--git-path", "objects")
@@ -65,5 +77,7 @@ class CommittedSource:
         )
         (destination / ".git/objects/info/alternates").write_text(objects + "\n")
         for args in (("update-ref", "HEAD", self.commit), ("read-tree", self.commit)):
-            subprocess.run(["git", *args], cwd=destination, check=True)
+            subprocess.run(
+                ["git", *args], cwd=destination, check=True, env=git_environment()
+            )
         return destination

@@ -1,6 +1,7 @@
 """Recording must execute committed inputs without touching the developer tree."""
 
 import json
+from contextlib import nullcontext
 import os
 from pathlib import Path
 import subprocess
@@ -29,9 +30,10 @@ class RecordingIsolationTest(unittest.TestCase):
             '    output = subprocess.check_output(["go", "run", "."], text=True)\n'
             '    state = subprocess.check_output(["git", "status", "--porcelain"], text=True)\n'
             '    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()\n'
-            '    (out / "observed.json").write_text(json.dumps(dict(output=output, state=state, commit=commit, probe=Path("injected_test.go").exists())))\n'
+            '    (out / "observed.json").write_text(json.dumps(dict(output=output, state=state, commit=commit, probe=Path("injected_test.go").exists(), workspace=os.environ.get("GOWORK"))))\n'
         )
         (self.root / "go.mod").write_text("module fixture\n\ngo 1.25.2\n")
+        (self.root / "go.work").write_text("go 1.25.2\nuse .\n")
         (self.root / "main.go").write_text(
             'package main\nimport ("embed"; "fmt")\n'
             "//go:embed _explicit.txt all:data\nvar files embed.FS\n"
@@ -80,6 +82,72 @@ class RecordingIsolationTest(unittest.TestCase):
             "preserved probe, invalid Go", (self.root / "injected_test.go").read_text()
         )
         self.assertEqual("uncommitted", (self.root / "_explicit.txt").read_text())
+
+    def test_workspace_path_is_canonical_through_symlinked_temporary_parent(self):
+        work = Path(self.work.name).resolve()
+        physical = work / "physical"
+        physical.mkdir()
+        alias = work / "alias"
+        alias.symlink_to(physical, target_is_directory=True)
+        output = work / "results"
+        with (
+            patch.object(record_evidence, "ROOT", self.root),
+            patch.dict(os.environ, {"AS_CACHE_TRACES": str(self.root / "traces")}),
+            patch.object(
+                record_evidence.tempfile,
+                "TemporaryDirectory",
+                return_value=nullcontext(str(alias)),
+            ),
+        ):
+            record_evidence.record(output)
+        measured = json.loads((output / "observed.json").read_text())
+        self.assertEqual("committed/hidden committed", measured["output"])
+        self.assertEqual(str(physical / "source/go.work"), measured["workspace"])
+
+    def test_persisted_go_flags_cannot_overlay_committed_source(self):
+        work = Path(self.work.name)
+        replacement = work / "replacement.go"
+        replacement.write_text(
+            'package main\nimport "fmt"\nfunc main() { fmt.Print("OUTSIDE COMMITTED INPUTS") }\n'
+        )
+        overlay = work / "overlay.json"
+        overlay.write_text(json.dumps({"Replace": {"main.go": str(replacement)}}))
+        goenv = work / "goenv"
+        goenv.write_text(f"GOFLAGS=-overlay={overlay}\n")
+        output = work / "results"
+        with (
+            patch.object(record_evidence, "ROOT", self.root),
+            patch.dict(
+                os.environ,
+                {"AS_CACHE_TRACES": str(self.root / "traces"), "GOENV": str(goenv)},
+            ),
+        ):
+            record_evidence.record(output)
+        self.assertEqual(
+            "committed/hidden committed",
+            json.loads((output / "observed.json").read_text())["output"],
+        )
+
+    def test_inherited_git_index_cannot_modify_developer_staging(self):
+        (self.root / "main.go").write_text(
+            (self.root / "main.go").read_text() + "\n// staged developer edit\n"
+        )
+        self.git("add", "main.go")
+        index = self.root / ".git/index"
+        before = index.read_bytes()
+        with (
+            patch.object(record_evidence, "ROOT", self.root),
+            patch.dict(
+                os.environ,
+                {
+                    "AS_CACHE_TRACES": str(self.root / "traces"),
+                    "GIT_INDEX_FILE": str(index),
+                },
+            ),
+        ):
+            record_evidence.record(Path(self.work.name) / "results")
+        self.assertEqual(before, index.read_bytes())
+        self.assertIn("staged developer edit", self.git("diff", "--cached"))
 
     def test_output_is_validated_before_starting_measurements(self):
         with patch.object(record_evidence, "ROOT", self.root):

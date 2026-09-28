@@ -12,7 +12,7 @@ import time
 import sys
 import tempfile
 
-from committed_source import CommittedSource
+from committed_source import CommittedSource, git_environment
 
 from evidence_batches import pooled_results
 from render_evidence import render
@@ -39,7 +39,9 @@ REQUIRED_ARTIFACTS = {
 
 
 def git(*args):
-    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+    return subprocess.check_output(
+        ["git", *args], cwd=ROOT, text=True, env=git_environment()
+    ).strip()
 
 
 def require_committed_sources():
@@ -66,7 +68,9 @@ def validate_output(directory):
     if directory.is_relative_to(ROOT.resolve()):
         relative = directory.relative_to(ROOT.resolve()).as_posix()
         ignored = subprocess.run(
-            ["git", "check-ignore", "--quiet", "--no-index", relative + "/"], cwd=ROOT
+            ["git", "check-ignore", "--quiet", "--no-index", relative + "/"],
+            cwd=ROOT,
+            env=git_environment(),
         )
         if ignored.returncode != 0:
             raise ValueError(
@@ -89,13 +93,14 @@ def record(directory):
             flush=True,
         )
         env = dict(
-            os.environ,
+            git_environment(),
             AS_CACHE_TRACES=str(traces),
             AS_CACHE_LIBCACHESIM=str(lcs),
             PYTHONPATH=str(source / "scripts"),
             PYTHONDONTWRITEBYTECODE="1",
             GOWORK=str(source / "go.work") if (source / "go.work").exists() else "off",
             GOFLAGS="",
+            GOENV="off",
         )
         command = [
             sys.executable,
