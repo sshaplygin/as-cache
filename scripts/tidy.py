@@ -2,15 +2,27 @@
 
 import json
 import os
+from pathlib import Path
 import subprocess
 
-from release_check import MODULE, ROOT, module_directories, run
+from release_check import MODULE, ROOT, run
+
+
+def tracked_module_directories():
+    paths = run("git", "ls-files", "-z", cwd=ROOT).split("\0")
+    return sorted(
+        {
+            str(Path(path).parent)
+            for path in paths
+            if path and Path(path).name == "go.mod"
+        }
+    )
 
 
 def main():
     env = dict(os.environ, GOWORK="off")
     resolved = {}
-    for directory in module_directories():
+    for directory in tracked_module_directories():
         path = ROOT / directory
         metadata = json.loads(run("go", "mod", "edit", "-json", cwd=path, env=env))
         replaced = {entry["Old"]["Path"] for entry in metadata.get("Replace") or []}
