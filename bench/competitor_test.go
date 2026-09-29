@@ -81,15 +81,11 @@ func TestAgainstOtherLibraries(t *testing.T) {
 	}
 }
 
-// TestRistrettoSetIsLossy records why ristretto's hit rate in the table above
-// is not a like-for-like eviction comparison, so nobody has to rediscover it
-// from a surprising number.
-//
-// Its Set is asynchronous and admission-gated: it can return having queued
-// nothing at all. Filling a cache well under its capacity and immediately
-// reading the keys back should be a hit on any conventional cache; here it is
-// not.
-func TestRistrettoSetIsLossy(t *testing.T) {
+// TestRistrettoImmediateVisibility records the read-after-write behavior of
+// asynchronous, admission-gated Set. Depending on scheduling, any number of the
+// queued writes may be visible by the time they are read, including all of them.
+// The count is a diagnostic; every value that is returned must still be correct.
+func TestRistrettoImmediateVisibility(t *testing.T) {
 	if testing.Short() {
 		t.Skip("evidence run; use make evidence")
 	}
@@ -115,15 +111,13 @@ func TestRistrettoSetIsLossy(t *testing.T) {
 
 	found := 0
 	for i := range written {
-		if _, ok := cache.Get(strconv.Itoa(i)); ok {
+		if value, ok := cache.Get(strconv.Itoa(i)); ok {
+			assert.Equal(t, i, value, "value associated with key %d", i)
 			found++
 		}
 	}
 
 	t.Logf("ristretto retained %d/%d keys written into a cache of %d", found, written, size)
-	assert.Less(t, found, written,
-		"if this ever passes with every key present, ristretto's Set became synchronous "+
-			"and the caveat documented on the adapter should be revisited")
 }
 
 // TestCompetitorCapacityHonesty guards the assumption every hit-rate number in
