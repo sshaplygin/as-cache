@@ -7,12 +7,25 @@
     "epoch_requests": 200000,
     "hit_rate_percent": {
       "runs": [
-        11.9515,
-        11.97175,
-        12.00045,
-        12.024849999999999,
-        12.002749999999999
+        12.3566,
+        11.83005,
+        12.27935,
+        12.13265,
+        12.217749999999999
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -23,12 +36,25 @@
     "epoch_requests": 200000,
     "hit_rate_percent": {
       "runs": [
-        4.64815,
-        4.535200000000001,
-        4.60905,
-        7.6229000000000005,
-        4.4606
+        7.5661000000000005,
+        7.61395,
+        7.5907,
+        4.57245,
+        4.52205
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -39,12 +65,25 @@
     "epoch_requests": 200000,
     "hit_rate_percent": {
       "runs": [
-        12.59835,
-        12.225800000000001,
-        12.28195,
-        12.49925,
-        12.23655
+        12.629000000000001,
+        12.30695,
+        12.187299999999999,
+        12.6374,
+        12.4652
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -55,12 +94,25 @@
     "epoch_requests": 200000,
     "hit_rate_percent": {
       "runs": [
-        7.86115,
-        7.9136999999999995,
-        7.854849999999999,
-        7.87415,
-        7.987550000000001
+        7.84965,
+        8.18735,
+        8.0925,
+        8.0221,
+        8.02105
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -71,12 +123,25 @@
     "epoch_requests": 100000,
     "hit_rate_percent": {
       "runs": [
-        13.2218,
-        11.226849999999999,
-        13.3145,
-        13.22305,
-        11.58675
+        11.46605,
+        13.2025,
+        13.565199999999999,
+        13.113949999999999,
+        13.3853
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -87,12 +152,25 @@
     "epoch_requests": 100000,
     "hit_rate_percent": {
       "runs": [
-        10.07335,
-        7.430200000000001,
-        7.2200500000000005,
-        10.405100000000001,
-        10.34995
+        8.806799999999999,
+        10.31195,
+        10.2266,
+        10.06405,
+        9.075
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -103,12 +181,25 @@
     "epoch_requests": 100000,
     "hit_rate_percent": {
       "runs": [
-        12.802900000000001,
-        12.678749999999999,
-        12.571399999999999,
-        12.58335,
-        12.736749999999999
+        12.7438,
+        12.70585,
+        12.77915,
+        12.52375,
+        12.598400000000002
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -119,12 +210,25 @@
     "epoch_requests": 100000,
     "hit_rate_percent": {
       "runs": [
-        9.8414,
-        9.26715,
-        9.18065,
-        9.06475,
-        9.13325
+        9.1098,
+        9.382200000000001,
+        9.2331,
+        9.3248,
+        9.62875
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -135,12 +239,25 @@
     "epoch_requests": 40000,
     "hit_rate_percent": {
       "runs": [
-        12.084,
-        11.842500000000001,
-        11.768,
-        11.9401,
-        12.0756
+        12.2743,
+        12.02595,
+        11.98645,
+        11.71895,
+        12.13265
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -151,12 +268,25 @@
     "epoch_requests": 40000,
     "hit_rate_percent": {
       "runs": [
-        10.29435,
-        10.44945,
-        10.360149999999999,
-        8.2564,
-        10.17195
+        10.59065,
+        8.39645,
+        10.568950000000001,
+        10.5788,
+        9.7696
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -167,12 +297,25 @@
     "epoch_requests": 40000,
     "hit_rate_percent": {
       "runs": [
-        11.85015,
-        13.124749999999999,
-        12.356150000000001,
-        12.385250000000001,
-        13.411200000000001
+        12.4286,
+        12.1003,
+        12.19485,
+        12.3499,
+        12.29825
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   },
   {
@@ -183,12 +326,25 @@
     "epoch_requests": 40000,
     "hit_rate_percent": {
       "runs": [
-        11.32045,
-        11.6258,
-        10.72415,
-        11.6435,
-        9.76385
+        10.6628,
+        10.9297,
+        10.98715,
+        10.90015,
+        12.566849999999999
       ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
     }
   }
 ]

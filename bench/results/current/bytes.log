@@ -1,0 +1,280 @@
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 2500 --ignore-obj-size true --num-thread 1
+[32m[INFO]  09-29-2026 01:36:40 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru, ignore object size
+[0m[36m[DEBUG] 09-29-2026 01:36:40 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 1, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:40 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 1, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1706, interval miss ratio 0.1706
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2736, interval miss ratio 0.3766
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2931, interval miss ratio 0.3320
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.3006, interval miss ratio 0.3233
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.3164, interval miss ratio 0.3795
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.3427, interval miss ratio 0.4743
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.3558, interval miss ratio 0.4344
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.3561, interval miss ratio 0.3582
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.3606, interval miss ratio 0.3964
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.3628, interval miss ratio 0.3828
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.3725, interval miss ratio 0.4698
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.3740, interval miss ratio 0.3906
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.3739, interval miss ratio 0.3719
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.3744, interval miss ratio 0.3817
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.3821, interval miss ratio 0.4890
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.3882, interval miss ratio 0.4800
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.3884, interval miss ratio 0.3919
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.3868, interval miss ratio 0.3599
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.3882, interval miss ratio 0.4120
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.3929, interval miss ratio 0.4834
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.3940, interval miss ratio 0.4160
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.3923, interval miss ratio 0.3559
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.3941, interval miss ratio 0.4340
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size     2500,          2000000 req, miss ratio 0.3932, throughput 13.42 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 1188154 --ignore-obj-size false --num-thread 1
+[32m[INFO]  09-29-2026 01:36:40 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru
+[0m[36m[DEBUG] 09-29-2026 01:36:40 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 40, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:40 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 63, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1748, interval miss ratio 0.1748
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2820, interval miss ratio 0.3893
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.3007, interval miss ratio 0.3380
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.3063, interval miss ratio 0.3232
+[0m[32m[INFO]  09-29-2026 01:36:40    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.3222, interval miss ratio 0.3856
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.3486, interval miss ratio 0.4809
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.3616, interval miss ratio 0.4393
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.3615, interval miss ratio 0.3610
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.3656, interval miss ratio 0.3979
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.3674, interval miss ratio 0.3842
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.3769, interval miss ratio 0.4720
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.3781, interval miss ratio 0.3915
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.3777, interval miss ratio 0.3719
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.3783, interval miss ratio 0.3865
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.3855, interval miss ratio 0.4872
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.3919, interval miss ratio 0.4865
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.3920, interval miss ratio 0.3939
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.3903, interval miss ratio 0.3611
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.3915, interval miss ratio 0.4131
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.3962, interval miss ratio 0.4853
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.3973, interval miss ratio 0.4196
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.3954, interval miss ratio 0.3570
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.3974, interval miss ratio 0.4405
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size     1MiB,          2000000 req, miss ratio 0.3965, byte miss ratio 0.4575, throughput 13.56 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 5000 --ignore-obj-size true --num-thread 1
+[32m[INFO]  09-29-2026 01:36:41 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru, ignore object size
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 1, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 1, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1555, interval miss ratio 0.1555
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2488, interval miss ratio 0.3422
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2691, interval miss ratio 0.3097
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.2771, interval miss ratio 0.3011
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.2926, interval miss ratio 0.3547
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.3176, interval miss ratio 0.4427
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.3300, interval miss ratio 0.4043
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.3307, interval miss ratio 0.3352
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.3352, interval miss ratio 0.3711
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.3374, interval miss ratio 0.3576
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.3466, interval miss ratio 0.4382
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.3481, interval miss ratio 0.3652
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.3481, interval miss ratio 0.3484
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.3487, interval miss ratio 0.3562
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.3560, interval miss ratio 0.4580
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.3617, interval miss ratio 0.4477
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.3620, interval miss ratio 0.3658
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.3605, interval miss ratio 0.3350
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.3618, interval miss ratio 0.3857
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.3663, interval miss ratio 0.4528
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.3673, interval miss ratio 0.3872
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.3658, interval miss ratio 0.3343
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.3676, interval miss ratio 0.4064
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size     5000,          2000000 req, miss ratio 0.3667, throughput 13.30 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 2376308 --ignore-obj-size false --num-thread 1
+[32m[INFO]  09-29-2026 01:36:41 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 40, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 63, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1580, interval miss ratio 0.1580
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2582, interval miss ratio 0.3584
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2773, interval miss ratio 0.3156
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.2838, interval miss ratio 0.3033
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.2998, interval miss ratio 0.3636
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.3256, interval miss ratio 0.4544
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.3382, interval miss ratio 0.4142
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.3388, interval miss ratio 0.3431
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.3428, interval miss ratio 0.3749
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.3449, interval miss ratio 0.3631
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.3539, interval miss ratio 0.4437
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.3552, interval miss ratio 0.3699
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.3550, interval miss ratio 0.3533
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.3557, interval miss ratio 0.3641
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.3625, interval miss ratio 0.4585
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.3685, interval miss ratio 0.4585
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.3688, interval miss ratio 0.3737
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.3672, interval miss ratio 0.3394
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.3685, interval miss ratio 0.3910
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.3730, interval miss ratio 0.4585
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.3740, interval miss ratio 0.3951
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.3724, interval miss ratio 0.3378
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.3742, interval miss ratio 0.4153
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size     2MiB,          2000000 req, miss ratio 0.3734, byte miss ratio 0.4267, throughput 14.05 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 10000 --ignore-obj-size true --num-thread 1
+[32m[INFO]  09-29-2026 01:36:41 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru, ignore object size
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 1, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 1, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1466, interval miss ratio 0.1466
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2255, interval miss ratio 0.3044
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2448, interval miss ratio 0.2833
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.2528, interval miss ratio 0.2767
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.2674, interval miss ratio 0.3258
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.2905, interval miss ratio 0.4064
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.3019, interval miss ratio 0.3703
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.3027, interval miss ratio 0.3078
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.3069, interval miss ratio 0.3406
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.3090, interval miss ratio 0.3279
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.3173, interval miss ratio 0.4003
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.3187, interval miss ratio 0.3343
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.3188, interval miss ratio 0.3204
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.3194, interval miss ratio 0.3272
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.3260, interval miss ratio 0.4186
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.3313, interval miss ratio 0.4108
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.3316, interval miss ratio 0.3357
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.3303, interval miss ratio 0.3077
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.3315, interval miss ratio 0.3535
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.3357, interval miss ratio 0.4153
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.3366, interval miss ratio 0.3546
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.3352, interval miss ratio 0.3066
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.3369, interval miss ratio 0.3738
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size    10000,          2000000 req, miss ratio 0.3361, throughput 12.77 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 4752616 --ignore-obj-size false --num-thread 1
+[32m[INFO]  09-29-2026 01:36:41 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 40, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 63, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1473, interval miss ratio 0.1473
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2339, interval miss ratio 0.3205
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2523, interval miss ratio 0.2892
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.2589, interval miss ratio 0.2785
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.2748, interval miss ratio 0.3384
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.2990, interval miss ratio 0.4200
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.3110, interval miss ratio 0.3832
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.3120, interval miss ratio 0.3190
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.3160, interval miss ratio 0.3481
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.3178, interval miss ratio 0.3334
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.3261, interval miss ratio 0.4094
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.3274, interval miss ratio 0.3415
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.3273, interval miss ratio 0.3260
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.3279, interval miss ratio 0.3364
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.3345, interval miss ratio 0.4263
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.3401, interval miss ratio 0.4249
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.3404, interval miss ratio 0.3452
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.3389, interval miss ratio 0.3135
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.3402, interval miss ratio 0.3627
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.3443, interval miss ratio 0.4233
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.3453, interval miss ratio 0.3643
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.3438, interval miss ratio 0.3124
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.3456, interval miss ratio 0.3861
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size     5MiB,          2000000 req, miss ratio 0.3448, byte miss ratio 0.3896, throughput 13.67 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 20000 --ignore-obj-size true --num-thread 1
+[32m[INFO]  09-29-2026 01:36:41 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru, ignore object size
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 1, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 1, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1460, interval miss ratio 0.1460
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2083, interval miss ratio 0.2707
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2220, interval miss ratio 0.2494
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.2277, interval miss ratio 0.2448
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.2397, interval miss ratio 0.2879
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.2598, interval miss ratio 0.3602
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.2695, interval miss ratio 0.3277
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.2699, interval miss ratio 0.2724
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.2733, interval miss ratio 0.3007
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.2749, interval miss ratio 0.2896
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.2820, interval miss ratio 0.3522
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.2830, interval miss ratio 0.2945
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.2831, interval miss ratio 0.2841
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.2836, interval miss ratio 0.2895
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.2893, interval miss ratio 0.3704
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.2939, interval miss ratio 0.3620
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.2941, interval miss ratio 0.2975
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.2929, interval miss ratio 0.2726
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.2939, interval miss ratio 0.3118
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.2976, interval miss ratio 0.3687
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.2984, interval miss ratio 0.3137
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.2972, interval miss ratio 0.2723
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.2987, interval miss ratio 0.3312
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size    20000,          2000000 req, miss ratio 0.2980, throughput 13.53 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 9505233 --ignore-obj-size false --num-thread 1
+[32m[INFO]  09-29-2026 01:36:41 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 40, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:41 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 63, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1460, interval miss ratio 0.1460
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2140, interval miss ratio 0.2820
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2285, interval miss ratio 0.2575
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.2335, interval miss ratio 0.2483
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.2472, interval miss ratio 0.3021
+[0m[32m[INFO]  09-29-2026 01:36:41    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.2685, interval miss ratio 0.3753
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.2793, interval miss ratio 0.3437
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.2800, interval miss ratio 0.2851
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.2835, interval miss ratio 0.3117
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.2848, interval miss ratio 0.2962
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.2922, interval miss ratio 0.3667
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.2932, interval miss ratio 0.3039
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.2931, interval miss ratio 0.2918
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.2936, interval miss ratio 0.3000
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.2996, interval miss ratio 0.3831
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.3045, interval miss ratio 0.3791
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.3049, interval miss ratio 0.3102
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.3036, interval miss ratio 0.2826
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.3046, interval miss ratio 0.3226
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.3084, interval miss ratio 0.3795
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.3092, interval miss ratio 0.3249
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.3079, interval miss ratio 0.2807
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.3095, interval miss ratio 0.3463
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size     9MiB,          2000000 req, miss ratio 0.3088, byte miss ratio 0.3432, throughput 13.37 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 40000 --ignore-obj-size true --num-thread 1
+[32m[INFO]  09-29-2026 01:36:42 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru, ignore object size
+[0m[36m[DEBUG] 09-29-2026 01:36:42 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 1, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:42 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 1, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1460, interval miss ratio 0.1460
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2033, interval miss ratio 0.2606
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2079, interval miss ratio 0.2170
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.2082, interval miss ratio 0.2094
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.2153, interval miss ratio 0.2434
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.2302, interval miss ratio 0.3047
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.2369, interval miss ratio 0.2773
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.2361, interval miss ratio 0.2302
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.2380, interval miss ratio 0.2532
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.2385, interval miss ratio 0.2435
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.2439, interval miss ratio 0.2973
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.2441, interval miss ratio 0.2466
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.2437, interval miss ratio 0.2389
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.2437, interval miss ratio 0.2438
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.2483, interval miss ratio 0.3133
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.2519, interval miss ratio 0.3052
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.2520, interval miss ratio 0.2534
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.2508, interval miss ratio 0.2300
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.2514, interval miss ratio 0.2630
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.2544, interval miss ratio 0.3108
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.2549, interval miss ratio 0.2650
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.2537, interval miss ratio 0.2295
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.2548, interval miss ratio 0.2785
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size    40000,          2000000 req, miss ratio 0.2542, throughput 13.60 MQPS
+$ /Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim/_build/bin/cachesim /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin oracleGeneralBin lru 19010466 --ignore-obj-size false --num-thread 1
+[32m[INFO]  09-29-2026 01:36:42 cli_parser.c:559  (tid=8615423040): trace path: /var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin, trace_type ORACLE_GENERAL_TRACE, ofilepath result/meta.bin.cachesim, 1 threads, warmup -1 sec, total 1 algo x 1 size = 1 caches, lru
+[0m[36m[DEBUG] 09-29-2026 01:36:42 request.h:134  (tid=8615423040): req clock_time 0, id 1, size 40, cost 1, op nop, valid 1
+[0m[36m[DEBUG] 09-29-2026 01:36:42 request.h:134  (tid=8615423040): req clock_time 1, id 2, size 63, cost 1, op nop, valid 1
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 24.00 hour: 86400 requests, miss ratio 0.1460, interval miss ratio 0.1460
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 48.00 hour: 172800 requests, miss ratio 0.2034, interval miss ratio 0.2609
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 72.00 hour: 259200 requests, miss ratio 0.2109, interval miss ratio 0.2259
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 96.00 hour: 345600 requests, miss ratio 0.2119, interval miss ratio 0.2148
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 120.00 hour: 432000 requests, miss ratio 0.2201, interval miss ratio 0.2528
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 144.00 hour: 518400 requests, miss ratio 0.2369, interval miss ratio 0.3212
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 168.00 hour: 604800 requests, miss ratio 0.2452, interval miss ratio 0.2947
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 192.00 hour: 691200 requests, miss ratio 0.2450, interval miss ratio 0.2435
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 216.00 hour: 777600 requests, miss ratio 0.2475, interval miss ratio 0.2676
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 240.00 hour: 864000 requests, miss ratio 0.2477, interval miss ratio 0.2498
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 264.00 hour: 950400 requests, miss ratio 0.2534, interval miss ratio 0.3108
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 288.00 hour: 1036800 requests, miss ratio 0.2538, interval miss ratio 0.2573
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 312.00 hour: 1123200 requests, miss ratio 0.2533, interval miss ratio 0.2475
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 336.00 hour: 1209600 requests, miss ratio 0.2533, interval miss ratio 0.2533
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 360.00 hour: 1296000 requests, miss ratio 0.2583, interval miss ratio 0.3289
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 384.00 hour: 1382400 requests, miss ratio 0.2622, interval miss ratio 0.3198
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 408.00 hour: 1468800 requests, miss ratio 0.2626, interval miss ratio 0.2690
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 432.00 hour: 1555200 requests, miss ratio 0.2614, interval miss ratio 0.2415
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 456.00 hour: 1641600 requests, miss ratio 0.2621, interval miss ratio 0.2752
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 480.00 hour: 1728000 requests, miss ratio 0.2652, interval miss ratio 0.3241
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 504.00 hour: 1814400 requests, miss ratio 0.2658, interval miss ratio 0.2778
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 528.00 hour: 1900800 requests, miss ratio 0.2647, interval miss ratio 0.2408
+[0m[32m[INFO]  09-29-2026 01:36:42    sim.c:71   (tid=8615423040): meta.bin LRU 552.00 hour: 1987200 requests, miss ratio 0.2660, interval miss ratio 0.2952
+[0m/var/folders/f_/6s4f36dj6q5_yslqhpdxk52r0000gn/T/as-cache-bytes-4__mm1_i/meta.bin LRU cache size    18MiB,          2000000 req, miss ratio 0.2654, byte miss ratio 0.2887, throughput 12.86 MQPS

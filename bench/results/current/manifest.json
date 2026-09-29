@@ -1,6 +1,6 @@
 {
-  "commit": "3331d5f6156c969b31bf70e438ebc8ca25b501b6",
-  "started_at": "2026-09-28T20:41:29.534881+00:00",
+  "commit": "00bdcb103a9a7e56840a2dedda7bddc753d5269e",
+  "started_at": "2026-09-28T23:35:33.173607+00:00",
   "platform": "macOS-26.2-arm64-arm-64bit-Mach-O",
   "machine": "arm64",
   "go": "go version go1.25.5 darwin/arm64",
@@ -79,20 +79,20 @@
       ],
       "log": "reference.log",
       "exit_code": 0,
-      "duration_seconds": 66.92003770871088
+      "duration_seconds": 64.23832320887595
     },
     {
       "args": [
         "python3",
         "scripts/measure_bytes.py",
         "/Users/sshaplygin/GithubProjects/as-cache/traces",
-        "/Users/sshaplygin/GithubProjects/as-cache/.reports/pr17-fixes/current/bytes.json",
+        "/Users/sshaplygin/GithubProjects/as-cache/.reports/pr17-fixes/current-measurement/bytes.json",
         "--libcachesim",
         "/Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim"
       ],
       "log": "bytes.log",
       "exit_code": 0,
-      "duration_seconds": 4.58590287482366
+      "duration_seconds": 5.0382995419204235
     },
     {
       "args": [
@@ -101,7 +101,7 @@
       ],
       "log": "evidence-1.log",
       "exit_code": 0,
-      "duration_seconds": 572.9694744166918
+      "duration_seconds": 594.2362546660006
     },
     {
       "args": [
@@ -110,7 +110,7 @@
       ],
       "log": "evidence-2.log",
       "exit_code": 0,
-      "duration_seconds": 647.1927176662721
+      "duration_seconds": 616.1396884582937
     },
     {
       "args": [
@@ -119,29 +119,29 @@
       ],
       "log": "evidence-3.log",
       "exit_code": 0,
-      "duration_seconds": 639.9983648331836
+      "duration_seconds": 632.7933691660874
     }
   ],
   "libcachesim_commit": "1d7415569978330ea95c9cff06a260630406f7e3",
   "libcachesim_binary_sha256": "a6a60ec8d17c68f00130591cda32e119fa68b7bcbbc7c0c942005dbad8d0597e",
-  "completed_at": "2026-09-28T21:13:41.319870+00:00",
+  "completed_at": "2026-09-29T00:07:25.833847+00:00",
   "artifacts_sha256": {
-    "README.md": "2080cf238f7c335383d7a1405ef4576d6caed3042509156c7d4a1cb6025e3c4a",
-    "bytes.json": "6f30c06d547c9b84526712f576f302d11c0d20dc72ebbf1c2c2d506b2b571303",
-    "bytes.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "evidence-1.log": "6924e4c6aa8246f97217dbcb4494ad320a8db3e820d1b0e9dea57f1aff3db928",
-    "evidence-2.log": "9be942778c1162443d0d54b59b1bd3f81c27e0c3cdf7a8e8249acf4431a9c55d",
-    "evidence-3.log": "17ded0f1d8bfc28a29d9d20b988bcd2d3642b371e1d1932f51302c66c0124f05",
-    "reference.log": "fd9bcab53c9c29660706577ab0673f58396856c5712649416da9ba426eb2d4e4",
+    "README.md": "9d228ea3b26b1a84ac07bfec4fd914ca7a01c885e94efd81b00e3eb9dc6322f4",
+    "bytes.json": "88aec4118c8264598a98568abde04fa2ac5508e93f3cc8e71f2c9bfb0ff7d41b",
+    "bytes.log": "f1372eaf2761e61f0470781895d33b5c79d9a403ec30a09061e69166a1d6ea66",
+    "evidence-1.log": "cbc266b5faa6519c17abe5f86a21432aba7a3276abb4bf7d891c47d1f79b030a",
+    "evidence-2.log": "ba1ba1067b81b907a41931c9ef5f597417b20795e99e1a47c3dd0d544c5529fc",
+    "evidence-3.log": "47eb22a640570c729bc4684b989d6a5c459528643ea42089180c89c64702e773",
+    "reference.log": "5a2d5018737946b6f7a9ef9ba822e5dc2678093137ab79d45701a7a67fc38623",
     "reference.tsv": "08b801df457a1c5daa05b4edee0d6e4b7361fe3278c6b19ea522a47203363bd2",
-    "traces-1-tuning.json": "6f1d84aa987e290ea76db639211ae17bf8af2c6563d605c74fd21ae8628a16fd",
-    "traces-1.json": "e04c7711bcd70fceaf2bdbc3ee865bd33139c5822f6f3db4027a4ecacd875b1b",
-    "traces-2-tuning.json": "ab7428ab2a2f0e4a3934c0ea3f74d1b257da59d8f246e613c3019a55cd677af6",
-    "traces-2.json": "64405d9b381251ab8d611bc76c1a96b95b4519f34a483cc3d99db6add18c758e",
-    "traces-3-tuning.json": "3324778af25b2326b8900b633f94d0c7c990e6acb3edf0af68d4d2b1fb9a0dfb",
-    "traces-3.json": "73a2a6809ebf84fb628f768c90f83b346d2d5869030caddcf66819277cb3f90f",
-    "traces.json": "c0eba016d61493686b9414c0eb4dc734a6c49217889fde26e5f3f31229932c13",
-    "tuning.json": "b8f4592d1578a507bd306573150d346b537e172df7c23ea7a9bf3f63c44ac4f2"
+    "traces-1-tuning.json": "c3971ed80fbae4b1355c5d53c4462b01ad289576959de7cb409fd629e03f44c9",
+    "traces-1.json": "b82e4d0617757ffdc82d091455158c464bacf9830fe073bc11097987a9e8e141",
+    "traces-2-tuning.json": "bd6ed673cdb060863a3e181769701c4f79e843c63674b76399d9d80ae17c3e14",
+    "traces-2.json": "7de715344c1bd153b2f994504449de20543219b66f8388b8a0ddad9b2ea262c0",
+    "traces-3-tuning.json": "c7b1bd48ec37c5222cc43cee462a5940235c3e2c385c53777653c03048147a69",
+    "traces-3.json": "d2897152745825fb7b56ee7dd4f852c6d9fa77d64ff3bbe25e9f8b45b30d8033",
+    "traces.json": "577b0691f75c4e55aa009731cfffae56d9b6e216b8029f25ac02f5aedf374435",
+    "tuning.json": "6ab7f51fb3936a0208726cc6097900ea1e5159b66a445023834c49617d896b69"
   },
-  "report_generator_commit": "886844da1e69d075bb8c012ff87232aac4056af5"
+  "report_generator_commit": "1f9904681a056d0367660cb1cdef0e35a240ff9b"
 }
