@@ -109,12 +109,11 @@ func (c *theineCompetitor) Add(key string, value int) bool {
 // Two things about ristretto make its number here worth reading carefully, and
 // both are properties of the library rather than of this harness.
 //
-// Set is asynchronous: it enqueues the write and returns, so a Get immediately
-// after a Set can miss. Set is also admission-gated, and returns false when the
-// frequency sketch judges the incoming key less valuable than what is resident,
-// in which case the write is dropped entirely. A read-through replay therefore
-// measures ristretto as a caller experiences it, which is the point, but its
-// hit rate is not directly an eviction-policy comparison.
+// New writes are asynchronous: Set can return after enqueueing, so an immediate
+// Get can miss. A false return means the write was not queued. Even after a true
+// return, the background admission policy can reject a new key. A read-through
+// replay therefore measures the caller-visible admission and scheduling effects
+// as well as eviction; its hit rate is not just an eviction-policy comparison.
 //
 // Calling Wait after every Set would drain the buffers and remove the first
 // effect, at a cost that would dominate the timing column and measure something
