@@ -81,15 +81,11 @@ func TestAgainstOtherLibraries(t *testing.T) {
 	}
 }
 
-// TestRistrettoSetIsLossy records why ristretto's hit rate in the table above
-// is not a like-for-like eviction comparison, so nobody has to rediscover it
-// from a surprising number.
-//
-// Its Set is asynchronous and admission-gated: it can return having queued
-// nothing at all. Filling a cache well under its capacity and immediately
-// reading the keys back should be a hit on any conventional cache; here it is
-// not.
-func TestRistrettoSetIsLossy(t *testing.T) {
+// TestRistrettoImmediateVisibility records the read-after-write behavior of
+// asynchronous, admission-gated Set. Depending on scheduling, any number of the
+// queued writes may be visible by the time they are read, including all of them.
+// The count is a diagnostic; every value that is returned must still be correct.
+func TestRistrettoImmediateVisibility(t *testing.T) {
 	if testing.Short() {
 		t.Skip("evidence run; use make evidence")
 	}
@@ -115,28 +111,22 @@ func TestRistrettoSetIsLossy(t *testing.T) {
 
 	found := 0
 	for i := range written {
-		if _, ok := cache.Get(strconv.Itoa(i)); ok {
+		if value, ok := cache.Get(strconv.Itoa(i)); ok {
+			assert.Equal(t, i, value, "value associated with key %d", i)
 			found++
 		}
 	}
 
 	t.Logf("ristretto retained %d/%d keys written into a cache of %d", found, written, size)
-	assert.Less(t, found, written,
-		"if this ever passes with every key present, ristretto's Set became synchronous "+
-			"and the caveat documented on the adapter should be revisited")
 }
 
 // TestCompetitorCapacityHonesty guards the assumption every hit-rate number in
 // this file rests on: a cache asked to hold N entries holds about N.
 //
-// It exists because otter did not. Admission runs on the caller's goroutine
-// and eviction on a maintenance pass, so a replay that writes flat out leaves
-// the cache far over its limit - 1916 entries resident against a MaximumSize
-// of 500, measured here. Every otter number in the first version of this
-// comparison was therefore a cache four times the size of its rivals, which
-// read as a decisive win on uniform traffic (44% against everyone else's 10%)
-// and was nothing but the extra capacity. The adapter calls CleanUp; this test
-// fails if that stops working, or if another library develops the same habit.
+// Asynchronous admission/eviction can let a write flood exceed nominal capacity.
+// This test checks the configured adapters after that distinct workload; it does
+// not measure resident entries during the zipf/loop/uniform hit-rate replays.
+// The otter adapter calls CleanUp to finish pending maintenance.
 func TestCompetitorCapacityHonesty(t *testing.T) {
 	if testing.Short() {
 		t.Skip("evidence run; use make evidence")
@@ -145,12 +135,9 @@ func TestCompetitorCapacityHonesty(t *testing.T) {
 	const (
 		size    = 500
 		written = 5000
-		// Half over is slack, not indifference. Approximate accounting is
-		// normal here and varies run to run: over five runs theine held
-		// between 500 and 604 entries (up to 1.21x), ristretto 518 to 540,
-		// sturdyc 476 every time, otter exactly 500 once CleanUp is called.
-		// A threshold set at the top of that spread would flake; this one sits
-		// clear of it and still fails the 3.8x that prompted the test.
+		// Approximate accounting permits slack, but a sustained excess above
+		// 1.5 times the requested size invalidates this comparison. Current
+		// observed counts are retained in each evidence log, not copied here.
 		tolerance = 1.5
 	)
 

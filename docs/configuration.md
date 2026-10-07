@@ -47,7 +47,7 @@ type Settings struct {
 | Strategy | Behaviour | Trade-off |
 | --- | --- | --- |
 | `MigrationCold` (default) | New active policy starts empty | Simple; causes a temporary miss spike |
-| `MigrationWarm` | All key/value pairs copied at switch time | No miss spike; O(n) work at switch |
+| `MigrationWarm` | Cached key/value pairs offered to the incoming policy | Transfers values, not eviction history; O(n) work at switch |
 | `MigrationGradual` | Keys promoted on Get; one key drained per Add | Spreads migration cost; every `Get` takes the write lock while the window is open, which closes at the next epoch at the latest |
 
 A gradual window serialises reads for as long as it is open. On a long epoch
@@ -58,19 +58,19 @@ miss, the same as it would have been under `MigrationCold`. Only `Get` counts,
 because `Get` is what takes the write lock; `Add` drains a key per call and
 shortens the window anyway. Zero, the default, sets no cap.
 
-Measured on zipf with a switch from LRU to LFU, a cap of 100 cost 6.5 points of
-hit rate over the first 1,000 requests after the switch, a cap of 10 made gradual
-behave like cold, and a cap of 1,000 was never reached because read-through
-traffic had already drained the window. [Evidence](evidence.md#what-does-a-switch-cost-right-after-it)
-has the table, including what each strategy costs.
+A short request cap can end migration before reusable entries transfer.
+`TestSwitchWarmupCost` compares those effects in fixed request windows; see
+[evidence](evidence.md#what-does-a-switch-cost-right-after-it) for the current
+logs and the limits of that comparison.
 
 ## Reducing shadow overhead
 
 Running policies in parallel costs something on every operation: each shadow is
 another lookup and another lock. Since a shadow exists only to estimate a hit
 rate, and a hit rate can be estimated from a sample, `ShadowSampleRate` lets
-shadows track a deterministic fraction of the keyspace instead of mirroring
-everything.
+shadows track a hash-selected subset of the keyspace instead of mirroring
+everything. Membership is stable within one cache instance; a new cache gets
+a fresh random hash seed.
 
 ```go
 &ascache.Settings{
@@ -79,34 +79,22 @@ everything.
 }
 ```
 
-Shadows shrink along with the rate, so each remains a faithful miniature of a
-full-size cache rather than an undersized one, and every shadow samples the same
-keys so their hit rates stay comparable. The active policy still serves every
+Shadows shrink along with the rate, and every shadow samples the same keys.
+This gives each arm a comparable input stream, but a miniature can change
+reuse patterns and policy rankings. The active policy still serves every
 key -- only the measurement is sampled, and it is sampled for the active policy
 too, so no arm is judged on more evidence than another. `Stats()` continues to
 report real, unsampled traffic.
 
-The effect is that per-operation cost stops scaling with the number of policies.
-Measured with mutex-backed stub policies on an Apple M1 Max at
-`-benchtime=300ms`, so the numbers isolate what the adaptive layer adds rather
-than what any particular policy costs:
+Sampling reduces how often a request visits every shadow; it does not remove
+the dependence on policy count. A sampled key still visits each shadow, so
+fan-out work scales with both the sampled request fraction and the number of
+arms. Sampling selects keys, and a hot selected key can account for many
+requests: 5% of keys need not mean exactly 5% of requests.
 
-| Benchmark | shadows | sampling off | rate 0.05 |
-| --- | --- | --- | --- |
-| `Get` | 1 | 102 ns/op | 40 ns/op |
-| `Get` | 3 | 153 ns/op | 44 ns/op |
-| `GetParallel` | 1 | 284 ns/op | 183 ns/op |
-| `GetParallel` | 3 | 361 ns/op | 187 ns/op |
-| `Add` | 1 | 98 ns/op | 53 ns/op |
-| `Add` | 3 | 142 ns/op | 55 ns/op |
-| `MixedParallel` | 1 | 187 ns/op | 96 ns/op |
-
-Read the `Get` rows down the shadow count. Unsampled, two further shadows cost
-another 51ns, because every operation visits every policy. Sampled, the same
-step costs 4ns -- the fan-out happens on 5% of operations, so adding a policy
-is close to free. That is what makes carrying nine arms practical.
-
-Reproduce with `go test -run '^$' -bench . -benchtime=300ms .`
+The [warm-cache measurements](evidence.md#memory-and-per-operation-cost)
+show the observed overhead with eight real policies. To isolate wrapper cost
+with stub policies, run `go test -run '^$' -bench . -benchtime=300ms .`.
 
 Sampling is off by default. `MinShadowCapacity` (256 unless you set it) is the
 floor on a miniature: when the rate would shrink a shadow below it, the
@@ -114,9 +102,9 @@ floor on a miniature: when the rate would shrink a shadow below it, the
 enough that the floor exceeds its nominal size, sampling disables itself. A
 miniature of a handful of entries measures noise rather than a policy.
 
-Sampling does not distort which policy wins — that was measured directly, see
-[evidence](evidence.md#does-sampling-distort-the-comparison). It does distort
-the absolute hit rate a shadow reports, so do not quote one as a forecast.
+Sampling may change policy rankings and absolute hit-rate estimates, so do not
+quote a shadow rate as a forecast. See the
+[evidence and its limits](evidence.md#does-sampling-distort-the-comparison).
 
 ## Keeping switches stable
 
@@ -139,34 +127,34 @@ against your traffic.
 
 ## Tuning, measured
 
-The epoch duration is the setting that matters most, and the failure mode is
-not subtle. Measured on the ARC P3 trace with a 20k-entry cache:
+The [current P3 tuning experiment](../bench/results/current/README.md#p3-tuning)
+compares all four combinations of cold/warm migration and stability gates
+on/off, at 10/20/50 request-counted epochs. Three batches of five replays give
+fifteen observations per cell; every result is retained. Gates use
+`MinHitRateImprovement: 0.02` and `SwitchCooldownEpochs: 3`. Each cell in
+[tuning.json](../bench/results/current/tuning.json) retains the actual constructor
+settings, including its request threshold; this makes the configuration behind
+each observation inspectable.
 
-| Configuration | Hit rate | ns/op |
-| --- | --- | --- |
-| 50ms epoch, warm migration | 11.4% | 795 |
-| 2ms epoch, warm migration | 3.2% | 38,056 |
-| 2ms epoch, cold migration | 0.7% | 722 |
+This is an example on one workload, not a production setting recommendation.
+The experimental shadow floor is 64 rather than the default 256. The
+[trace context table](../bench/results/current/README.md#workload-context)
+reports the effective sample rate, which can exceed the requested 5%.
 
-An epoch short enough to trigger frequent switches makes the cache copy its
-entire contents on every switch, so it spends its time migrating rather than
-serving. Cold migration is worse: it discards the cache at each switch, which
-on the OLTP trace costs 25.7 points against warm migration at the same epoch
-(37.2% against 62.9%, both at 2ms). There is no 50ms cold run to compare
-against; the sweep covers 2ms warm, 2ms cold, 50ms warm and 50ms warm with the
-stability gates.
+For an experiment:
 
-Rules of thumb:
-
-- Make the epoch long enough that migrating the cache is a small fraction of
-  the work done in it, and short enough that the workload sees many epochs.
-- Prefer `MigrationWarm`. `MigrationCold` is only reasonable if switches are
-  rare.
-- The stability gates help on steady traffic and hurt on fast-changing traffic
-  -- they cost 20.6 points on the LIRS `loop` trace (17.0% against 37.6%),
-  which needs to re-adapt constantly, and 0.8 on OLTP, which does not.
-- `ShadowSampleRate: 0.05` is a reasonable default. Higher rates cost more and
-  buy no better ranking.
+- Use `EpochRequests` to hold epoch boundaries fixed across replay speeds;
+  report every tested setting. The trace matrix includes 10/20/50 epochs,
+  so the comparison does not select only the most favorable setting.
+- Measure the tradeoff between migration work and adapting quickly enough.
+  Warm migration retains values, but does not transfer a policy's learned
+  history. Cold migration requires refilling; gradual migration spreads work
+  and its request cap can truncate the transfer.
+- Treat stability gates as parameters to test. They can avoid switches on
+  steady traffic and delay useful switches when the workload changes.
+- `ShadowSampleRate: 0.05` is one measured starting point. Validate ranking,
+  overhead and sensitivity to the random sample on your workload; the
+  synthetic sampling checks do not establish a universally optimal rate.
 - Set `EvictPartialCapacityFilling: true` when W-TinyLFU or S3-FIFO could be
   the **active** arm. The gate reads that one policy and compares its `Len()`
   against `Cap()` for exact equality, and neither of those two holds that

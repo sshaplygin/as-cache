@@ -47,21 +47,20 @@
 //
 // # Cost
 //
-// Shadow policies hold keys and eviction bookkeeping but never values, so they
-// cost far less than a full copy: six policies measure at 2.65x the memory of
-// one, and 1.32x with [Settings.ShadowSampleRate] set. Sampling has shadows
-// track a deterministic fraction of the keyspace, which stops per-operation
-// cost scaling with the number of policies.
+// Shadow policies hold keys and eviction bookkeeping while omitting payload
+// values. Each additional arm still requires storage and work. Sampling reduces
+// the measured keyspace and shadow capacity; it does not remove the dependence
+// on the number of policies. Costs depend on the workload, payload and host.
 //
 // # What to expect
 //
-// Adaptive selection reliably beats the worst policy you might have picked and
-// lands close to the best. On published traces it comes within about a point
-// of the best fixed policy and occasionally beats it, without being told in
-// advance which that is. It will not dramatically outperform a policy you have
-// already measured and know suits your traffic.
+// Adaptive selection is experimental. Its hit rate can fall below fixed-policy
+// baselines, and the observed differences depend on the workload and settings.
+// Sampled shadows and asynchronous policies introduce variation across replays;
+// an observed range does not bound future outcomes. Evaluate fixed alternatives
+// on representative traffic before enabling automatic switching.
 //
-// Epoch duration is the setting that matters most: too short and the cache
-// spends its time migrating between policies rather than serving. See the
-// README for measurements and configuration guidance.
+// Request-counted replays compare epoch settings reproducibly. Production uses
+// wall-clock epochs, where switching and migration costs require evaluation on
+// the service itself. See the README for current evidence and configuration.
 package ascache

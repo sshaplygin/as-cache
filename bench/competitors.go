@@ -51,23 +51,12 @@ func Competitors() []CompetitorBuilder {
 //
 // # Why this calls CleanUp
 //
-// otter admits on the caller's goroutine and evicts on a maintenance pass, so
-// under a replay that writes as fast as it can, admission runs far ahead of
-// eviction. Measured: 5000 keys written into a cache built with MaximumSize
-// 500 left 1916 of them retrievable, and the cache only fell back to 500 once
-// maintenance had run.
-//
-// Left alone, that does not measure otter's policy at capacity 500. It
-// measures a cache roughly four times the size every other subject was given,
-// and it wins comparisons on that basis alone - which is exactly the sort of
-// result that looks like a finding and is an artifact. CleanUp forces the
-// pending work through, so the capacity in the table is the capacity being
-// compared.
-//
-// The cost lands in the ns/op column, and it is real: nobody runs otter this
-// way in production, where the maintenance pass keeps up because the workload
-// is not a tight loop. Read otter's hit rate here as a policy comparison and
-// its timing as a floor, not as its throughput.
+// Admission and eviction are asynchronous, so a tight write replay can outrun
+// maintenance. CleanUp drains pending work before a result is compared. The
+// separate capacity-honesty test records retained entries after a write flood;
+// it does not establish occupancy or a causal hit-rate advantage on other replays.
+// This forced maintenance also affects timings, which are raw diagnostics for
+// this harness rather than estimates of production throughput.
 type otterCompetitor struct {
 	cache *otter.Cache[string, int]
 }
@@ -120,12 +109,11 @@ func (c *theineCompetitor) Add(key string, value int) bool {
 // Two things about ristretto make its number here worth reading carefully, and
 // both are properties of the library rather than of this harness.
 //
-// Set is asynchronous: it enqueues the write and returns, so a Get immediately
-// after a Set can miss. Set is also admission-gated, and returns false when the
-// frequency sketch judges the incoming key less valuable than what is resident,
-// in which case the write is dropped entirely. A read-through replay therefore
-// measures ristretto as a caller experiences it, which is the point, but its
-// hit rate is not directly an eviction-policy comparison.
+// New writes are asynchronous: Set can return after enqueueing, so an immediate
+// Get can miss. A false return means the write was not queued. Even after a true
+// return, the background admission policy can reject a new key. A read-through
+// replay therefore measures the caller-visible admission and scheduling effects
+// as well as eviction; its hit rate is not just an eviction-policy comparison.
 //
 // Calling Wait after every Set would drain the buffers and remove the first
 // effect, at a cost that would dominate the timing column and measure something

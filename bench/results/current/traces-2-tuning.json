@@ -1,0 +1,350 @@
+[
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        12.3888,
+        12.1608,
+        11.7821,
+        12.1843,
+        11.90005
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        7.64755,
+        7.745349999999999,
+        7.4418999999999995,
+        7.447900000000001,
+        4.4357
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        12.55665,
+        12.442,
+        12.41465,
+        12.4099,
+        12.50165
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        7.9056,
+        8.01325,
+        7.939,
+        8.11555,
+        7.69625
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        13.532549999999999,
+        13.286950000000001,
+        11.138399999999999,
+        13.2505,
+        12.823699999999999
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        8.9698,
+        9.12365,
+        7.352549999999999,
+        10.2559,
+        7.5563
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        12.47395,
+        12.880249999999998,
+        12.627849999999999,
+        12.86435,
+        12.6399
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        9.164200000000001,
+        10.518650000000001,
+        9.2827,
+        9.29585,
+        9.30455
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        12.1163,
+        11.7712,
+        11.863750000000001,
+        8.778550000000001,
+        3.7064500000000002
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        8.85215,
+        8.892999999999999,
+        10.0299,
+        10.3517,
+        10.18615
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        12.0556,
+        12.1357,
+        8.5305,
+        13.032850000000002,
+        12.238449999999998
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        12.2959,
+        12.388150000000001,
+        10.1663,
+        10.179,
+        10.692699999999999
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  }
+]

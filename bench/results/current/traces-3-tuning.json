@@ -1,0 +1,350 @@
+[
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        12.38715,
+        12.06135,
+        12.3026,
+        12.09975,
+        11.74155
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        4.57145,
+        7.71355,
+        7.528600000000001,
+        4.3308,
+        7.61825
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        12.47435,
+        12.442300000000001,
+        12.546650000000001,
+        12.56205,
+        12.29745
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 10,
+    "epoch_requests": 200000,
+    "hit_rate_percent": {
+      "runs": [
+        7.925949999999999,
+        7.98165,
+        7.93065,
+        8.17475,
+        7.785
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 200000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        13.04085,
+        13.25865,
+        13.5602,
+        11.1013,
+        13.337750000000002
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        9.782250000000001,
+        9.9442,
+        10.44905,
+        7.36435,
+        10.3719
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        12.6419,
+        13.1242,
+        12.28915,
+        12.968750000000002,
+        12.534049999999999
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 20,
+    "epoch_requests": 100000,
+    "hit_rate_percent": {
+      "runs": [
+        9.249749999999999,
+        9.87415,
+        9.65835,
+        9.76375,
+        9.38475
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 100000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": false,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        11.780050000000001,
+        11.96705,
+        12.12325,
+        12.1138,
+        12.01965
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "cold",
+    "gates": true,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        10.52175,
+        10.291549999999999,
+        8.222999999999999,
+        12.2599,
+        9.17775
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 1,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": false,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        12.38785,
+        13.263050000000002,
+        11.6614,
+        8.39705,
+        12.4455
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0,
+      "SwitchCooldownEpochs": 0,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  },
+  {
+    "trace": "arc_p3",
+    "strategy": "warm",
+    "gates": true,
+    "epochs": 50,
+    "epoch_requests": 40000,
+    "hit_rate_percent": {
+      "runs": [
+        10.627699999999999,
+        9.66335,
+        10.7239,
+        10.76835,
+        10.99535
+      ]
+    },
+    "settings": {
+      "EpochDuration": 0,
+      "EpochRequests": 40000,
+      "EvictPartialCapacityFilling": true,
+      "MigrationStrategy": 2,
+      "MigrationMaxRequests": 0,
+      "MinHitRateImprovement": 0.02,
+      "SwitchCooldownEpochs": 3,
+      "MinEpochRequests": 0,
+      "ShadowSampleRate": 0.05,
+      "ObserveOnly": false,
+      "MinShadowCapacity": 64
+    }
+  }
+]

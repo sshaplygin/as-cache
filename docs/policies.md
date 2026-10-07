@@ -31,7 +31,7 @@ cache, err := ascache.NewAdaptiveCache(
 | Random | `policies.NewRandomPolicy` | no bookkeeping; the control arm worth beating |
 | TTL | `policies.NewTTL` | expiry as well as recency; expiry runs on the wall clock, so its hit rate depends on how fast traffic arrives, and a replay is reproducible only while the TTL is far longer than the run |
 | ARC | `policies/arc.NewPolicy` | separate module — see below |
-| W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; the strongest baseline |
+| W-TinyLFU | `policies/tinylfu.NewPolicy` | separate module; asynchronous, workload-dependent baseline |
 | S3-FIFO | `policies/fifo.NewS3FIFOPolicy` | separate module; three FIFO queues, and deterministic |
 | SIEVE | `policies/fifo.NewSievePolicy` | same module; one FIFO queue and a sweeping hand |
 
@@ -67,19 +67,14 @@ Note that otter reports an approximate size, so this policy's `Len()` is
 approximate. Set `EvictPartialCapacityFilling: true` when using it, since the
 capacity gate compares `Len()` against `Cap()` for exact equality.
 
-**It also runs slightly over the capacity it was given, and that flatters it.**
-otter admits on the calling goroutine and evicts on a maintenance pass, so the
-cache sits above its limit whenever writes arrive faster than maintenance
-drains them. Measured at a nominal 500 entries under read-through replay: 514
-on `zipf` (1.03x), 533 on `loop` (1.06x), 611 on `uniform` (1.22x) — the
-overshoot tracks the write rate, and `uniform` misses on almost every request.
-On that workload it is the whole story: the arm held 611 of a 5000-key
-keyspace and served 12.18%, and 611/5000 is 12.2%, so its edge over the other
-policies there is capacity rather than eviction. Under a pure write flood the
-gap is far wider — 1916 entries retained against a limit of 500 — which is why
-the competitor harness calls `CleanUp`. Read its wins on write-heavy workloads
-with that in mind; on read-heavy ones the overshoot is a few percent and the
-comparison is sound.
+Asynchronous admission and eviction can let a tight write workload outrun
+maintenance. Equal nominal capacity therefore does not establish equal resident
+entries or memory. The competitor harness calls `CleanUp` to drain pending work;
+that changes its timing too. `TestCompetitorCapacityHonesty` records retained
+entries after a separate write flood in the [current evidence logs](../bench/results/current/README.md).
+Those counts do not measure occupancy during the zipf, loop or uniform replays,
+or establish why one policy has a higher hit rate on them. The current trace
+matrix retains all W-TinyLFU observations and their range.
 
 It is one of two arms that are not deterministic, which matters for
 [reproducible replays](benchmarking.md). `Random` is the other, and for a
@@ -87,6 +82,11 @@ better reason: it seeds itself from the global source, which is what a control
 arm is for.
 
 ## S3-FIFO and SIEVE
+
+These adapters are experimental source in this repository. The
+`policies/fifo` module has not been tagged; inclusion in the evidence suite
+does not imply a published package. They are deferred from the v0.4 release
+plan while native implementations are planned for v0.5.
 
 Both constructors reject a size of zero or less, as `NewLRU`, `NewLFU` and
 `NewTwoQueue` do: a cache built at zero would accept nothing and report no hits
@@ -118,9 +118,7 @@ W-TinyLFU for a different reason. It is hard to reach from ordinary traffic
 to capacity, read everything several times, then write once) it is real. Set
 `EvictPartialCapacityFilling: true` if you would rather not think about it.
 
-```bash
-go get github.com/sshaplygin/as-cache/policies/fifo
-```
+Use a repository checkout for these experiments:
 
 ```go
 s3, err := fifo.NewS3FIFOPolicy[string, int](10000)
@@ -155,9 +153,14 @@ miss ratios than the LRU-based state of the art across several thousand traces
 (Yang, Zhang, Qiu, Yue & Rashmi, *FIFO Queues are All You Need for Cache
 Eviction*, SOSP '23).
 
-It is in `benchclient.DefaultArms` for that reason.
+It participates in the research benchmarks. The unpublished FIFO module is
+excluded from `benchclient.DefaultArms` and the v0.4 release.
 
 ### SIEVE
+
+The current evidence includes an independent visited-bit model and a FIFO
+control. Identical LFU/SIEVE hit counts on some traces do not mean the algorithms
+are interchangeable; see the [diagnostic and worked examples](evidence.md#the-two-fifo-policies).
 
 SIEVE is simpler still: **one** FIFO queue and a hand that sweeps it from the
 oldest end. Each entry carries a single visited bit, set when it is read. The

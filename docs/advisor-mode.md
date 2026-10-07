@@ -2,10 +2,10 @@
 
 ## Advisor mode
 
-The safest way to adopt this library is not to let it switch anything. In
-`ObserveOnly` mode the cache behaves exactly like the first policy you give it
--- nothing ever migrates, nothing ever switches -- while every other policy is
-measured in the background against your real traffic.
+`ObserveOnly` lets you study policy rankings with switching disabled. The
+first policy you give the cache stays active and no migration runs. Shadow
+lookups still run on request paths and add CPU, memory and latency overhead;
+epoch reporting can use either the timer or request-count clock.
 
 ```go
 cache, err := ascache.NewAdaptiveCache(
@@ -34,11 +34,13 @@ policy      hit rate         hits       misses
 * currently active
 ```
 
-That answers a question that is otherwise expensive to ask, at no risk: you
-learn whether a different eviction policy would serve your traffic better, and
-by how much, without changing what your cache does. Acting on the answer is
-then your choice -- switch to that policy directly, or turn `ObserveOnly` off
-and let the bandit do it.
+The output above is a synthetic example of the report format, not measured
+output from a retained run. In use, the report compares measured rates,
+not guaranteed full-cache outcomes. In particular, sampled miniatures can
+change rankings and absolute hit rates; validate a recommendation with a
+standalone replay before acting on it. See
+[sampling evidence](evidence.md#does-sampling-distort-the-comparison).
+`ObserveOnly` keeps the active policy unchanged while you collect that evidence.
 
 `Advice()` is safe to call at any time. Check `Epochs` before believing it: a
 handful of epochs is not evidence.

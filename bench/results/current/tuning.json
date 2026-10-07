@@ -1,0 +1,473 @@
+{
+  "commit": "1cb65fe0242bfae6312d5c1f54b8660d68e40e24",
+  "records": [
+    {
+      "trace": "arc_p3",
+      "strategy": "cold",
+      "gates": false,
+      "epochs": 10,
+      "epoch_requests": 200000,
+      "hit_rate_percent": {
+        "runs": [
+          12.082650000000001,
+          12.0152,
+          12.250900000000001,
+          12.11015,
+          12.01725,
+          12.3888,
+          12.1608,
+          11.7821,
+          12.1843,
+          11.90005,
+          12.38715,
+          12.06135,
+          12.3026,
+          12.09975,
+          11.74155
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 200000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 1,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0,
+        "SwitchCooldownEpochs": 0,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "cold",
+      "gates": true,
+      "epochs": 10,
+      "epoch_requests": 200000,
+      "hit_rate_percent": {
+        "runs": [
+          7.5211,
+          7.72825,
+          7.524400000000001,
+          7.649,
+          4.748349999999999,
+          7.64755,
+          7.745349999999999,
+          7.4418999999999995,
+          7.447900000000001,
+          4.4357,
+          4.57145,
+          7.71355,
+          7.528600000000001,
+          4.3308,
+          7.61825
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 200000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 1,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0.02,
+        "SwitchCooldownEpochs": 3,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "warm",
+      "gates": false,
+      "epochs": 10,
+      "epoch_requests": 200000,
+      "hit_rate_percent": {
+        "runs": [
+          12.463799999999999,
+          12.557699999999999,
+          12.340950000000001,
+          12.09465,
+          12.5502,
+          12.55665,
+          12.442,
+          12.41465,
+          12.4099,
+          12.50165,
+          12.47435,
+          12.442300000000001,
+          12.546650000000001,
+          12.56205,
+          12.29745
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 200000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 2,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0,
+        "SwitchCooldownEpochs": 0,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "warm",
+      "gates": true,
+      "epochs": 10,
+      "epoch_requests": 200000,
+      "hit_rate_percent": {
+        "runs": [
+          8.09635,
+          8.265450000000001,
+          7.8083,
+          7.81785,
+          7.4352,
+          7.9056,
+          8.01325,
+          7.939,
+          8.11555,
+          7.69625,
+          7.925949999999999,
+          7.98165,
+          7.93065,
+          8.17475,
+          7.785
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 200000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 2,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0.02,
+        "SwitchCooldownEpochs": 3,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "cold",
+      "gates": false,
+      "epochs": 20,
+      "epoch_requests": 100000,
+      "hit_rate_percent": {
+        "runs": [
+          11.4338,
+          13.510050000000001,
+          12.64795,
+          11.128549999999999,
+          13.7359,
+          13.532549999999999,
+          13.286950000000001,
+          11.138399999999999,
+          13.2505,
+          12.823699999999999,
+          13.04085,
+          13.25865,
+          13.5602,
+          11.1013,
+          13.337750000000002
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 100000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 1,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0,
+        "SwitchCooldownEpochs": 0,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "cold",
+      "gates": true,
+      "epochs": 20,
+      "epoch_requests": 100000,
+      "hit_rate_percent": {
+        "runs": [
+          9.0358,
+          9.01375,
+          7.4294,
+          7.63215,
+          10.3894,
+          8.9698,
+          9.12365,
+          7.352549999999999,
+          10.2559,
+          7.5563,
+          9.782250000000001,
+          9.9442,
+          10.44905,
+          7.36435,
+          10.3719
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 100000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 1,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0.02,
+        "SwitchCooldownEpochs": 3,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "warm",
+      "gates": false,
+      "epochs": 20,
+      "epoch_requests": 100000,
+      "hit_rate_percent": {
+        "runs": [
+          12.8338,
+          12.78975,
+          12.835849999999999,
+          12.953700000000001,
+          13.1249,
+          12.47395,
+          12.880249999999998,
+          12.627849999999999,
+          12.86435,
+          12.6399,
+          12.6419,
+          13.1242,
+          12.28915,
+          12.968750000000002,
+          12.534049999999999
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 100000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 2,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0,
+        "SwitchCooldownEpochs": 0,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "warm",
+      "gates": true,
+      "epochs": 20,
+      "epoch_requests": 100000,
+      "hit_rate_percent": {
+        "runs": [
+          9.1987,
+          9.276900000000001,
+          9.334299999999999,
+          8.981200000000001,
+          10.4677,
+          9.164200000000001,
+          10.518650000000001,
+          9.2827,
+          9.29585,
+          9.30455,
+          9.249749999999999,
+          9.87415,
+          9.65835,
+          9.76375,
+          9.38475
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 100000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 2,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0.02,
+        "SwitchCooldownEpochs": 3,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "cold",
+      "gates": false,
+      "epochs": 50,
+      "epoch_requests": 40000,
+      "hit_rate_percent": {
+        "runs": [
+          11.8685,
+          11.7964,
+          12.27275,
+          12.249500000000001,
+          8.097999999999999,
+          12.1163,
+          11.7712,
+          11.863750000000001,
+          8.778550000000001,
+          3.7064500000000002,
+          11.780050000000001,
+          11.96705,
+          12.12325,
+          12.1138,
+          12.01965
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 40000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 1,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0,
+        "SwitchCooldownEpochs": 0,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "cold",
+      "gates": true,
+      "epochs": 50,
+      "epoch_requests": 40000,
+      "hit_rate_percent": {
+        "runs": [
+          7.7906,
+          10.5512,
+          9.71175,
+          11.186,
+          9.16825,
+          8.85215,
+          8.892999999999999,
+          10.0299,
+          10.3517,
+          10.18615,
+          10.52175,
+          10.291549999999999,
+          8.222999999999999,
+          12.2599,
+          9.17775
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 40000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 1,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0.02,
+        "SwitchCooldownEpochs": 3,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "warm",
+      "gates": false,
+      "epochs": 50,
+      "epoch_requests": 40000,
+      "hit_rate_percent": {
+        "runs": [
+          12.2791,
+          12.4282,
+          12.22125,
+          12.22955,
+          12.21175,
+          12.0556,
+          12.1357,
+          8.5305,
+          13.032850000000002,
+          12.238449999999998,
+          12.38785,
+          13.263050000000002,
+          11.6614,
+          8.39705,
+          12.4455
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 40000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 2,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0,
+        "SwitchCooldownEpochs": 0,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "strategy": "warm",
+      "gates": true,
+      "epochs": 50,
+      "epoch_requests": 40000,
+      "hit_rate_percent": {
+        "runs": [
+          8.3146,
+          9.64165,
+          11.484,
+          11.135349999999999,
+          11.34585,
+          12.2959,
+          12.388150000000001,
+          10.1663,
+          10.179,
+          10.692699999999999,
+          10.627699999999999,
+          9.66335,
+          10.7239,
+          10.76835,
+          10.99535
+        ]
+      },
+      "settings": {
+        "EpochDuration": 0,
+        "EpochRequests": 40000,
+        "EvictPartialCapacityFilling": true,
+        "MigrationStrategy": 2,
+        "MigrationMaxRequests": 0,
+        "MinHitRateImprovement": 0.02,
+        "SwitchCooldownEpochs": 3,
+        "MinEpochRequests": 0,
+        "ShadowSampleRate": 0.05,
+        "ObserveOnly": false,
+        "MinShadowCapacity": 64
+      }
+    }
+  ]
+}

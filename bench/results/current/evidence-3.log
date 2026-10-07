@@ -1,0 +1,757 @@
+( cd bench && go test -count=1 -timeout 45m -v ./... )
+=== RUN   TestAgainstOtherLibraries
+=== RUN   TestAgainstOtherLibraries/zipf
+    competitor_test.go:74: 
+        zipf (200000 requests, cache 500)
+        skewed popularity; favours frequency-aware policies (LFU, W-TinyLFU)
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | otter v2 | 73.44% | 457 |
+        | theine | 72.20% | 320 |
+        | ristretto | 69.16% | 148 |
+        | as-cache (adaptive) | 68.05% | 3134 |
+        | sturdyc | 62.03% | 298 |
+=== RUN   TestAgainstOtherLibraries/uniform
+    competitor_test.go:74: 
+        uniform (200000 requests, cache 500)
+        no reuse structure; random eviction is competitive
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | theine | 10.48% | 512 |
+        | ristretto | 10.01% | 320 |
+        | as-cache (adaptive) | 10.00% | 5008 |
+        | otter v2 | 9.98% | 1229 |
+        | sturdyc | 9.51% | 650 |
+=== RUN   TestAgainstOtherLibraries/loop
+    competitor_test.go:74: 
+        loop (200000 requests, cache 500)
+        cyclic scan just over capacity; pathological for LRU, fine for random
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | ristretto | 88.78% | 142 |
+        | theine | 88.62% | 222 |
+        | otter v2 | 86.62% | 263 |
+        | as-cache (adaptive) | 86.21% | 2120 |
+        | sturdyc | 45.17% | 359 |
+=== RUN   TestAgainstOtherLibraries/scan
+    competitor_test.go:74: 
+        scan (200000 requests, cache 500)
+        hot set plus repeated one-off sweeps; favours scan-resistant policies (2Q, ARC, W-TinyLFU)
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | theine | 39.88% | 373 |
+        | otter v2 | 39.87% | 779 |
+        | as-cache (adaptive) | 39.44% | 3461 |
+        | ristretto | 37.79% | 288 |
+        | sturdyc | 30.01% | 459 |
+=== RUN   TestAgainstOtherLibraries/phase-shift
+    competitor_test.go:74: 
+        phase-shift (200000 requests, cache 500)
+        alternating zipf and loop phases; no fixed policy is good in both
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | otter v2 | 78.90% | 391 |
+        | theine | 77.41% | 282 |
+        | ristretto | 72.92% | 141 |
+        | as-cache (adaptive) | 70.55% | 2957 |
+        | sturdyc | 53.73% | 351 |
+--- PASS: TestAgainstOtherLibraries (5.01s)
+    --- PASS: TestAgainstOtherLibraries/zipf (0.87s)
+    --- PASS: TestAgainstOtherLibraries/uniform (1.54s)
+    --- PASS: TestAgainstOtherLibraries/loop (0.62s)
+    --- PASS: TestAgainstOtherLibraries/scan (1.07s)
+    --- PASS: TestAgainstOtherLibraries/phase-shift (0.82s)
+=== RUN   TestRistrettoImmediateVisibility
+    competitor_test.go:120: ristretto retained 0/50 keys written into a cache of 500
+--- PASS: TestRistrettoImmediateVisibility (0.00s)
+=== RUN   TestCompetitorCapacityHonesty
+=== RUN   TestCompetitorCapacityHonesty/otter_v2
+    competitor_test.go:160: otter v2 asked for 500, holds 500 (1.0x)
+=== RUN   TestCompetitorCapacityHonesty/theine
+    competitor_test.go:160: theine asked for 500, holds 545 (1.1x)
+=== RUN   TestCompetitorCapacityHonesty/ristretto
+    competitor_test.go:160: ristretto asked for 500, holds 542 (1.1x)
+=== RUN   TestCompetitorCapacityHonesty/sturdyc
+    competitor_test.go:160: sturdyc asked for 500, holds 476 (1.0x)
+--- PASS: TestCompetitorCapacityHonesty (0.01s)
+    --- PASS: TestCompetitorCapacityHonesty/otter_v2 (0.01s)
+    --- PASS: TestCompetitorCapacityHonesty/theine (0.00s)
+    --- PASS: TestCompetitorCapacityHonesty/ristretto (0.00s)
+    --- PASS: TestCompetitorCapacityHonesty/sturdyc (0.00s)
+=== RUN   TestEvidenceHelpersEmpty
+--- PASS: TestEvidenceHelpersEmpty (0.00s)
+=== RUN   TestEvidenceMedianEven
+--- PASS: TestEvidenceMedianEven (0.00s)
+=== RUN   TestEvidenceMetadataUsesMeasuredConfiguration
+=== RUN   TestEvidenceMetadataUsesMeasuredConfiguration/raised_floor
+=== RUN   TestEvidenceMetadataUsesMeasuredConfiguration/changed_configuration
+=== RUN   TestEvidenceMetadataUsesMeasuredConfiguration/clamped_to_full_cache
+=== RUN   TestEvidenceMetadataUsesMeasuredConfiguration/library_default_floor
+--- PASS: TestEvidenceMetadataUsesMeasuredConfiguration (0.00s)
+    --- PASS: TestEvidenceMetadataUsesMeasuredConfiguration/raised_floor (0.00s)
+    --- PASS: TestEvidenceMetadataUsesMeasuredConfiguration/changed_configuration (0.00s)
+    --- PASS: TestEvidenceMetadataUsesMeasuredConfiguration/clamped_to_full_cache (0.00s)
+    --- PASS: TestEvidenceMetadataUsesMeasuredConfiguration/library_default_floor (0.00s)
+=== RUN   TestReferenceMissPrecisionContract
+--- PASS: TestReferenceMissPrecisionContract (0.00s)
+=== RUN   TestFixedPolicyEvidence
+=== RUN   TestFixedPolicyEvidence/zipf
+    evidence_test.go:65: 
+        zipf (200000 requests, cache 500)
+        skewed popularity; favours frequency-aware policies (LFU, W-TinyLFU)
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | SIEVE | 73.58% | 138 |
+        | S3-FIFO | 73.49% | 227 |
+        | LFU | 73.47% | 446 |
+        | ARC | 73.16% | 137 |
+        | W-TinyLFU | 72.47% | 145 |
+        | 2Q | 72.02% | 149 |
+        | LRU | 66.91% | 66 |
+        | TTL | 66.91% | 158 |
+        | Random | 62.70% | 92 |
+=== RUN   TestFixedPolicyEvidence/uniform
+    evidence_test.go:65: 
+        uniform (200000 requests, cache 500)
+        no reuse structure; random eviction is competitive
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | W-TinyLFU | 12.19% | 338 |
+        | Random | 10.05% | 180 |
+        | ARC | 10.03% | 419 |
+        | LFU | 10.02% | 383 |
+        | LRU | 9.99% | 118 |
+        | TTL | 9.99% | 217 |
+        | 2Q | 9.99% | 335 |
+        | S3-FIFO | 9.99% | 549 |
+        | SIEVE | 9.98% | 362 |
+=== RUN   TestFixedPolicyEvidence/loop
+    evidence_test.go:65: 
+        loop (200000 requests, cache 500)
+        cyclic scan just over capacity; pathological for LRU, fine for random
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | W-TinyLFU | 92.01% | 78 |
+        | Random | 82.13% | 43 |
+        | S3-FIFO | 79.67% | 195 |
+        | 2Q | 68.60% | 120 |
+        | ARC | 0.12% | 300 |
+        | LRU | 0.00% | 88 |
+        | LFU | 0.00% | 129 |
+        | TTL | 0.00% | 206 |
+        | SIEVE | 0.00% | 320 |
+=== RUN   TestFixedPolicyEvidence/scan
+    evidence_test.go:65: 
+        scan (200000 requests, cache 500)
+        hot set plus repeated one-off sweeps; favours scan-resistant policies (2Q, ARC, W-TinyLFU)
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | LFU | 39.95% | 121 |
+        | 2Q | 39.95% | 251 |
+        | ARC | 39.95% | 268 |
+        | S3-FIFO | 39.95% | 375 |
+        | SIEVE | 39.95% | 233 |
+        | W-TinyLFU | 39.80% | 236 |
+        | Random | 31.98% | 136 |
+        | LRU | 30.00% | 110 |
+        | TTL | 30.00% | 184 |
+=== RUN   TestFixedPolicyEvidence/phase-shift
+    evidence_test.go:65: 
+        phase-shift (200000 requests, cache 500)
+        alternating zipf and loop phases; no fixed policy is good in both
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | W-TinyLFU | 82.16% | 112 |
+        | S3-FIFO | 71.59% | 258 |
+        | SIEVE | 69.74% | 131 |
+        | LFU | 69.66% | 255 |
+        | Random | 68.35% | 82 |
+        | 2Q | 61.48% | 148 |
+        | ARC | 39.92% | 259 |
+        | LRU | 34.50% | 109 |
+        | TTL | 34.50% | 187 |
+--- PASS: TestFixedPolicyEvidence (1.94s)
+    --- PASS: TestFixedPolicyEvidence/zipf (0.31s)
+    --- PASS: TestFixedPolicyEvidence/uniform (0.58s)
+    --- PASS: TestFixedPolicyEvidence/loop (0.30s)
+    --- PASS: TestFixedPolicyEvidence/scan (0.38s)
+    --- PASS: TestFixedPolicyEvidence/phase-shift (0.31s)
+=== RUN   TestAdaptiveVersusFixed
+=== RUN   TestAdaptiveVersusFixed/zipf
+    evidence_test.go:135: 
+        zipf vs fixed policies
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | SIEVE | 73.58% | 124 |
+        | S3-FIFO | 73.49% | 227 |
+        | LFU | 73.47% | 449 |
+        | ARC | 73.16% | 180 |
+        | W-TinyLFU | 72.87% | 144 |
+        | 2Q | 72.02% | 131 |
+        | LRU | 66.91% | 65 |
+        | TTL | 66.91% | 142 |
+        | adaptive | 66.28% | 2970 |
+        | Random | 62.70% | 92 |
+=== RUN   TestAdaptiveVersusFixed/uniform
+    evidence_test.go:135: 
+        uniform vs fixed policies
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | W-TinyLFU | 12.26% | 327 |
+        | adaptive | 10.05% | 5302 |
+        | ARC | 10.03% | 420 |
+        | LFU | 10.02% | 414 |
+        | LRU | 9.99% | 133 |
+        | TTL | 9.99% | 213 |
+        | 2Q | 9.99% | 332 |
+        | S3-FIFO | 9.99% | 564 |
+        | SIEVE | 9.98% | 354 |
+        | Random | 9.96% | 180 |
+=== RUN   TestAdaptiveVersusFixed/loop
+    evidence_test.go:135: 
+        loop vs fixed policies
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | W-TinyLFU | 92.26% | 76 |
+        | adaptive | 86.34% | 2264 |
+        | Random | 82.17% | 42 |
+        | S3-FIFO | 79.67% | 220 |
+        | 2Q | 68.60% | 144 |
+        | ARC | 0.12% | 329 |
+        | LRU | 0.00% | 115 |
+        | LFU | 0.00% | 108 |
+        | TTL | 0.00% | 190 |
+        | SIEVE | 0.00% | 313 |
+=== RUN   TestAdaptiveVersusFixed/scan
+    evidence_test.go:135: 
+        scan vs fixed policies
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | LFU | 39.95% | 118 |
+        | 2Q | 39.95% | 250 |
+        | ARC | 39.95% | 260 |
+        | S3-FIFO | 39.95% | 378 |
+        | SIEVE | 39.95% | 238 |
+        | W-TinyLFU | 39.73% | 238 |
+        | adaptive | 35.15% | 3878 |
+        | Random | 32.00% | 137 |
+        | LRU | 30.00% | 110 |
+        | TTL | 30.00% | 183 |
+=== RUN   TestAdaptiveVersusFixed/phase-shift
+    evidence_test.go:135: 
+        phase-shift vs fixed policies
+        | Policy | Hit rate | ns/op |
+        | --- | --- | --- |
+        | W-TinyLFU | 82.40% | 116 |
+        | adaptive | 72.60% | 2825 |
+        | S3-FIFO | 71.59% | 254 |
+        | SIEVE | 69.74% | 147 |
+        | LFU | 69.66% | 394 |
+        | Random | 68.27% | 87 |
+        | 2Q | 61.48% | 185 |
+        | ARC | 39.92% | 262 |
+        | LRU | 34.50% | 116 |
+        | TTL | 34.50% | 190 |
+=== NAME  TestAdaptiveVersusFixed
+    evidence_test.go:159: 
+        | Workload | Adaptive | Best fixed | Worst fixed | Adaptive vs best |
+        | --- | --- | --- | --- | --- |
+        | zipf | 66.28% | SIEVE 73.58% | 62.70% | -7.30 pts |
+        | uniform | 10.05% | W-TinyLFU 12.26% | 9.96% | -2.22 pts |
+        | loop | 86.34% | W-TinyLFU 92.26% | 0.00% | -5.91 pts |
+        | scan | 35.15% | LFU 39.95% | 30.00% | -4.80 pts |
+        | phase-shift | 72.60% | W-TinyLFU 82.40% | 34.50% | -9.81 pts |
+        
+--- PASS: TestAdaptiveVersusFixed (5.44s)
+    --- PASS: TestAdaptiveVersusFixed/zipf (0.91s)
+    --- PASS: TestAdaptiveVersusFixed/uniform (1.65s)
+    --- PASS: TestAdaptiveVersusFixed/loop (0.76s)
+    --- PASS: TestAdaptiveVersusFixed/scan (1.16s)
+    --- PASS: TestAdaptiveVersusFixed/phase-shift (0.92s)
+=== RUN   TestSamplingPreservesPolicyRanking
+=== RUN   TestSamplingPreservesPolicyRanking/zipf
+    evidence_test.go:219: 
+        zipf
+          full-size shadows  ARC=81.61% TwoQueue=81.32% TinyLFU=81.24% LFU=81.19% SIEVE=81.19% S3FIFO=81.12% LRU=79.21% TTL=79.21% Random=76.67%
+          -> picks ARC
+    evidence_test.go:233:   rate 0.05          TinyLFU=74.42% ARC=74.40% TwoQueue=74.38% SIEVE=74.13% LFU=74.13% S3FIFO=73.81% LRU=71.40% TTL=71.22% Random=67.59%
+          -> picks TinyLFU, regret 0.37 pts
+    evidence_test.go:233:   rate 0.10          ARC=84.10% TinyLFU=83.94% TwoQueue=83.92% LFU=83.76% SIEVE=83.76% S3FIFO=83.72% LRU=82.05% TTL=82.03% Random=79.71%
+          -> picks ARC, regret 0.00 pts
+    evidence_test.go:233:   rate 0.30          ARC=79.08% TwoQueue=78.79% TinyLFU=78.75% SIEVE=78.64% LFU=78.64% S3FIFO=78.50% TTL=76.49% LRU=76.47% Random=73.76%
+          -> picks ARC, regret 0.00 pts
+    evidence_test.go:233:   rate 0.50          ARC=84.10% TwoQueue=83.86% TinyLFU=83.79% SIEVE=83.77% LFU=83.77% S3FIFO=83.69% TTL=82.08% LRU=82.04% Random=80.03%
+          -> picks ARC, regret 0.00 pts
+=== RUN   TestSamplingPreservesPolicyRanking/scan
+    evidence_test.go:219: 
+        scan
+          full-size shadows  S3FIFO=28.34% SIEVE=28.34% LFU=28.34% ARC=28.34% TwoQueue=28.34% TinyLFU=28.01% TTL=21.43% LRU=21.43% Random=18.85%
+          -> picks LFU
+    evidence_test.go:233:   rate 0.05          TwoQueue=30.07% ARC=30.07% SIEVE=30.07% LFU=30.07% S3FIFO=30.07% TinyLFU=29.99% TTL=22.74% LRU=22.74% Random=19.69%
+          -> picks SIEVE, regret 0.00 pts
+    evidence_test.go:233:   rate 0.10          ARC=27.55% TwoQueue=27.55% S3FIFO=27.55% SIEVE=27.55% LFU=27.55% TinyLFU=26.86% LRU=20.84% TTL=20.84% Random=18.48%
+          -> picks ARC, regret 0.00 pts
+    evidence_test.go:233:   rate 0.30          LFU=28.56% SIEVE=28.56% ARC=28.56% S3FIFO=28.56% TwoQueue=28.56% TinyLFU=28.41% LRU=21.60% TTL=21.60% Random=18.97%
+          -> picks LFU, regret 0.00 pts
+    evidence_test.go:233:   rate 0.50          SIEVE=28.33% S3FIFO=28.33% LFU=28.33% TwoQueue=28.33% ARC=28.33% TinyLFU=27.57% LRU=21.43% TTL=21.43% Random=18.88%
+          -> picks S3FIFO, regret 0.00 pts
+--- PASS: TestSamplingPreservesPolicyRanking (20.17s)
+    --- PASS: TestSamplingPreservesPolicyRanking/zipf (1.31s)
+    --- PASS: TestSamplingPreservesPolicyRanking/scan (18.76s)
+=== RUN   TestSamplingPreservesClearOrderings
+=== RUN   TestSamplingPreservesClearOrderings/loop
+    evidence_test.go:310: rate 0.05: 8 clearly separated pairs, 0 inverted
+    evidence_test.go:310: rate 0.10: 8 clearly separated pairs, 0 inverted
+    evidence_test.go:310: rate 0.30: 8 clearly separated pairs, 0 inverted
+    evidence_test.go:310: rate 0.50: 8 clearly separated pairs, 0 inverted
+=== RUN   TestSamplingPreservesClearOrderings/scan
+    evidence_test.go:310: rate 0.05: 8 clearly separated pairs, 0 inverted
+    evidence_test.go:310: rate 0.10: 8 clearly separated pairs, 0 inverted
+    evidence_test.go:310: rate 0.30: 8 clearly separated pairs, 0 inverted
+    evidence_test.go:310: rate 0.50: 8 clearly separated pairs, 0 inverted
+--- PASS: TestSamplingPreservesClearOrderings (22.80s)
+    --- PASS: TestSamplingPreservesClearOrderings/loop (1.93s)
+    --- PASS: TestSamplingPreservesClearOrderings/scan (20.79s)
+=== RUN   TestMemoryMultiplier
+    memory_test.go:117: 
+        memory holding 50000 entries of 256-byte values, 8 policies
+          single LRU               18.5 MiB   (1.00x)
+          adaptive, no sampling    72.3 MiB   (3.92x)
+          adaptive, sample 0.05    25.7 MiB   (1.39x)
+    memory_test.go:143:   each shadow costs 7.7 MiB against a 18.5 MiB full cache (0.42x)
+--- PASS: TestMemoryMultiplier (0.29s)
+=== RUN   TestAllocationsPerOperation
+    memory_test.go:183: 
+        Get on a warm cache:
+    memory_test.go:178:   single LRU                   32.0 ns/op       0 B/op     0 allocs/op
+    memory_test.go:178:   adaptive, no sampling       905.0 ns/op       3 B/op     0 allocs/op
+    memory_test.go:178:   adaptive, sample 0.05       205.0 ns/op      33 B/op     0 allocs/op
+--- PASS: TestAllocationsPerOperation (3.80s)
+=== RUN   TestLRUMatchesReference
+    reference_test.go:68: AS_CACHE_LRU_REFERENCE is not set; run ./scripts/verify-ref.sh
+--- SKIP: TestLRUMatchesReference (0.00s)
+=== RUN   TestShadowsMeasureWhatThePolicyWouldActuallyServe
+=== RUN   TestShadowsMeasureWhatThePolicyWouldActuallyServe/loop
+    shadow_fidelity_test.go:115: TinyLFU  standalone  93.13%  shadow  86.65%  (-6.47 pts)
+    shadow_fidelity_test.go:115: Random   standalone  82.17%  shadow  82.16%  (-0.01 pts)
+    shadow_fidelity_test.go:115: S3FIFO   standalone  79.73%  shadow  79.73%  (+0.00 pts)
+    shadow_fidelity_test.go:115: TwoQueue standalone  68.68%  shadow  68.68%  (+0.00 pts)
+    shadow_fidelity_test.go:115: ARC      standalone   0.10%  shadow   0.10%  (+0.00 pts)
+    shadow_fidelity_test.go:115: LRU      standalone   0.00%  shadow   0.00%  (+0.00 pts)
+    shadow_fidelity_test.go:115: LFU      standalone   0.00%  shadow   0.00%  (+0.00 pts)
+    shadow_fidelity_test.go:115: TTL      standalone   0.00%  shadow   0.00%  (+0.00 pts)
+    shadow_fidelity_test.go:115: SIEVE    standalone   0.00%  shadow   0.00%  (+0.00 pts)
+=== RUN   TestShadowsMeasureWhatThePolicyWouldActuallyServe/zipf
+    shadow_fidelity_test.go:115: SIEVE    standalone  73.58%  shadow  73.58%  (+0.00 pts)
+    shadow_fidelity_test.go:115: S3FIFO   standalone  73.49%  shadow  73.49%  (+0.00 pts)
+    shadow_fidelity_test.go:115: LFU      standalone  73.47%  shadow  73.47%  (+0.00 pts)
+    shadow_fidelity_test.go:115: TinyLFU  standalone  72.87%  shadow  73.17%  (+0.30 pts)
+    shadow_fidelity_test.go:115: ARC      standalone  73.16%  shadow  73.16%  (+0.00 pts)
+    shadow_fidelity_test.go:115: TwoQueue standalone  72.02%  shadow  72.02%  (+0.00 pts)
+    shadow_fidelity_test.go:115: LRU      standalone  66.91%  shadow  66.91%  (+0.00 pts)
+    shadow_fidelity_test.go:115: TTL      standalone  66.91%  shadow  66.91%  (+0.00 pts)
+    shadow_fidelity_test.go:115: Random   standalone  62.61%  shadow  62.53%  (-0.08 pts)
+--- PASS: TestShadowsMeasureWhatThePolicyWouldActuallyServe (1.97s)
+    --- PASS: TestShadowsMeasureWhatThePolicyWouldActuallyServe/loop (0.96s)
+    --- PASS: TestShadowsMeasureWhatThePolicyWouldActuallyServe/zipf (0.98s)
+=== RUN   TestSieveLFUDistinction
+=== RUN   TestSieveLFUDistinction/cold_scan
+=== RUN   TestSieveLFUDistinction/protect_visited
+=== RUN   TestSieveLFUDistinction/frequency_outlives_bit
+--- PASS: TestSieveLFUDistinction (0.00s)
+    --- PASS: TestSieveLFUDistinction/cold_scan (0.00s)
+    --- PASS: TestSieveLFUDistinction/protect_visited (0.00s)
+    --- PASS: TestSieveLFUDistinction/frequency_outlives_bit (0.00s)
+=== RUN   TestActivePolicyTimeline
+    timeline_test.go:154: 
+        phase-shift timeline (240000 requests, cache 500, 12 phases)
+        phase      Z---------------------------------------L---------------------------------------Z---------------------------------------L---------------------------------------Z---------------------------------------L---------------------------------------Z---------------------------------------L---------------------------------------Z---------------------------------------L---------------------------------------Z---------------------------------------L---------------------------------------   (Z = zipf phase, L = loop phase)
+        LRU        ##########                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+        LFU                                                                                                                                                                                                                                                                                   ####                                                                                                                                                                                                                 
+        TwoQueue             #########                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+        ARC                                                #####                                                                                                                                                                                                                                     ######                                                                                                                                                                                                        
+        TinyLFU                       #######                   ##############################################################################################################################################################################################################################                  ##########################################################################      ###################################################################################################################
+        S3FIFO                                      #######                                                                                                                                                                                                                                       ###                                                                                                                                                                                                              
+        SIEVE                                #######                                                                                                                                                                                                                                                       #####                                                                          ######                                                                                                                   
+        
+        share of time active: LRU 2%, LFU 1%, TwoQueue 2%, ARC 2%, TinyLFU 87%, S3FIFO 2%, SIEVE 4%
+        hit rate 78.67%
+--- PASS: TestActivePolicyTimeline (0.17s)
+=== RUN   TestTraceEvidence
+=== RUN   TestTraceEvidence/twitter_cluster052.csv
+    trace_evidence_test.go:166: 
+        twitter_cluster052.csv
+        Twitter Twemcache production KV cache (OSDI '20)
+        real trace: 1000000 requests over 255333 distinct keys
+        cache 10000 entries, 3.9% of the 255333 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | SIEVE | 59.78% |
+        | S3-FIFO | 59.73% |
+        | 2Q | 59.62% |
+        | ARC | 58.99% |
+        | adaptive, 20 epochs (every 50000 requests) | 58.78% [58.77-58.93] |
+        | adaptive, 10 epochs (every 100000 requests) | 58.67% [58.60-58.72] |
+        | W-TinyLFU | 58.57% [54.90-58.74] |
+        | TTL | 58.39% |
+        | LRU | 58.39% |
+        | adaptive, 50 epochs (every 20000 requests) | 58.19% [58.06-58.35] |
+        | Random | 54.80% [54.77-54.82] |
+        | LFU | 41.44% |
+=== RUN   TestTraceEvidence/lirs_loop.trace
+    trace_evidence_test.go:166: 
+        lirs_loop.trace
+        LIRS loop: cyclic scan, adversarial for LRU (SIGMETRICS '02)
+        real trace: 505500 requests over 1011 distinct keys
+        cache 500 entries, 49.5% of the 1011 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | W-TinyLFU | 45.77% [42.39-46.28] |
+        | adaptive, 50 epochs (every 10110 requests) | 43.49% [43.08-44.60] |
+        | adaptive, 20 epochs (every 25275 requests) | 42.81% [42.35-45.53] |
+        | adaptive, 10 epochs (every 50550 requests) | 40.67% [40.05-41.82] |
+        | Random | 19.66% [19.61-19.74] |
+        | LFU | 0.00% |
+        | LRU | 0.00% |
+        | 2Q | 0.00% |
+        | TTL | 0.00% |
+        | ARC | 0.00% |
+        | S3-FIFO | 0.00% |
+        | SIEVE | 0.00% |
+=== RUN   TestTraceEvidence/lirs_2_pools.trace
+    trace_evidence_test.go:166: 
+        lirs_2_pools.trace
+        LIRS 2_pools: two interleaved pools with different locality
+        real trace: 100000 requests over 9939 distinct keys
+        cache 1000 entries, 10.1% of the 9939 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | W-TinyLFU | 54.77% [54.65-54.95] |
+        | adaptive, 10 epochs (every 10000 requests) | 54.42% [54.39-54.43] |
+        | TTL | 54.41% |
+        | LRU | 54.41% |
+        | adaptive, 20 epochs (every 5000 requests) | 54.40% [54.40-54.41] |
+        | 2Q | 54.40% |
+        | ARC | 54.37% |
+        | S3-FIFO | 54.37% |
+        | LFU | 54.36% |
+        | SIEVE | 54.36% |
+        | adaptive, 50 epochs (every 2000 requests) | 54.24% [54.19-54.27] |
+        | Random | 50.00% [49.89-50.05] |
+=== RUN   TestTraceEvidence/arc_p3
+    trace_evidence_test.go:166: 
+        arc_p3
+        ARC paper P3 workstation trace (FAST '03)
+        ARC trace: 138478 records expanded to 2000000 accesses over 426527 distinct blocks
+        cache 20000 entries, 4.7% of the 426527 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | adaptive, 20 epochs (every 100000 requests) | 12.97% [12.51-13.10] |
+        | adaptive, 50 epochs (every 40000 requests) | 12.43% [12.10-13.49] |
+        | adaptive, 10 epochs (every 200000 requests) | 12.30% [11.93-12.55] |
+        | W-TinyLFU | 11.70% [11.59-11.83] |
+        | S3-FIFO | 10.75% |
+        | ARC | 10.25% |
+        | 2Q | 7.74% |
+        | SIEVE | 4.82% |
+        | LFU | 4.82% |
+        | Random | 3.09% [3.08-3.09] |
+        | LRU | 1.87% |
+        | TTL | 1.87% |
+=== RUN   TestTraceEvidence/arc_oltp
+    trace_evidence_test.go:166: 
+        arc_oltp
+        ARC paper OLTP database trace (FAST '03)
+        ARC trace: 914145 records expanded to 914145 accesses over 186880 distinct blocks
+        cache 20000 entries, 10.7% of the 186880 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | 2Q | 68.25% |
+        | ARC | 67.80% |
+        | S3-FIFO | 67.79% |
+        | SIEVE | 67.72% |
+        | adaptive, 10 epochs (every 91414 requests) | 67.48% [67.37-67.73] |
+        | LRU | 67.06% |
+        | TTL | 67.06% |
+        | adaptive, 20 epochs (every 45707 requests) | 66.91% [66.80-67.13] |
+        | adaptive, 50 epochs (every 18282 requests) | 66.21% [66.03-66.33] |
+        | W-TinyLFU | 63.11% [63.01-63.17] |
+        | Random | 63.02% [63.00-63.05] |
+        | LFU | 45.43% |
+=== RUN   TestTraceEvidence/meta_kvcache_202206_1
+    trace_evidence_test.go:166: 
+        meta_kvcache_202206_1
+        Meta production key-value cache, 500 hosts over 5 days (CacheBench kvcache/202206)
+        Meta kvcache trace: 1160580 rows (942355 reads, 218225 writes) expanded by op_count to 2000000 reads over 340723 distinct keys
+        cache 10000 entries, 2.9% of the 340723 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | S3-FIFO | 69.05% |
+        | SIEVE | 68.92% |
+        | W-TinyLFU | 68.51% [68.31-68.53] |
+        | ARC | 68.27% |
+        | 2Q | 68.16% |
+        | adaptive, 10 epochs (every 200000 requests) | 67.96% [67.94-68.11] |
+        | adaptive, 20 epochs (every 100000 requests) | 67.57% [67.48-67.78] |
+        | LFU | 66.87% |
+        | adaptive, 50 epochs (every 40000 requests) | 66.86% [66.82-66.97] |
+        | TTL | 66.39% |
+        | LRU | 66.39% |
+        | Random | 65.18% [65.17-65.19] |
+=== RUN   TestTraceEvidence/msr_hm_0
+    trace_evidence_test.go:166: 
+        msr_hm_0
+        MSR Cambridge enterprise block I/O, read requests (FAST '08)
+        MSR Cambridge trace: 418343 records (120058 reads, 298285 writes) expanded to 2000000 block accesses from reads over 818034 distinct 512-byte blocks
+        cache 20000 entries, 2.4% of the 818034 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | 2Q | 17.01% |
+        | ARC | 16.65% |
+        | W-TinyLFU | 16.19% [15.81-16.33] |
+        | S3-FIFO | 15.84% |
+        | SIEVE | 15.19% |
+        | adaptive, 10 epochs (every 200000 requests) | 15.13% [12.53-15.59] |
+        | LFU | 14.99% |
+        | adaptive, 50 epochs (every 40000 requests) | 14.37% [13.90-15.90] |
+        | adaptive, 20 epochs (every 100000 requests) | 13.58% [12.89-14.41] |
+        | Random | 12.62% [12.62-12.64] |
+        | LRU | 11.40% |
+        | TTL | 11.40% |
+=== RUN   TestTraceEvidence/msr_prn_0
+    trace_evidence_test.go:166: 
+        msr_prn_0
+        MSR Cambridge enterprise block I/O, read requests (FAST '08)
+        MSR Cambridge trace: 96363 records (37302 reads, 59061 writes) expanded to 2000000 block accesses from reads over 1900653 distinct 512-byte blocks
+        cache 20000 entries, 1.1% of the 1900653 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | adaptive, 50 epochs (every 40000 requests) | 1.08% [0.98-1.08] |
+        | SIEVE | 1.06% |
+        | LFU | 1.06% |
+        | 2Q | 1.04% |
+        | ARC | 1.02% |
+        | S3-FIFO | 1.01% |
+        | TTL | 1.00% |
+        | LRU | 1.00% |
+        | Random | 0.95% [0.94-0.95] |
+        | adaptive, 10 epochs (every 200000 requests) | 0.87% [0.84-0.87] |
+        | W-TinyLFU | 0.74% [0.67-0.78] |
+        | adaptive, 20 epochs (every 100000 requests) | 0.72% [0.70-0.85] |
+=== RUN   TestTraceEvidence/msr_proj_0
+    trace_evidence_test.go:166: 
+        msr_proj_0
+        MSR Cambridge enterprise block I/O, read requests (FAST '08)
+        MSR Cambridge trace: 73170 records (43792 reads, 29378 writes) expanded to 2000000 block accesses from reads over 1748195 distinct 512-byte blocks
+        cache 20000 entries, 1.1% of the 1748195 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | S3-FIFO | 5.79% |
+        | adaptive, 50 epochs (every 40000 requests) | 5.39% [5.36-5.53] |
+        | 2Q | 5.38% |
+        | ARC | 5.38% |
+        | LRU | 5.35% |
+        | TTL | 5.35% |
+        | Random | 5.21% [5.20-5.21] |
+        | adaptive, 10 epochs (every 200000 requests) | 5.14% [5.13-5.35] |
+        | adaptive, 20 epochs (every 100000 requests) | 5.10% [5.08-5.18] |
+        | SIEVE | 4.73% |
+        | LFU | 4.73% |
+        | W-TinyLFU | 4.29% [4.13-5.06] |
+=== RUN   TestTraceEvidence/msr_src1_2
+    trace_evidence_test.go:166: 
+        msr_src1_2
+        MSR Cambridge enterprise block I/O, read requests (FAST '08)
+        MSR Cambridge trace: 52584 records (28999 reads, 23585 writes) expanded to 2000000 block accesses from reads over 1947636 distinct 512-byte blocks
+        cache 20000 entries, 1.0% of the 1947636 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | 2Q | 1.77% |
+        | ARC | 1.73% |
+        | TTL | 1.70% |
+        | LRU | 1.70% |
+        | adaptive, 10 epochs (every 200000 requests) | 1.70% |
+        | adaptive, 20 epochs (every 100000 requests) | 1.70% |
+        | S3-FIFO | 1.70% |
+        | adaptive, 50 epochs (every 40000 requests) | 1.70% [1.26-1.70] |
+        | Random | 1.63% [1.63-1.64] |
+        | SIEVE | 1.42% |
+        | LFU | 1.42% |
+        | W-TinyLFU | 1.17% [0.94-1.19] |
+=== RUN   TestTraceEvidence/msr_usr_0
+    trace_evidence_test.go:166: 
+        msr_usr_0
+        MSR Cambridge enterprise block I/O, read requests (FAST '08)
+        MSR Cambridge trace: 96189 records (40753 reads, 55436 writes) expanded to 2000000 block accesses from reads over 1778953 distinct 512-byte blocks
+        cache 20000 entries, 1.1% of the 1778953 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | S3-FIFO | 3.58% |
+        | 2Q | 3.57% |
+        | TTL | 3.57% |
+        | LRU | 3.57% |
+        | adaptive, 10 epochs (every 200000 requests) | 3.57% [3.00-3.57] |
+        | ARC | 3.55% |
+        | adaptive, 20 epochs (every 100000 requests) | 3.50% [3.50-3.50] |
+        | Random | 3.49% [3.49-3.50] |
+        | adaptive, 50 epochs (every 40000 requests) | 3.41% [3.41-3.66] |
+        | W-TinyLFU | 2.88% [2.23-2.92] |
+        | LFU | 1.46% |
+        | SIEVE | 1.46% |
+=== RUN   TestTraceEvidence/msr_web_0
+    trace_evidence_test.go:166: 
+        msr_web_0
+        MSR Cambridge enterprise block I/O, read requests (FAST '08)
+        MSR Cambridge trace: 71173 records (34449 reads, 36724 writes) expanded to 2000000 block accesses from reads over 1855956 distinct 512-byte blocks
+        cache 20000 entries, 1.1% of the 1855956 distinct keys
+    trace_evidence_test.go:196: 
+        | Subject | Hit rate, median [min-max] |
+        | --- | --- |
+        | SIEVE | 2.61% |
+        | LFU | 2.61% |
+        | 2Q | 2.61% |
+        | ARC | 2.60% |
+        | Random | 2.56% [2.56-2.56] |
+        | S3-FIFO | 2.49% |
+        | adaptive, 50 epochs (every 40000 requests) | 2.44% [2.41-2.44] |
+        | adaptive, 20 epochs (every 100000 requests) | 2.41% [2.41-2.41] |
+        | LRU | 2.30% |
+        | TTL | 2.30% |
+        | adaptive, 10 epochs (every 200000 requests) | 2.29% [2.28-2.35] |
+        | W-TinyLFU | 2.26% [2.24-2.31] |
+=== NAME  TestTraceEvidence
+    trace_evidence_test.go:205: 
+        | Trace | Requests | Best fixed | Worst fixed | Adaptive, 10 epochs | Adaptive, 20 epochs | Adaptive, 50 epochs |
+        | --- | --- | --- | --- | --- | --- | --- |
+        | twitter_cluster052.csv | 1000000 | SIEVE 59.78% | LFU 41.44% | 58.67% [58.60-58.72] (-1.11) | 58.78% [58.77-58.93] (-1.01) | 58.19% [58.06-58.35] (-1.60) |
+        | lirs_loop.trace | 505500 | W-TinyLFU 45.77% [42.39-46.28] | 2Q 0.00% | 40.67% [40.05-41.82] (-5.09) | 42.81% [42.35-45.53] (-2.96) | 43.49% [43.08-44.60] (-2.28) |
+        | lirs_2_pools.trace | 100000 | W-TinyLFU 54.77% [54.65-54.95] | Random 50.00% [49.89-50.05] | 54.42% [54.39-54.43] (-0.36) | 54.40% [54.40-54.41] (-0.37) | 54.24% [54.19-54.27] (-0.53) |
+        | arc_p3 | 2000000 | W-TinyLFU 11.70% [11.59-11.83] | LRU 1.87% | 12.30% [11.93-12.55] (+0.60) | 12.97% [12.51-13.10] (+1.27) | 12.43% [12.10-13.49] (+0.72) |
+        | arc_oltp | 914145 | 2Q 68.25% | LFU 45.43% | 67.48% [67.37-67.73] (-0.78) | 66.91% [66.80-67.13] (-1.34) | 66.21% [66.03-66.33] (-2.04) |
+        | meta_kvcache_202206_1 | 2000000 | S3-FIFO 69.05% | Random 65.18% [65.17-65.19] | 67.96% [67.94-68.11] (-1.09) | 67.57% [67.48-67.78] (-1.49) | 66.86% [66.82-66.97] (-2.19) |
+        | msr_hm_0 | 2000000 | 2Q 17.01% | LRU 11.40% | 15.13% [12.53-15.59] (-1.88) | 13.58% [12.89-14.41] (-3.43) | 14.37% [13.90-15.90] (-2.64) |
+        | msr_prn_0 | 2000000 | LFU 1.06% | W-TinyLFU 0.74% [0.67-0.78] | 0.87% [0.84-0.87] (-0.19) | 0.72% [0.70-0.85] (-0.33) | 1.08% [0.98-1.08] (+0.02) |
+        | msr_proj_0 | 2000000 | S3-FIFO 5.79% | W-TinyLFU 4.29% [4.13-5.06] | 5.14% [5.13-5.35] (-0.66) | 5.10% [5.08-5.18] (-0.70) | 5.39% [5.36-5.53] (-0.41) |
+        | msr_src1_2 | 2000000 | 2Q 1.77% | W-TinyLFU 1.17% [0.94-1.19] | 1.70% (-0.06) | 1.70% (-0.06) | 1.70% [1.26-1.70] (-0.07) |
+        | msr_usr_0 | 2000000 | S3-FIFO 3.58% | LFU 1.46% | 3.57% [3.00-3.57] (-0.01) | 3.50% [3.50-3.50] (-0.08) | 3.41% [3.41-3.66] (-0.17) |
+        | msr_web_0 | 2000000 | LFU 2.61% | W-TinyLFU 2.26% [2.24-2.31] | 2.29% [2.28-2.35] (-0.32) | 2.41% [2.41-2.41] (-0.20) | 2.44% [2.41-2.44] (-0.17) |
+    trace_evidence_test.go:206: wrote /private/tmp/claude-501/-Users-sshaplygin-GithubProjects-as-cache/8c03863a-50ed-4a03-b751-0a7c468b2089/scratchpad/evidence-1cb65fe/traces-3.json
+--- PASS: TestTraceEvidence (453.22s)
+    --- PASS: TestTraceEvidence/twitter_cluster052.csv (18.28s)
+    --- PASS: TestTraceEvidence/lirs_loop.trace (9.57s)
+    --- PASS: TestTraceEvidence/lirs_2_pools.trace (1.25s)
+    --- PASS: TestTraceEvidence/arc_p3 (45.71s)
+    --- PASS: TestTraceEvidence/arc_oltp (18.89s)
+    --- PASS: TestTraceEvidence/meta_kvcache_202206_1 (34.10s)
+    --- PASS: TestTraceEvidence/msr_hm_0 (54.52s)
+    --- PASS: TestTraceEvidence/msr_prn_0 (56.63s)
+    --- PASS: TestTraceEvidence/msr_proj_0 (56.25s)
+    --- PASS: TestTraceEvidence/msr_src1_2 (50.16s)
+    --- PASS: TestTraceEvidence/msr_usr_0 (52.75s)
+    --- PASS: TestTraceEvidence/msr_web_0 (51.29s)
+=== RUN   TestLoadMSRTraceExpandsEachRecordIntoItsBlocks
+--- PASS: TestLoadMSRTraceExpandsEachRecordIntoItsBlocks (0.00s)
+=== RUN   TestLoadMSRTraceNamespacesByHostAndDisk
+--- PASS: TestLoadMSRTraceNamespacesByHostAndDisk (0.00s)
+=== RUN   TestLoadMSRTraceSkipsWritesUnlessAsked
+--- PASS: TestLoadMSRTraceSkipsWritesUnlessAsked (0.00s)
+=== RUN   TestLoadMSRTraceHonoursBlockSizeAndLimit
+--- PASS: TestLoadMSRTraceHonoursBlockSizeAndLimit (0.00s)
+=== RUN   TestLoadMSRTraceToleratesHeadersAndTruncation
+--- PASS: TestLoadMSRTraceToleratesHeadersAndTruncation (0.00s)
+=== RUN   TestLoadMSRTraceRejectsAFileWithNoRecords
+--- PASS: TestLoadMSRTraceRejectsAFileWithNoRecords (0.00s)
+=== RUN   TestLoadMetaKVTraceExpandsOpCount
+--- PASS: TestLoadMetaKVTraceExpandsOpCount (0.00s)
+=== RUN   TestLoadMetaKVTraceReadsThe2024Layout
+--- PASS: TestLoadMetaKVTraceReadsThe2024Layout (0.00s)
+=== RUN   TestLoadMetaKVTraceIncludesWritesOnRequest
+--- PASS: TestLoadMetaKVTraceIncludesWritesOnRequest (0.00s)
+=== RUN   TestLoadMetaKVTraceHonoursTheLimitInsideARow
+--- PASS: TestLoadMetaKVTraceHonoursTheLimitInsideARow (0.00s)
+=== RUN   TestLoadMetaKVTraceToleratesATruncatedTail
+--- PASS: TestLoadMetaKVTraceToleratesATruncatedTail (0.00s)
+=== RUN   TestLoadMetaKVTraceRejectsAnUnrecognisedHeader
+--- PASS: TestLoadMetaKVTraceRejectsAnUnrecognisedHeader (0.00s)
+=== RUN   TestEveryArmDrivesAnAdaptiveCache
+--- PASS: TestEveryArmDrivesAnAdaptiveCache (0.01s)
+=== RUN   TestLoadMSRTraceCoversEveryBlockAByteRangeTouches
+--- PASS: TestLoadMSRTraceCoversEveryBlockAByteRangeTouches (0.00s)
+=== RUN   TestLoadMSRTraceSeesReuseBetweenOverlappingRequests
+--- PASS: TestLoadMSRTraceSeesReuseBetweenOverlappingRequests (0.00s)
+=== RUN   TestLoadMSRTraceCapsOneRecordsExpansion
+--- PASS: TestLoadMSRTraceCapsOneRecordsExpansion (0.01s)
+=== RUN   TestLoadMSRTraceRequiresEveryColumn
+=== RUN   TestLoadMSRTraceRequiresEveryColumn/cut_inside_size
+=== RUN   TestLoadMSRTraceRequiresEveryColumn/cut_inside_type
+=== RUN   TestLoadMSRTraceRequiresEveryColumn/cut_inside_time
+--- PASS: TestLoadMSRTraceRequiresEveryColumn (0.00s)
+    --- PASS: TestLoadMSRTraceRequiresEveryColumn/cut_inside_size (0.00s)
+    --- PASS: TestLoadMSRTraceRequiresEveryColumn/cut_inside_type (0.00s)
+    --- PASS: TestLoadMSRTraceRequiresEveryColumn/cut_inside_time (0.00s)
+=== RUN   TestLoadMSRTraceCountsOnlyRecognisedTypes
+--- PASS: TestLoadMSRTraceCountsOnlyRecognisedTypes (0.00s)
+=== RUN   TestLoadMetaKVTraceRequiresOpCount
+--- PASS: TestLoadMetaKVTraceRequiresOpCount (0.00s)
+=== RUN   TestLoadMetaKVTraceSkipsRowsWithAnUnreadableOpCount
+--- PASS: TestLoadMetaKVTraceSkipsRowsWithAnUnreadableOpCount (0.00s)
+=== RUN   TestLoadersReturnWhatTheyReadFromATruncatedGzip
+=== RUN   TestLoadersReturnWhatTheyReadFromATruncatedGzip/msr
+=== RUN   TestLoadersReturnWhatTheyReadFromATruncatedGzip/meta
+--- PASS: TestLoadersReturnWhatTheyReadFromATruncatedGzip (0.00s)
+    --- PASS: TestLoadersReturnWhatTheyReadFromATruncatedGzip/msr (0.00s)
+    --- PASS: TestLoadersReturnWhatTheyReadFromATruncatedGzip/meta (0.00s)
+=== RUN   TestTraceLoaders
+=== RUN   TestTraceLoaders/lirs_loop.trace.gz
+=== RUN   TestTraceLoaders/lirs_2_pools.trace.gz
+=== RUN   TestTraceLoaders/meta_kvcache_202206_1.csv
+=== RUN   TestTraceLoaders/meta_kvcache_expansion
+    trace_test.go:216: 1160580 rows (942355 reads, 218225 writes) -> 2000000 requests over 340723 distinct keys
+=== RUN   TestTraceLoaders/arc_p3_expansion
+--- PASS: TestTraceLoaders (2.76s)
+    --- PASS: TestTraceLoaders/lirs_loop.trace.gz (0.06s)
+    --- PASS: TestTraceLoaders/lirs_2_pools.trace.gz (0.01s)
+    --- PASS: TestTraceLoaders/meta_kvcache_202206_1.csv (2.04s)
+    --- PASS: TestTraceLoaders/meta_kvcache_expansion (0.35s)
+    --- PASS: TestTraceLoaders/arc_p3_expansion (0.29s)
+=== RUN   TestAdaptiveTuning
+    tuning_test.go:68: arc_p3 10 epochs cold gates=false: 12.10% [11.74-12.39]
+    tuning_test.go:68: arc_p3 10 epochs cold gates=true: 7.53% [4.33-7.71]
+    tuning_test.go:68: arc_p3 10 epochs warm gates=false: 12.47% [12.30-12.56]
+    tuning_test.go:68: arc_p3 10 epochs warm gates=true: 7.93% [7.79-8.17]
+    tuning_test.go:68: arc_p3 20 epochs cold gates=false: 13.26% [11.10-13.56]
+    tuning_test.go:68: arc_p3 20 epochs cold gates=true: 9.94% [7.36-10.45]
+    tuning_test.go:68: arc_p3 20 epochs warm gates=false: 12.64% [12.29-13.12]
+    tuning_test.go:68: arc_p3 20 epochs warm gates=true: 9.66% [9.25-9.87]
+    tuning_test.go:68: arc_p3 50 epochs cold gates=false: 12.02% [11.78-12.12]
+    tuning_test.go:68: arc_p3 50 epochs cold gates=true: 10.29% [8.22-12.26]
+    tuning_test.go:68: arc_p3 50 epochs warm gates=false: 12.39% [8.40-13.26]
+    tuning_test.go:68: arc_p3 50 epochs warm gates=true: 10.72% [9.66-11.00]
+--- PASS: TestAdaptiveTuning (104.08s)
+=== RUN   TestSwitchWarmupCost
+    warmup_test.go:120: 
+        hit rate after a switch from LRU to LFU at request 100000 (zipf, 200000 requests, cache 500)
+        | Configuration | 0-1000 | 1000-5000 | 5000-20000 | 20000-100000 |
+        | --- | --- | --- | --- | --- |
+        | LFU all along (no warm-up) | 77.00% | 74.28% | 74.59% | 73.90% |
+        | LRU, never switched | 70.50% | 67.90% | 67.58% | 66.82% |
+        | cold | 59.50% | 69.45% | 72.93% | 73.52% |
+        | warm | 70.50% | 70.03% | 72.91% | 73.55% |
+        | gradual | 70.40% | 70.12% | 72.88% | 73.52% |
+        | gradual, capped at 10 Gets | 59.90% | 69.47% | 72.93% | 73.52% |
+        | gradual, capped at 100 Gets | 63.90% | 69.58% | 72.99% | 73.53% |
+        | gradual, capped at 1000 Gets | 70.40% | 70.12% | 72.88% | 73.52% |
+--- PASS: TestSwitchWarmupCost (0.66s)
+PASS
+ok  	github.com/sshaplygin/as-cache/bench	622.864s

@@ -1,0 +1,6933 @@
+{
+  "bandit": "bandit.NewThompson(0.7, 13)",
+  "commit": "1cb65fe0242bfae6312d5c1f54b8660d68e40e24",
+  "cpus": 10,
+  "go": "go1.25.5",
+  "measured_at": "2026-10-07T00:00:58Z",
+  "platform": "darwin/arm64",
+  "runs": 5,
+  "settings": {
+    "epoch_mode": "requests",
+    "epochs_per_trace": [
+      10,
+      20,
+      50
+    ],
+    "location": "adaptive[].settings and observe_only[].settings (actual constructor arguments)"
+  },
+  "traces": [
+    {
+      "trace": "twitter_cluster052.csv",
+      "source": "Twitter Twemcache production KV cache (OSDI '20)",
+      "requests": 1000000,
+      "distinct_keys": 255333,
+      "capacity": 10000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            59.6242
+          ]
+        },
+        "ARC": {
+          "runs": [
+            58.9894
+          ]
+        },
+        "LFU": {
+          "runs": [
+            41.4436
+          ]
+        },
+        "LRU": {
+          "runs": [
+            58.391000000000005
+          ]
+        },
+        "Random": {
+          "runs": [
+            54.7808,
+            54.8032,
+            54.8122,
+            54.7918,
+            54.8243
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            59.7291
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            59.785
+          ]
+        },
+        "TTL": {
+          "runs": [
+            58.391000000000005
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            58.7597,
+            58.70530000000001,
+            57.458,
+            58.67289999999999,
+            57.4372
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              59.0052,
+              58.594500000000004,
+              59.026999999999994,
+              58.6843,
+              58.6963
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 50000,
+          "hit_rate_percent": {
+            "runs": [
+              58.6107,
+              58.7707,
+              58.702799999999996,
+              58.7948,
+              58.805099999999996
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 50000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 20000,
+          "hit_rate_percent": {
+            "runs": [
+              58.269800000000004,
+              57.923899999999996,
+              57.9916,
+              58.263200000000005,
+              58.129799999999996
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 20000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.02361059917270747,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 29226,
+                "Misses": 19608,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 28895,
+                "Misses": 19939,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 28844,
+                "Misses": 19990,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 28728,
+                "Misses": 20106,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 28574,
+                "Misses": 20260,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 28111,
+                "Misses": 20723,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 28073,
+                "Misses": 20761,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 26580,
+                "Misses": 22254,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 22595,
+                "Misses": 26239,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 50000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 9,
+            "Improvement": 0.014898843642028314,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 9,
+                "Hits": 30095,
+                "Misses": 19976,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 29997,
+                "Misses": 20074,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 29901,
+                "Misses": 20170,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 29721,
+                "Misses": 20350,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 29349,
+                "Misses": 20722,
+                "Active": true
+              },
+              {
+                "Policy": 7,
+                "Hits": 29337,
+                "Misses": 20734,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 29295,
+                "Misses": 20776,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 27063,
+                "Misses": 23008,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 23643,
+                "Misses": 26428,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "SIEVE",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 50000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 9,
+            "Improvement": 0.012787811939886984,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 9,
+                "Hits": 38106,
+                "Misses": 19918,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 38036,
+                "Misses": 19988,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 37994,
+                "Misses": 20030,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 37961,
+                "Misses": 20063,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 37802,
+                "Misses": 20222,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 37365,
+                "Misses": 20659,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 37364,
+                "Misses": 20660,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 35545,
+                "Misses": 22479,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 31133,
+                "Misses": 26891,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "SIEVE",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 50000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.014563106796116498,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 22393,
+                "Misses": 20043,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 22385,
+                "Misses": 20051,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 22316,
+                "Misses": 20120,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 22214,
+                "Misses": 20222,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 22034,
+                "Misses": 20402,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 21839,
+                "Misses": 20597,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 21775,
+                "Misses": 20661,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 20342,
+                "Misses": 22094,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 16030,
+                "Misses": 26406,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 50000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 58.391000000000005,
+          "epoch_requests": 50000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.017545990975355807,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 38096,
+                "Misses": 19524,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 37751,
+                "Misses": 19869,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 37688,
+                "Misses": 19932,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 37617,
+                "Misses": 20003,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 37539,
+                "Misses": 20081,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 37139,
+                "Misses": 20481,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 37085,
+                "Misses": 20535,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 35370,
+                "Misses": 22250,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 31420,
+                "Misses": 26200,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 50000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 414436,
+        "sieve_hits": 597850,
+        "fifo_hits": 555634,
+        "different_lfu_sieve_decisions": 216148,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "lirs_loop.trace",
+      "source": "LIRS loop: cyclic scan, adversarial for LRU (SIGMETRICS '02)",
+      "requests": 505500,
+      "distinct_keys": 1011,
+      "capacity": 500,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            0
+          ]
+        },
+        "ARC": {
+          "runs": [
+            0
+          ]
+        },
+        "LFU": {
+          "runs": [
+            0
+          ]
+        },
+        "LRU": {
+          "runs": [
+            0
+          ]
+        },
+        "Random": {
+          "runs": [
+            19.680909990108802,
+            19.646290801186943,
+            19.742433234421362,
+            19.689020771513352,
+            19.63580613254204
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            0
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            0
+          ]
+        },
+        "TTL": {
+          "runs": [
+            0
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            50.725024727992086,
+            49.256379821958454,
+            52.865084075173094,
+            49.1837784371909,
+            49.16854599406528
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 50550,
+          "hit_rate_percent": {
+            "runs": [
+              68.77606330365974,
+              72.9574678536103,
+              57.54243323442137,
+              67.19169139465876,
+              41.80514342235411
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 50550,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.128
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 25275,
+          "hit_rate_percent": {
+            "runs": [
+              42.86172106824926,
+              44.66607319485657,
+              43.07893175074184,
+              41.99861523244313,
+              42.791691394658756
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 25275,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.128
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 10110,
+          "hit_rate_percent": {
+            "runs": [
+              41.88387734915925,
+              43.60118694362018,
+              45.69416419386746,
+              44.27200791295747,
+              41.87734915924827
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 10110,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.128
+        }
+      ],
+      "effective_sample_rate": 0.128,
+      "observe_only": [
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.4585774647887324,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 32559,
+                "Misses": 38441,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 10657,
+                "Misses": 60343,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 25275,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.459390625,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 29401,
+                "Misses": 34599,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 12908,
+                "Misses": 51092,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 32,
+                "Misses": 63968,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 64000,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 64000,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 64000,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 64000,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 0,
+                "Misses": 64000,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 64000,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 25275,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.41570422535211266,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 29515,
+                "Misses": 41485,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 10711,
+                "Misses": 60289,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 71000,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 25275,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.47114074074074075,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 31802,
+                "Misses": 35698,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 11743,
+                "Misses": 55757,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 67500,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 67500,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 67500,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 0,
+                "Misses": 67500,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 67500,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 0,
+                "Misses": 67500,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 67500,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 25275,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 0,
+          "epoch_requests": 25275,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.4615114503816794,
+            "Sampled": true,
+            "SampleRate": 0.128,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 30229,
+                "Misses": 35271,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 12412,
+                "Misses": 53088,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": true
+              },
+              {
+                "Policy": 2,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 0,
+                "Misses": 65500,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 25275,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 0,
+        "sieve_hits": 0,
+        "fifo_hits": 0,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "lirs_2_pools.trace",
+      "source": "LIRS 2_pools: two interleaved pools with different locality",
+      "requests": 100000,
+      "distinct_keys": 9939,
+      "capacity": 1000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            54.397
+          ]
+        },
+        "ARC": {
+          "runs": [
+            54.37499999999999
+          ]
+        },
+        "LFU": {
+          "runs": [
+            54.361000000000004
+          ]
+        },
+        "LRU": {
+          "runs": [
+            54.415
+          ]
+        },
+        "Random": {
+          "runs": [
+            50.044,
+            49.773,
+            49.958000000000006,
+            49.922,
+            49.922
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            54.37
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            54.361000000000004
+          ]
+        },
+        "TTL": {
+          "runs": [
+            54.415
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            54.778999999999996,
+            54.979,
+            54.655,
+            54.842999999999996,
+            55.858
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 10000,
+          "hit_rate_percent": {
+            "runs": [
+              54.403,
+              54.388999999999996,
+              54.413999999999994,
+              54.381,
+              54.401999999999994
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 10000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.064
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 5000,
+          "hit_rate_percent": {
+            "runs": [
+              54.413999999999994,
+              54.399,
+              54.225,
+              54.416,
+              54.400000000000006
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 5000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.064
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 2000,
+          "hit_rate_percent": {
+            "runs": [
+              54.248,
+              54.242000000000004,
+              54.181000000000004,
+              54.221,
+              54.278000000000006
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 2000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.064
+        }
+      ],
+      "effective_sample_rate": 0.064,
+      "observe_only": [
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.0019292604501607302,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 4795,
+                "Misses": 2980,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4788,
+                "Misses": 2987,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4786,
+                "Misses": 2989,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 4780,
+                "Misses": 2995,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 4766,
+                "Misses": 3009,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 4762,
+                "Misses": 3013,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 4760,
+                "Misses": 3015,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 4747,
+                "Misses": 3028,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 4378,
+                "Misses": 3397,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 5000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 1,
+            "Improvement": 0,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 1,
+                "Hits": 4855,
+                "Misses": 3054,
+                "Active": true
+              },
+              {
+                "Policy": 8,
+                "Hits": 4835,
+                "Misses": 3074,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 4833,
+                "Misses": 3076,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4831,
+                "Misses": 3078,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4827,
+                "Misses": 3082,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 4820,
+                "Misses": 3089,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 4819,
+                "Misses": 3090,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 4814,
+                "Misses": 3095,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 4400,
+                "Misses": 3509,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LRU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 5000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.013822796283707195,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 1748,
+                "Misses": 2665,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1746,
+                "Misses": 2667,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1741,
+                "Misses": 2672,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1739,
+                "Misses": 2674,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1739,
+                "Misses": 2674,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1737,
+                "Misses": 2676,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1732,
+                "Misses": 2681,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1687,
+                "Misses": 2726,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 1604,
+                "Misses": 2809,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 5000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 6,
+            "Improvement": 0.0005015045135405849,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 6,
+                "Hits": 5230,
+                "Misses": 2746,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 5230,
+                "Misses": 2746,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 5226,
+                "Misses": 2750,
+                "Active": true
+              },
+              {
+                "Policy": 3,
+                "Hits": 5219,
+                "Misses": 2757,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 5216,
+                "Misses": 2760,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 5211,
+                "Misses": 2765,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 5211,
+                "Misses": 2765,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 5197,
+                "Misses": 2779,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 4806,
+                "Misses": 3170,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TTL",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 5000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 54.415,
+          "epoch_requests": 5000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.0017136625642624193,
+            "Sampled": true,
+            "SampleRate": 0.064,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 3363,
+                "Misses": 3056,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3352,
+                "Misses": 3067,
+                "Active": true
+              },
+              {
+                "Policy": 4,
+                "Hits": 3338,
+                "Misses": 3081,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3338,
+                "Misses": 3081,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3335,
+                "Misses": 3084,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 3335,
+                "Misses": 3084,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 3325,
+                "Misses": 3094,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3322,
+                "Misses": 3097,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3100,
+                "Misses": 3319,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 5000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 54361,
+        "sieve_hits": 54361,
+        "fifo_hits": 49957,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "arc_p3",
+      "source": "ARC paper P3 workstation trace (FAST '03)",
+      "requests": 2000000,
+      "distinct_keys": 426527,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            7.74445
+          ]
+        },
+        "ARC": {
+          "runs": [
+            10.25295
+          ]
+        },
+        "LFU": {
+          "runs": [
+            4.8162
+          ]
+        },
+        "LRU": {
+          "runs": [
+            1.8679500000000002
+          ]
+        },
+        "Random": {
+          "runs": [
+            3.0764,
+            3.0781,
+            3.0805,
+            3.07945,
+            3.082
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            10.75245
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            4.8162
+          ]
+        },
+        "TTL": {
+          "runs": [
+            1.8679500000000002
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            11.52,
+            12.33145,
+            12.1054,
+            12.095799999999999,
+            12.3031
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              11.97455,
+              12.52825,
+              12.5963,
+              12.57915,
+              12.4438
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 200000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              12.926099999999998,
+              13.1112,
+              12.902,
+              12.84535,
+              13.09695
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              12.3863,
+              12.5047,
+              12.81245,
+              12.28115,
+              12.4156
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 40000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.11654723255998099,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 13544,
+                "Misses": 87488,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 11168,
+                "Misses": 89864,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10761,
+                "Misses": 90271,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 6990,
+                "Misses": 94042,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4562,
+                "Misses": 96470,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4562,
+                "Misses": 96470,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2928,
+                "Misses": 98104,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1769,
+                "Misses": 99263,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1672,
+                "Misses": 99360,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.10269260423462429,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 12327,
+                "Misses": 88839,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 10767,
+                "Misses": 90399,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10352,
+                "Misses": 90814,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 7530,
+                "Misses": 93636,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4809,
+                "Misses": 96357,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4809,
+                "Misses": 96357,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3092,
+                "Misses": 98074,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1938,
+                "Misses": 99228,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1877,
+                "Misses": 99289,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.11724408104225889,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 13577,
+                "Misses": 85976,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 10322,
+                "Misses": 89231,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10004,
+                "Misses": 89549,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 7356,
+                "Misses": 92197,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4682,
+                "Misses": 94871,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4682,
+                "Misses": 94871,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3055,
+                "Misses": 96498,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1905,
+                "Misses": 97648,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1841,
+                "Misses": 97712,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.10934889009739457,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 12834,
+                "Misses": 88301,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 11060,
+                "Misses": 90075,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10633,
+                "Misses": 90502,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 7050,
+                "Misses": 94085,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4932,
+                "Misses": 96203,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4932,
+                "Misses": 96203,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2960,
+                "Misses": 98175,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1775,
+                "Misses": 99360,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1703,
+                "Misses": 99432,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.8679500000000002,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.11216997812340795,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 13242,
+                "Misses": 86865,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 10665,
+                "Misses": 89442,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 10500,
+                "Misses": 89607,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 7774,
+                "Misses": 92333,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4955,
+                "Misses": 95152,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4955,
+                "Misses": 95152,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3292,
+                "Misses": 96815,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 2015,
+                "Misses": 98092,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2013,
+                "Misses": 98094,
+                "Active": true
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 96324,
+        "sieve_hits": 96324,
+        "fifo_hits": 38093,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "arc_oltp",
+      "source": "ARC paper OLTP database trace (FAST '03)",
+      "requests": 914145,
+      "distinct_keys": 186880,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            68.25427038380126
+          ]
+        },
+        "ARC": {
+          "runs": [
+            67.8008412232195
+          ]
+        },
+        "LFU": {
+          "runs": [
+            45.426053853600905
+          ]
+        },
+        "LRU": {
+          "runs": [
+            67.0592739663839
+          ]
+        },
+        "Random": {
+          "runs": [
+            62.973160713015986,
+            63.01090089646609,
+            63.03398257388051,
+            62.98399050478862,
+            63.02216825558309
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            67.79460588856253
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            67.717484644121
+          ]
+        },
+        "TTL": {
+          "runs": [
+            67.0592739663839
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            63.20124269125795,
+            63.09699227146678,
+            63.17498865059701,
+            63.13407610390036,
+            62.949532076421136
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 91414,
+          "hit_rate_percent": {
+            "runs": [
+              67.46030443747983,
+              67.51259373512954,
+              67.46030443747983,
+              67.64123853436817,
+              67.3695092135274
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 91414,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 45707,
+          "hit_rate_percent": {
+            "runs": [
+              66.80767274338316,
+              66.67563679722582,
+              66.87680838379032,
+              66.93828659567137,
+              66.90164033058213
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 45707,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 18282,
+          "hit_rate_percent": {
+            "runs": [
+              66.08918716396195,
+              66.14082011059514,
+              65.91383205071406,
+              66.21739439585623,
+              65.85858917348997
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 18282,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.010168655888576184,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 34061,
+                "Misses": 14618,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 33955,
+                "Misses": 14724,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 33820,
+                "Misses": 14859,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 33748,
+                "Misses": 14931,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 33566,
+                "Misses": 15113,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 33510,
+                "Misses": 15169,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 31838,
+                "Misses": 16841,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 31734,
+                "Misses": 16945,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 27538,
+                "Misses": 21141,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 45707,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.012740803541990586,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 28085,
+                "Misses": 14377,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 28033,
+                "Misses": 14429,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 27872,
+                "Misses": 14590,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 27765,
+                "Misses": 14697,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 27585,
+                "Misses": 14877,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 27544,
+                "Misses": 14918,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 25804,
+                "Misses": 16658,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 25709,
+                "Misses": 16753,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 21294,
+                "Misses": 21168,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 45707,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.012099305209844036,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 31546,
+                "Misses": 14655,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 31433,
+                "Misses": 14768,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 31392,
+                "Misses": 14809,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 31383,
+                "Misses": 14818,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 30987,
+                "Misses": 15214,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 30953,
+                "Misses": 15248,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 29348,
+                "Misses": 16853,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 29101,
+                "Misses": 17100,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 26001,
+                "Misses": 20200,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 45707,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 4,
+            "Improvement": 0.011801695069716622,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 4,
+                "Hits": 29546,
+                "Misses": 14346,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 29542,
+                "Misses": 14350,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 29379,
+                "Misses": 14513,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 29287,
+                "Misses": 14605,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 29067,
+                "Misses": 14825,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 29028,
+                "Misses": 14864,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 27268,
+                "Misses": 16624,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 27157,
+                "Misses": 16735,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 22951,
+                "Misses": 20941,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "ARC",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 45707,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 67.0592739663839,
+          "epoch_requests": 45707,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.011101412296604662,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 29913,
+                "Misses": 14766,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 29754,
+                "Misses": 14925,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 29732,
+                "Misses": 14947,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 29617,
+                "Misses": 15062,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 29417,
+                "Misses": 15262,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 29392,
+                "Misses": 15287,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 27600,
+                "Misses": 17079,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 27554,
+                "Misses": 17125,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 22290,
+                "Misses": 22389,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 45707,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 415260,
+        "sieve_hits": 619036,
+        "fifo_hits": 584567,
+        "different_lfu_sieve_decisions": 230770,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "meta_kvcache_202206_1",
+      "source": "Meta production key-value cache, 500 hosts over 5 days (CacheBench kvcache/202206)",
+      "requests": 2000000,
+      "distinct_keys": 340723,
+      "capacity": 10000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            68.15679999999999
+          ]
+        },
+        "ARC": {
+          "runs": [
+            68.2667
+          ]
+        },
+        "LFU": {
+          "runs": [
+            66.86565
+          ]
+        },
+        "LRU": {
+          "runs": [
+            66.389
+          ]
+        },
+        "Random": {
+          "runs": [
+            65.1881,
+            65.18975,
+            65.19185,
+            65.17885,
+            65.1854
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            69.05425
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            68.92399999999999
+          ]
+        },
+        "TTL": {
+          "runs": [
+            66.389
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            68.6025,
+            68.72475,
+            68.5674,
+            68.71095,
+            68.6626
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              68.1095,
+              67.90565,
+              68.16990000000001,
+              67.7405,
+              68.15679999999999
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 200000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              67.42045,
+              67.60000000000001,
+              67.62559999999999,
+              67.7093,
+              67.4365
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              66.74195,
+              66.92845,
+              66.89580000000001,
+              66.8997,
+              66.91709999999999
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 40000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.03607656119095182,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 46800,
+                "Misses": 30785,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 46446,
+                "Misses": 31139,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 46274,
+                "Misses": 31311,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 45669,
+                "Misses": 31916,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 45632,
+                "Misses": 31953,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 45389,
+                "Misses": 32196,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 44079,
+                "Misses": 33506,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 44001,
+                "Misses": 33584,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 42860,
+                "Misses": 34725,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.02853076563855106,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 58985,
+                "Misses": 30953,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 58880,
+                "Misses": 31058,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 58790,
+                "Misses": 31148,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 58159,
+                "Misses": 31779,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 58155,
+                "Misses": 31783,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 57818,
+                "Misses": 32120,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 56508,
+                "Misses": 33430,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 56419,
+                "Misses": 33519,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 55227,
+                "Misses": 34711,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.04042190862166839,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 45006,
+                "Misses": 30745,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 44597,
+                "Misses": 31154,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 44572,
+                "Misses": 31179,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 43822,
+                "Misses": 31929,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 43740,
+                "Misses": 32011,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 43441,
+                "Misses": 32310,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 41993,
+                "Misses": 33758,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 41944,
+                "Misses": 33807,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 40806,
+                "Misses": 34945,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.040767116441779105,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 49537,
+                "Misses": 30503,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 49068,
+                "Misses": 30972,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 48855,
+                "Misses": 31185,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 48202,
+                "Misses": 31838,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 48178,
+                "Misses": 31862,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 48127,
+                "Misses": 31913,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 46276,
+                "Misses": 33764,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 46274,
+                "Misses": 33766,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 44981,
+                "Misses": 35059,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 66.389,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.03415345845215201,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 59964,
+                "Misses": 30510,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 59474,
+                "Misses": 31000,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 59418,
+                "Misses": 31056,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 58796,
+                "Misses": 31678,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 58785,
+                "Misses": 31689,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 58676,
+                "Misses": 31798,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 56956,
+                "Misses": 33518,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 56874,
+                "Misses": 33600,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 55648,
+                "Misses": 34826,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 1337313,
+        "sieve_hits": 1378480,
+        "fifo_hits": 1313815,
+        "different_lfu_sieve_decisions": 130305,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_hm_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 818034,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            17.0071
+          ]
+        },
+        "ARC": {
+          "runs": [
+            16.64985
+          ]
+        },
+        "LFU": {
+          "runs": [
+            14.9886
+          ]
+        },
+        "LRU": {
+          "runs": [
+            11.397350000000001
+          ]
+        },
+        "Random": {
+          "runs": [
+            12.61825,
+            12.614700000000001,
+            12.62325,
+            12.631899999999998,
+            12.6268
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            15.8427
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            15.187249999999999
+          ]
+        },
+        "TTL": {
+          "runs": [
+            11.397350000000001
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            15.81715,
+            15.9939,
+            16.1886,
+            16.10725,
+            16.0112
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              15.511849999999999,
+              15.472549999999998,
+              15.38375,
+              14.329,
+              14.493400000000001
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 200000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              12.74305,
+              12.423399999999999,
+              12.882850000000001,
+              13.48805,
+              13.713000000000001
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              14.657899999999998,
+              13.483149999999998,
+              16.0838,
+              14.60435,
+              15.8362
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 40000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.05434178042759144,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 19060,
+                "Misses": 83421,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 18737,
+                "Misses": 83744,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 18103,
+                "Misses": 84378,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 18043,
+                "Misses": 84438,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 17475,
+                "Misses": 85006,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 16308,
+                "Misses": 86173,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 14648,
+                "Misses": 87833,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 13496,
+                "Misses": 88985,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 13491,
+                "Misses": 88990,
+                "Active": true
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.05686675898609188,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 17519,
+                "Misses": 82135,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 17141,
+                "Misses": 82513,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 16956,
+                "Misses": 82698,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 16320,
+                "Misses": 83334,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 15690,
+                "Misses": 83964,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 14339,
+                "Misses": 85315,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 13119,
+                "Misses": 86535,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 11894,
+                "Misses": 87760,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 11852,
+                "Misses": 87802,
+                "Active": true
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.054319628959987404,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 18589,
+                "Misses": 83179,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 18523,
+                "Misses": 83245,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 18293,
+                "Misses": 83475,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 17578,
+                "Misses": 84190,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 16505,
+                "Misses": 85263,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 15358,
+                "Misses": 86410,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 14244,
+                "Misses": 87524,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 13061,
+                "Misses": 88707,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 13014,
+                "Misses": 88754,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.05747680319885168,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 15625,
+                "Misses": 81910,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 15536,
+                "Misses": 81999,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 15183,
+                "Misses": 82352,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 14332,
+                "Misses": 83203,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 13758,
+                "Misses": 83777,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 12412,
+                "Misses": 85123,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 11427,
+                "Misses": 86108,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 10047,
+                "Misses": 87488,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 10019,
+                "Misses": 87516,
+                "Active": true
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 11.397350000000001,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.056161501163889946,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 14755,
+                "Misses": 83622,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 14351,
+                "Misses": 84026,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 13787,
+                "Misses": 84590,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 13392,
+                "Misses": 84985,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 12969,
+                "Misses": 85408,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 11445,
+                "Misses": 86932,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 10271,
+                "Misses": 88106,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 9231,
+                "Misses": 89146,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 9230,
+                "Misses": 89147,
+                "Active": true
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 299772,
+        "sieve_hits": 303745,
+        "fifo_hits": 228175,
+        "different_lfu_sieve_decisions": 34189,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_prn_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1900653,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            1.03775
+          ]
+        },
+        "ARC": {
+          "runs": [
+            1.02225
+          ]
+        },
+        "LFU": {
+          "runs": [
+            1.05595
+          ]
+        },
+        "LRU": {
+          "runs": [
+            1.0038
+          ]
+        },
+        "Random": {
+          "runs": [
+            0.9440000000000001,
+            0.9433,
+            0.9499000000000001,
+            0.9442,
+            0.9436
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            1.008
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            1.05595
+          ]
+        },
+        "TTL": {
+          "runs": [
+            1.0038
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            0.7935,
+            0.92935,
+            0.73585,
+            0.7497,
+            0.7593
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              0.8697999999999999,
+              0.84025,
+              0.86825,
+              0.86475,
+              0.8686499999999999
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 200000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              0.8369,
+              0.7254499999999999,
+              0.7307,
+              0.72275,
+              0.71085
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              1.0852499999999998,
+              1.0545,
+              1.04605,
+              0.9756499999999999,
+              1.0381
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 40000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.000582955584815012,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1193,
+                "Misses": 98300,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1193,
+                "Misses": 98300,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1185,
+                "Misses": 98308,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1177,
+                "Misses": 98316,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1137,
+                "Misses": 98356,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1135,
+                "Misses": 98358,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1131,
+                "Misses": 98362,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1076,
+                "Misses": 98417,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 781,
+                "Misses": 98712,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.00038844621513944334,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1019,
+                "Misses": 99381,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1019,
+                "Misses": 99381,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1006,
+                "Misses": 99394,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 991,
+                "Misses": 99409,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 984,
+                "Misses": 99416,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 980,
+                "Misses": 99420,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 979,
+                "Misses": 99421,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 936,
+                "Misses": 99464,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 731,
+                "Misses": 99669,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.00038947032036430393,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1008,
+                "Misses": 99128,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1008,
+                "Misses": 99128,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1004,
+                "Misses": 99132,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 995,
+                "Misses": 99141,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 983,
+                "Misses": 99153,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 971,
+                "Misses": 99165,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 969,
+                "Misses": 99167,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 914,
+                "Misses": 99222,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 609,
+                "Misses": 99527,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0005915439296564039,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 1089,
+                "Misses": 98650,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1089,
+                "Misses": 98650,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 1078,
+                "Misses": 98661,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1054,
+                "Misses": 98685,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1036,
+                "Misses": 98703,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1033,
+                "Misses": 98706,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1030,
+                "Misses": 98709,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 964,
+                "Misses": 98775,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 761,
+                "Misses": 98978,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.0038,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0004905690601097277,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 861,
+                "Misses": 99023,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 861,
+                "Misses": 99023,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 853,
+                "Misses": 99031,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 835,
+                "Misses": 99049,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 816,
+                "Misses": 99068,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 812,
+                "Misses": 99072,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 812,
+                "Misses": 99072,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 764,
+                "Misses": 99120,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 543,
+                "Misses": 99341,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 21119,
+        "sieve_hits": 21119,
+        "fifo_hits": 20052,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_proj_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1748195,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            5.38475
+          ]
+        },
+        "ARC": {
+          "runs": [
+            5.38475
+          ]
+        },
+        "LFU": {
+          "runs": [
+            4.72735
+          ]
+        },
+        "LRU": {
+          "runs": [
+            5.3511999999999995
+          ]
+        },
+        "Random": {
+          "runs": [
+            5.20455,
+            5.20285,
+            5.2183,
+            5.2040500000000005,
+            5.199249999999999
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            5.7946
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            4.72735
+          ]
+        },
+        "TTL": {
+          "runs": [
+            5.3511999999999995
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            4.290150000000001,
+            4.255649999999999,
+            4.23055,
+            4.17295,
+            4.1902
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              5.1432,
+              5.1450000000000005,
+              5.12815,
+              5.13185,
+              5.1362
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 200000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              5.06895,
+              5.06715,
+              5.12265,
+              5.08085,
+              5.0935500000000005
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              5.36935,
+              5.41735,
+              5.34525,
+              5.35935,
+              5.5329999999999995
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 40000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.007255163291278774,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 5823,
+                "Misses": 93968,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 5651,
+                "Misses": 94140,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 5256,
+                "Misses": 94535,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 5159,
+                "Misses": 94632,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 5152,
+                "Misses": 94639,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 5099,
+                "Misses": 94692,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 4961,
+                "Misses": 94830,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4824,
+                "Misses": 94967,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4452,
+                "Misses": 95339,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.005766145206578421,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 5618,
+                "Misses": 94102,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 5168,
+                "Misses": 94552,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 5131,
+                "Misses": 94589,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 5118,
+                "Misses": 94602,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 5048,
+                "Misses": 94672,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 5043,
+                "Misses": 94677,
+                "Active": true
+              },
+              {
+                "Policy": 5,
+                "Hits": 4960,
+                "Misses": 94760,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4804,
+                "Misses": 94916,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4477,
+                "Misses": 95243,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "S3FIFO",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.004723698726306291,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 5404,
+                "Misses": 94306,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 4948,
+                "Misses": 94762,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 4933,
+                "Misses": 94777,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 4925,
+                "Misses": 94785,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 4913,
+                "Misses": 94797,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 4778,
+                "Misses": 94932,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 4774,
+                "Misses": 94936,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 4623,
+                "Misses": 95087,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4286,
+                "Misses": 95424,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "S3FIFO",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 7,
+            "Improvement": 0.007524941943328721,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 7,
+                "Hits": 6103,
+                "Misses": 94230,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 5850,
+                "Misses": 94483,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 5398,
+                "Misses": 94935,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 5390,
+                "Misses": 94943,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 5348,
+                "Misses": 94985,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 5277,
+                "Misses": 95056,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 5174,
+                "Misses": 95159,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 5023,
+                "Misses": 95310,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 4776,
+                "Misses": 95557,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TinyLFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 5.3511999999999995,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.0046654291698513956,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 6507,
+                "Misses": 94234,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 6134,
+                "Misses": 94607,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 6091,
+                "Misses": 94650,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 6085,
+                "Misses": 94656,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 6037,
+                "Misses": 94704,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 5996,
+                "Misses": 94745,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 5870,
+                "Misses": 94871,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 5758,
+                "Misses": 94983,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 5373,
+                "Misses": 95368,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "S3FIFO",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 94547,
+        "sieve_hits": 94547,
+        "fifo_hits": 102774,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_src1_2",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1947636,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            1.7661
+          ]
+        },
+        "ARC": {
+          "runs": [
+            1.72685
+          ]
+        },
+        "LFU": {
+          "runs": [
+            1.4181
+          ]
+        },
+        "LRU": {
+          "runs": [
+            1.7021499999999998
+          ]
+        },
+        "Random": {
+          "runs": [
+            1.6340000000000001,
+            1.6365,
+            1.6306999999999998,
+            1.63535,
+            1.6315
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            1.7013500000000001
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            1.4181
+          ]
+        },
+        "TTL": {
+          "runs": [
+            1.7021499999999998
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            0.9096500000000001,
+            1.1509,
+            1.204,
+            0.9816999999999999,
+            1.21295
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 200000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998,
+              1.7021499999999998
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              1.701,
+              1.7012,
+              1.7007999999999999,
+              1.7007999999999999,
+              1.70115
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 40000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0005292854646227578,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1733,
+                "Misses": 98402,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1687,
+                "Misses": 98448,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1682,
+                "Misses": 98453,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1680,
+                "Misses": 98455,
+                "Active": true
+              },
+              {
+                "Policy": 8,
+                "Hits": 1679,
+                "Misses": 98456,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1619,
+                "Misses": 98516,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1435,
+                "Misses": 98700,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1387,
+                "Misses": 98748,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1211,
+                "Misses": 98924,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0007803199311717801,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1743,
+                "Misses": 98216,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1700,
+                "Misses": 98259,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1666,
+                "Misses": 98293,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1665,
+                "Misses": 98294,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1665,
+                "Misses": 98294,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1602,
+                "Misses": 98357,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1573,
+                "Misses": 98386,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1347,
+                "Misses": 98612,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1215,
+                "Misses": 98744,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0006132748879013918,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1688,
+                "Misses": 97778,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1643,
+                "Misses": 97823,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1627,
+                "Misses": 97839,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1627,
+                "Misses": 97839,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1627,
+                "Misses": 97839,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1582,
+                "Misses": 97884,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1553,
+                "Misses": 97913,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1357,
+                "Misses": 98109,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1158,
+                "Misses": 98308,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0007309795125468137,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1810,
+                "Misses": 98056,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1775,
+                "Misses": 98091,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1737,
+                "Misses": 98129,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1737,
+                "Misses": 98129,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1737,
+                "Misses": 98129,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1673,
+                "Misses": 98193,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1460,
+                "Misses": 98406,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 1460,
+                "Misses": 98406,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1403,
+                "Misses": 98463,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 1.7021499999999998,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.000570245205438337,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 1809,
+                "Misses": 98148,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 1762,
+                "Misses": 98195,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 1754,
+                "Misses": 98203,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 1753,
+                "Misses": 98204,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1752,
+                "Misses": 98205,
+                "Active": true
+              },
+              {
+                "Policy": 9,
+                "Hits": 1681,
+                "Misses": 98276,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 1679,
+                "Misses": 98278,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1432,
+                "Misses": 98525,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1260,
+                "Misses": 98697,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 28362,
+        "sieve_hits": 28362,
+        "fifo_hits": 34051,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_usr_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1778953,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            3.5717499999999998
+          ]
+        },
+        "ARC": {
+          "runs": [
+            3.5526500000000003
+          ]
+        },
+        "LFU": {
+          "runs": [
+            1.4588
+          ]
+        },
+        "LRU": {
+          "runs": [
+            3.5715999999999997
+          ]
+        },
+        "Random": {
+          "runs": [
+            3.49465,
+            3.49085,
+            3.48615,
+            3.4975,
+            3.4874500000000004
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            3.5838
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            1.4588
+          ]
+        },
+        "TTL": {
+          "runs": [
+            3.5715999999999997
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            2.8573999999999997,
+            2.23415,
+            2.83745,
+            2.7112000000000003,
+            2.8632
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              3.5715999999999997,
+              3.5451,
+              3.5715999999999997,
+              3.5715999999999997,
+              3.5715999999999997
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 200000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              3.5027999999999997,
+              3.4717,
+              3.5027999999999997,
+              3.5027500000000003,
+              3.5027500000000003
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              3.4059,
+              3.6654,
+              3.4236500000000003,
+              3.42185,
+              3.41115
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 40000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 1,
+            "Improvement": 0,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 1,
+                "Hits": 3578,
+                "Misses": 96188,
+                "Active": true
+              },
+              {
+                "Policy": 8,
+                "Hits": 3565,
+                "Misses": 96201,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3550,
+                "Misses": 96216,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 3526,
+                "Misses": 96240,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3525,
+                "Misses": 96241,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3502,
+                "Misses": 96264,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3113,
+                "Misses": 96653,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2938,
+                "Misses": 96828,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1857,
+                "Misses": 97909,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LRU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.00042868394030326495,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 3907,
+                "Misses": 96400,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3884,
+                "Misses": 96423,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3864,
+                "Misses": 96443,
+                "Active": true
+              },
+              {
+                "Policy": 3,
+                "Hits": 3847,
+                "Misses": 96460,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 3839,
+                "Misses": 96468,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3770,
+                "Misses": 96537,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3118,
+                "Misses": 97189,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 3019,
+                "Misses": 97288,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1882,
+                "Misses": 98425,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "S3FIFO",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.00009968598913422805,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 3794,
+                "Misses": 96521,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3785,
+                "Misses": 96530,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3784,
+                "Misses": 96531,
+                "Active": true
+              },
+              {
+                "Policy": 4,
+                "Hits": 3765,
+                "Misses": 96550,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3722,
+                "Misses": 96593,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3709,
+                "Misses": 96606,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3350,
+                "Misses": 96965,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2936,
+                "Misses": 97379,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1970,
+                "Misses": 98345,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "S3FIFO",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 8,
+            "Improvement": 0.000169403698979588,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 8,
+                "Hits": 3434,
+                "Misses": 96918,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3432,
+                "Misses": 96920,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 3417,
+                "Misses": 96935,
+                "Active": true
+              },
+              {
+                "Policy": 4,
+                "Hits": 3387,
+                "Misses": 96965,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3385,
+                "Misses": 96967,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3354,
+                "Misses": 96998,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2937,
+                "Misses": 97415,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2675,
+                "Misses": 97677,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1662,
+                "Misses": 98690,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "S3FIFO",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 3.5715999999999997,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 1,
+            "Improvement": 0,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 1,
+                "Hits": 3621,
+                "Misses": 96434,
+                "Active": true
+              },
+              {
+                "Policy": 8,
+                "Hits": 3613,
+                "Misses": 96442,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 3578,
+                "Misses": 96477,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 3558,
+                "Misses": 96497,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 3526,
+                "Misses": 96529,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 3490,
+                "Misses": 96565,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3270,
+                "Misses": 96785,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2725,
+                "Misses": 97330,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 1834,
+                "Misses": 98221,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LRU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 29176,
+        "sieve_hits": 29176,
+        "fifo_hits": 70272,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    },
+    {
+      "trace": "msr_web_0",
+      "source": "MSR Cambridge enterprise block I/O, read requests (FAST '08)",
+      "requests": 2000000,
+      "distinct_keys": 1855956,
+      "capacity": 20000,
+      "fixed_hit_rate_percent": {
+        "2Q": {
+          "runs": [
+            2.6100000000000003
+          ]
+        },
+        "ARC": {
+          "runs": [
+            2.6045
+          ]
+        },
+        "LFU": {
+          "runs": [
+            2.61025
+          ]
+        },
+        "LRU": {
+          "runs": [
+            2.2991
+          ]
+        },
+        "Random": {
+          "runs": [
+            2.56025,
+            2.5652,
+            2.55365,
+            2.553,
+            2.5606
+          ]
+        },
+        "S3-FIFO": {
+          "runs": [
+            2.49225
+          ]
+        },
+        "SIEVE": {
+          "runs": [
+            2.61025
+          ]
+        },
+        "TTL": {
+          "runs": [
+            2.2991
+          ]
+        },
+        "W-TinyLFU": {
+          "runs": [
+            2.2798,
+            2.29585,
+            2.31995,
+            2.2407500000000002,
+            2.2658
+          ]
+        }
+      },
+      "policy_names": {
+        "ARC": "ARC",
+        "LFU": "LFU",
+        "LRU": "LRU",
+        "Random": "Random",
+        "S3FIFO": "S3-FIFO",
+        "SIEVE": "SIEVE",
+        "TTL": "TTL",
+        "TinyLFU": "W-TinyLFU",
+        "TwoQueue": "2Q"
+      },
+      "adaptive": [
+        {
+          "epochs_per_trace": 10,
+          "epoch_requests": 200000,
+          "hit_rate_percent": {
+            "runs": [
+              2.3472,
+              2.3472,
+              2.23365,
+              2.3472,
+              2.3472
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 200000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 20,
+          "epoch_requests": 100000,
+          "hit_rate_percent": {
+            "runs": [
+              2.38765,
+              2.38625,
+              2.4058,
+              2.4079,
+              2.4076500000000003
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        },
+        {
+          "epochs_per_trace": 50,
+          "epoch_requests": 40000,
+          "hit_rate_percent": {
+            "runs": [
+              2.45505,
+              2.4332,
+              2.44035,
+              2.45575,
+              2.434
+            ]
+          },
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 40000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": false,
+            "MinShadowCapacity": 64
+          },
+          "effective_sample_rate": 0.05
+        }
+      ],
+      "effective_sample_rate": 0.05,
+      "observe_only": [
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0038092958785811842,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 3146,
+                "Misses": 97135,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 3145,
+                "Misses": 97136,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 3139,
+                "Misses": 97142,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 3139,
+                "Misses": 97142,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 3016,
+                "Misses": 97265,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2999,
+                "Misses": 97282,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2783,
+                "Misses": 97498,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2764,
+                "Misses": 97517,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 2756,
+                "Misses": 97525,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 2,
+            "Improvement": 0.0028916143184764195,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 2,
+                "Hits": 2636,
+                "Misses": 97654,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2636,
+                "Misses": 97654,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 2620,
+                "Misses": 97670,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 2616,
+                "Misses": 97674,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2555,
+                "Misses": 97735,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2533,
+                "Misses": 97757,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2456,
+                "Misses": 97834,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2346,
+                "Misses": 97944,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 2341,
+                "Misses": 97949,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "LFU",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0033522252534302424,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 2203,
+                "Misses": 97134,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 2201,
+                "Misses": 97136,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 2201,
+                "Misses": 97136,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2201,
+                "Misses": 97136,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2184,
+                "Misses": 97153,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2068,
+                "Misses": 97269,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 1941,
+                "Misses": 97396,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 1870,
+                "Misses": 97467,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 1870,
+                "Misses": 97467,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 4,
+            "Improvement": 0.0031900152522604253,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 4,
+                "Hits": 2697,
+                "Misses": 97616,
+                "Active": false
+              },
+              {
+                "Policy": 3,
+                "Hits": 2696,
+                "Misses": 97617,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 2693,
+                "Misses": 97620,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2693,
+                "Misses": 97620,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2632,
+                "Misses": 97681,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2576,
+                "Misses": 97737,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2404,
+                "Misses": 97909,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2377,
+                "Misses": 97936,
+                "Active": true
+              },
+              {
+                "Policy": 6,
+                "Hits": 2376,
+                "Misses": 97937,
+                "Active": false
+              }
+            ]
+          },
+          "best_policy_name": "ARC",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        },
+        {
+          "hit_rate_percent": 2.2991,
+          "epoch_requests": 100000,
+          "advice": {
+            "Epochs": 20,
+            "Active": 1,
+            "Best": 3,
+            "Improvement": 0.0033618826542863994,
+            "Sampled": true,
+            "SampleRate": 0.05,
+            "Reports": [
+              {
+                "Policy": 3,
+                "Hits": 2614,
+                "Misses": 97330,
+                "Active": false
+              },
+              {
+                "Policy": 4,
+                "Hits": 2612,
+                "Misses": 97332,
+                "Active": false
+              },
+              {
+                "Policy": 2,
+                "Hits": 2605,
+                "Misses": 97339,
+                "Active": false
+              },
+              {
+                "Policy": 9,
+                "Hits": 2605,
+                "Misses": 97339,
+                "Active": false
+              },
+              {
+                "Policy": 5,
+                "Hits": 2512,
+                "Misses": 97432,
+                "Active": false
+              },
+              {
+                "Policy": 8,
+                "Hits": 2497,
+                "Misses": 97447,
+                "Active": false
+              },
+              {
+                "Policy": 7,
+                "Hits": 2403,
+                "Misses": 97541,
+                "Active": false
+              },
+              {
+                "Policy": 6,
+                "Hits": 2297,
+                "Misses": 97647,
+                "Active": false
+              },
+              {
+                "Policy": 1,
+                "Hits": 2278,
+                "Misses": 97666,
+                "Active": true
+              }
+            ]
+          },
+          "best_policy_name": "TwoQueue",
+          "settings": {
+            "EpochDuration": 0,
+            "EpochRequests": 100000,
+            "EvictPartialCapacityFilling": true,
+            "MigrationStrategy": 2,
+            "MigrationMaxRequests": 0,
+            "MinHitRateImprovement": 0,
+            "SwitchCooldownEpochs": 0,
+            "MinEpochRequests": 0,
+            "ShadowSampleRate": 0.05,
+            "ObserveOnly": true,
+            "MinShadowCapacity": 64
+          }
+        }
+      ],
+      "lfu_sieve_diagnostic": {
+        "lfu_hits": 52205,
+        "sieve_hits": 52205,
+        "fifo_hits": 45560,
+        "different_lfu_sieve_decisions": 0,
+        "sieve_reference_disagreements": 0
+      }
+    }
+  ],
+  "tree_modified": false
+}

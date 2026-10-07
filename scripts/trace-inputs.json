@@ -1,0 +1,69 @@
+{
+  "files": [
+    {
+      "file": "arc_oltp.gz",
+      "bytes": 2246479,
+      "sha256": "9599b313a5662e72734fb499b3513759144d7f80847134f29638567b6a5ab151"
+    },
+    {
+      "file": "arc_p3.gz",
+      "bytes": 1441128,
+      "sha256": "71be839be560a64cc260c6a93fe002b6de5b4d24bdbc885f4a81a65ff84e4cbf"
+    },
+    {
+      "file": "lirs_2_pools.trace.gz",
+      "bytes": 171161,
+      "sha256": "12370af6d9e1b5a4d16642c6a5d0322565f20aed54bed8176901e74f70a4c3ee"
+    },
+    {
+      "file": "lirs_loop.trace.gz",
+      "bytes": 17848,
+      "sha256": "465c1cc6bb08993034fd3597106cb0edc55b25a5984a17a12018f30a06ba60e9"
+    },
+    {
+      "file": "lirs_multi2.trace.gz",
+      "bytes": 43980,
+      "sha256": "3576bc20286f4d204a3c2b6647bb691ed9dde9a923a32624e145873ed830dad5"
+    },
+    {
+      "file": "meta_kvcache_202206_1.csv",
+      "bytes": 134217728,
+      "sha256": "faaf993d0267a3b68430ec079de6074060cb3593ddff4a9e987c25a5d68cd277"
+    },
+    {
+      "file": "msr_hm_0.csv.gz",
+      "bytes": 41967571,
+      "sha256": "06d414bd428b9b77e7ff803c7cc9ec14351283fd9eb45a5d00fdca3aaeeba468"
+    },
+    {
+      "file": "msr_prn_0.csv.gz",
+      "bytes": 44469556,
+      "sha256": "cc98e9e6f0d1d41ae050a78a6bebf1f6031e9c824d84685c7b3d6be73080c1ba"
+    },
+    {
+      "file": "msr_proj_0.csv.gz",
+      "bytes": 54999265,
+      "sha256": "b972f0e6d396a9db13653d7f51a04554dd1f83ea9e91458536bd5e0e9eb24fc2"
+    },
+    {
+      "file": "msr_src1_2.csv.gz",
+      "bytes": 21339692,
+      "sha256": "34539f303ee98222237852610756dc77cac59739e909557fa40baf92c980e12c"
+    },
+    {
+      "file": "msr_usr_0.csv.gz",
+      "bytes": 25999401,
+      "sha256": "094eb4e7c871e4e339682d149ed90fbb8a034968f51ab71da85853f7a2ad8d9c"
+    },
+    {
+      "file": "msr_web_0.csv.gz",
+      "bytes": 24066938,
+      "sha256": "80d026313b52c8288ef2878173b344895637a26a960b1bccde91da9abf34deaa"
+    },
+    {
+      "file": "twitter_cluster052.csv",
+      "bytes": 44110178,
+      "sha256": "f3f47903f0aad7a83260f5df63910c694da94ec7eee91bbde98cc34d46dabfe6"
+    }
+  ]
+}
