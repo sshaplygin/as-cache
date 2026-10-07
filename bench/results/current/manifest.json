@@ -1,6 +1,7 @@
 {
-  "commit": "00bdcb103a9a7e56840a2dedda7bddc753d5269e",
-  "started_at": "2026-09-28T23:35:33.173607+00:00",
+  "commit": "1cb65fe0242bfae6312d5c1f54b8660d68e40e24",
+  "report_generator_commit": "1cb65fe0242bfae6312d5c1f54b8660d68e40e24",
+  "started_at": "2026-10-06T23:41:20.981365+00:00",
   "platform": "macOS-26.2-arm64-arm-64bit-Mach-O",
   "machine": "arm64",
   "go": "go version go1.25.5 darwin/arm64",
@@ -79,20 +80,20 @@
       ],
       "log": "reference.log",
       "exit_code": 0,
-      "duration_seconds": 64.23832320887595
+      "duration_seconds": 63.97003970807418
     },
     {
       "args": [
         "python3",
         "scripts/measure_bytes.py",
         "/Users/sshaplygin/GithubProjects/as-cache/traces",
-        "/Users/sshaplygin/GithubProjects/as-cache/.reports/pr17-fixes/current-measurement/bytes.json",
+        "/private/tmp/claude-501/-Users-sshaplygin-GithubProjects-as-cache/8c03863a-50ed-4a03-b751-0a7c468b2089/scratchpad/evidence-1cb65fe/bytes.json",
         "--libcachesim",
         "/Users/sshaplygin/GithubProjects/as-cache/.tools/libCacheSim"
       ],
       "log": "bytes.log",
       "exit_code": 0,
-      "duration_seconds": 5.0382995419204235
+      "duration_seconds": 4.836863958276808
     },
     {
       "args": [
@@ -101,7 +102,7 @@
       ],
       "log": "evidence-1.log",
       "exit_code": 0,
-      "duration_seconds": 594.2362546660006
+      "duration_seconds": 601.4871436660178
     },
     {
       "args": [
@@ -110,7 +111,7 @@
       ],
       "log": "evidence-2.log",
       "exit_code": 0,
-      "duration_seconds": 616.1396884582937
+      "duration_seconds": 608.2311230418272
     },
     {
       "args": [
@@ -119,29 +120,28 @@
       ],
       "log": "evidence-3.log",
       "exit_code": 0,
-      "duration_seconds": 632.7933691660874
+      "duration_seconds": 623.8097285837866
     }
   ],
   "libcachesim_commit": "1d7415569978330ea95c9cff06a260630406f7e3",
   "libcachesim_binary_sha256": "a6a60ec8d17c68f00130591cda32e119fa68b7bcbbc7c0c942005dbad8d0597e",
-  "completed_at": "2026-09-29T00:07:25.833847+00:00",
+  "completed_at": "2026-10-07T00:13:03.545150+00:00",
   "artifacts_sha256": {
-    "README.md": "9d228ea3b26b1a84ac07bfec4fd914ca7a01c885e94efd81b00e3eb9dc6322f4",
-    "bytes.json": "88aec4118c8264598a98568abde04fa2ac5508e93f3cc8e71f2c9bfb0ff7d41b",
-    "bytes.log": "f1372eaf2761e61f0470781895d33b5c79d9a403ec30a09061e69166a1d6ea66",
-    "evidence-1.log": "cbc266b5faa6519c17abe5f86a21432aba7a3276abb4bf7d891c47d1f79b030a",
-    "evidence-2.log": "ba1ba1067b81b907a41931c9ef5f597417b20795e99e1a47c3dd0d544c5529fc",
-    "evidence-3.log": "47eb22a640570c729bc4684b989d6a5c459528643ea42089180c89c64702e773",
+    "README.md": "e7a867e5d6783628f4235384d9b3464dfed1902b04f1d55cdce94964fdfd76f8",
+    "bytes.json": "18be4f2472e0025f0d08aa1c5ccfaedf2da092bb5a01d76cea2f61a049f473ca",
+    "bytes.log": "0e50d60cca48845d4b62115f3644fc441be2bf4b292fda2fd2d8d8b179914df7",
+    "evidence-1.log": "e330c09a26e687131c8a11c1cf09471bb6647e6e20f9b1df62726515ec71afea",
+    "evidence-2.log": "3100705b6cf5e25be78c10603d8b3ee9f548d212e83d03b543bb3101f807b599",
+    "evidence-3.log": "aa56e97d1ce75d4b7a2b73f5e500025270bb4eca53af244be1052830b55f119b",
     "reference.log": "5a2d5018737946b6f7a9ef9ba822e5dc2678093137ab79d45701a7a67fc38623",
     "reference.tsv": "08b801df457a1c5daa05b4edee0d6e4b7361fe3278c6b19ea522a47203363bd2",
-    "traces-1-tuning.json": "c3971ed80fbae4b1355c5d53c4462b01ad289576959de7cb409fd629e03f44c9",
-    "traces-1.json": "b82e4d0617757ffdc82d091455158c464bacf9830fe073bc11097987a9e8e141",
-    "traces-2-tuning.json": "bd6ed673cdb060863a3e181769701c4f79e843c63674b76399d9d80ae17c3e14",
-    "traces-2.json": "7de715344c1bd153b2f994504449de20543219b66f8388b8a0ddad9b2ea262c0",
-    "traces-3-tuning.json": "c7b1bd48ec37c5222cc43cee462a5940235c3e2c385c53777653c03048147a69",
-    "traces-3.json": "d2897152745825fb7b56ee7dd4f852c6d9fa77d64ff3bbe25e9f8b45b30d8033",
-    "traces.json": "577b0691f75c4e55aa009731cfffae56d9b6e216b8029f25ac02f5aedf374435",
-    "tuning.json": "6ab7f51fb3936a0208726cc6097900ea1e5159b66a445023834c49617d896b69"
-  },
-  "report_generator_commit": "1f9904681a056d0367660cb1cdef0e35a240ff9b"
+    "traces-1-tuning.json": "32f8e645a4f0e35d906aaafe01a94ab340dbfb8bb98eb4a8bc6dae1eb8a481d7",
+    "traces-1.json": "e2cc0f50fca01c050222c30b837cb148f51ef2b068c45f19cb1457df668d8a94",
+    "traces-2-tuning.json": "63a3da871b862ef7aa6ca998216461fc133c7e4f7bec0a43d4b811f4edac9dc6",
+    "traces-2.json": "e9f66ffcde971c40acfee00d9218a98f4570dd755f032ca50e61f320b4dc5609",
+    "traces-3-tuning.json": "cb0101fe5748a38b4e0ad363d04bb0de9627eaba8f6992243e407ce71a9a7721",
+    "traces-3.json": "28ec8cf1fac07111f6310307c138f5321b6a41a2c34cdbf23424417c8b7e43b2",
+    "traces.json": "c5a7bc93568322cf7c15530190d153b938d4f4128935cfac85272f48732e2741",
+    "tuning.json": "cf3f66fa5b33d6c09fcd49e9909e6ddc8c55ca7acb590085ae93b92afc5123b7"
+  }
 }
