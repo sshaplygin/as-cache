@@ -1,0 +1,7 @@
+{
+  "release": "v0.4.0",
+  "asset": "as-cache-evidence-v0.4.0.tar.gz",
+  "url": "https://github.com/sshaplygin/as-cache/releases/download/v0.4.0/as-cache-evidence-v0.4.0.tar.gz",
+  "sha256": "d003b2886e635c3cb0df1b54d9b47bb1d292f6d69ee1ba8e81d15b476ec92aca",
+  "measured_commit": "1cb65fe0242bfae6312d5c1f54b8660d68e40e24"
+}

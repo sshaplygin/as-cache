@@ -89,5 +89,9 @@ measure-bytes: ## Compare Meta LRU with object and byte capacities
 	@python3 scripts/measure_bytes.py "$${AS_CACHE_TRACES:?set AS_CACHE_TRACES}" "$${AS_CACHE_BYTES_OUT:?set AS_CACHE_BYTES_OUT}"
 
 .PHONY: evidence-check
-evidence-check: ## Verify retained evidence and generated tables without rerunning measurements
-	@python3 -B scripts/record_evidence.py --verify bench/results/current
+evidence-check: ## Verify the published evidence asset and regenerate its tables byte for byte
+	@python3 -B scripts/evidence_archive.py --verify bench/results/current
+
+.PHONY: evidence-render
+evidence-render: ## Regenerate bench/results/current/README.md from the published evidence asset
+	@python3 -B scripts/evidence_archive.py --render bench/results/current

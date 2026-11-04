@@ -3,8 +3,10 @@
 The [current results](../bench/results/current/README.md) are generated from
 three consecutive full evidence runs on one clean commit. They include all
 observations, input and output hashes, commands, tool versions and exit codes.
-The [manifest](../bench/results/current/manifest.json) identifies the measured
-source. New validated measurements replace this dataset.
+Those measurements are a release asset: [release-asset.json](../bench/results/current/release-asset.json)
+names it, pins its SHA-256 and records the measured source commit, and
+`make evidence-check` downloads it and regenerates the tables byte for byte.
+New validated measurements replace this dataset.
 
 ## What the numbers say
 
@@ -38,10 +40,8 @@ W-TinyLFU cannot. The trace matrix reports their repeated results explicitly.
 with and without sampling, using 50,000 entries of 256-byte payloads.
 `TestAllocationsPerOperation` measures a warm-cache Get. These are diagnostic
 experiments, separate from the nine-arm trace matrix; run them on your target
-machine to measure overhead. Their raw outputs remain in
-[evidence-1.log](../bench/results/current/evidence-1.log),
-[evidence-2.log](../bench/results/current/evidence-2.log) and
-[evidence-3.log](../bench/results/current/evidence-3.log).
+machine to measure overhead. Their raw outputs are `evidence-1.log`,
+`evidence-2.log` and `evidence-3.log` in the release asset.
 
 Shadows omit payload values but retain keys and eviction metadata. FIFO adapters
 also maintain a key index; S3-FIFO retains ghost keys. This is not an equal-memory
@@ -79,7 +79,8 @@ here or a retained historical visualization.
 
 ## Real traces
 
-The [raw JSON](../bench/results/current/traces.json) contains twelve traces,
+The raw JSON in the release asset (`traces-1.json` to `traces-3.json`, pooled
+into `traces.json` when verified) contains twelve traces,
 all nine fixed policies and adaptive runs at 10/20/50 request epochs.
 Each nondeterministic subject has fifteen observations from three batches of
 five; deterministic fixed arms run once per batch. Adaptive settings use

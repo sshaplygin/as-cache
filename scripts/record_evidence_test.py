@@ -4,8 +4,6 @@ import json
 from copy import deepcopy
 from pathlib import Path
 import tempfile
-import shutil
-import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -277,37 +275,6 @@ class EvidenceManifestTest(unittest.TestCase):
             self.assertIn("| a | W-TinyLFU 10.00%", result)
             self.assertIn("| -30.0000 pp |", result)
             self.assertIn("on 2/2 traces at every tested epoch setting", result)
-
-    def test_make_gate_is_read_only_and_rejects_tampering(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            repository = Path(__file__).resolve().parent.parent
-            shutil.copyfile(repository / "Makefile", root / "Makefile")
-            shutil.copytree(
-                repository / "scripts",
-                root / "scripts",
-                ignore=shutil.ignore_patterns("__pycache__"),
-            )
-            directory = root / "bench/results/current"
-            directory.mkdir(parents=True)
-            manifest = complete_manifest(directory)
-            before = {p.name: p.read_bytes() for p in directory.iterdir()}
-            result = subprocess.run(
-                ["make", "evidence-check"], cwd=root, capture_output=True, text=True
-            )
-            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-            self.assertEqual(
-                before, {p.name: p.read_bytes() for p in directory.iterdir()}
-            )
-            readme = directory / "README.md"
-            readme.write_text(readme.read_text() + "Unsupported conclusion.\n")
-            manifest["artifacts_sha256"]["README.md"] = digest(readme)
-            (directory / "manifest.json").write_text(json.dumps(manifest))
-            result = subprocess.run(
-                ["make", "evidence-check"], cwd=root, capture_output=True, text=True
-            )
-            self.assertNotEqual(0, result.returncode)
-            self.assertIn("README differs from the report", result.stderr)
 
     def test_combining_rejects_changed_inventory_settings_and_sample_counts(self):
         mutations = {
