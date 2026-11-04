@@ -262,12 +262,15 @@ class EvidenceArchiveTest(unittest.TestCase):
                     verify(self.results)
 
     def test_packaging_refuses_an_invalid_dataset(self):
-        (self.dataset / "bytes.log").unlink()
-        with self.assertRaises(ValueError):
-            package(
-                self.dataset, "v0.0.2", self.root / "invalid.tar.gz", self.root / "r2"
-            )
-        self.assertFalse((self.root / "invalid.tar.gz").exists())
+        # A complete dataset whose manifest records a failed command: every file
+        # is present, so only validation can stop it from being packed.
+        manifest = json.loads((self.dataset / "manifest.json").read_text())
+        manifest["commands"][0]["exit_code"] = 1
+        (self.dataset / "manifest.json").write_text(json.dumps(manifest))
+        archive = self.root / "invalid.tar.gz"
+        with self.assertRaisesRegex(ValueError, "measurement command failed"):
+            package(self.dataset, "v0.0.2", archive, self.root / "r2")
+        self.assertFalse(archive.exists())
 
     def test_ignored_dotfiles_do_not_count_as_repository_data(self):
         (self.results / ".DS_Store").write_bytes(b"finder")

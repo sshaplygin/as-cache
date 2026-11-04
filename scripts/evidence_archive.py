@@ -143,7 +143,8 @@ def published_dataset(results):
 
 
 def verify(results):
-    # Hidden files such as .DS_Store are ignored by Git and are not data.
+    # Hidden files such as Finder's .DS_Store are skipped: no dataset artifact
+    # is dot-named, so this cannot hide measurement data.
     actual = {p.name for p in results.iterdir() if not p.name.startswith(".")}
     if actual != REPOSITORY_FILES:
         raise ValueError(

@@ -95,7 +95,9 @@ fails until it expires.
 A release's evidence dataset is measured on its candidate commit, packaged with
 `scripts/evidence_archive.py --package` (see [benchmarking](benchmarking.md#where-the-data-lives))
 and attached to that release with `gh release upload`. An attached asset is never
-replaced. v0.4.0 carries `as-cache-evidence-v0.4.0.tar.gz`.
+replaced. v0.4.0 carries `as-cache-evidence-v0.4.0.tar.gz`. Only plain `vX.Y.Z`
+releases can carry an evidence pointer; a pre-release tag such as
+`v0.5.0-rc.1` cannot.
 
 `make evidence-check` downloads the asset that `bench/results/current/release-asset.json`
 names, so that asset must exist whenever CI checks the pointer. For a release
