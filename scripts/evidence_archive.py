@@ -74,6 +74,17 @@ def unpack(data, directory):
         )
 
 
+def asset_name(release):
+    return f"as-cache-evidence-{release}.tar.gz"
+
+
+def asset_url(release):
+    return (
+        "https://github.com/sshaplygin/as-cache/releases/download/"
+        f"{release}/{asset_name(release)}"
+    )
+
+
 def read_pointer(results):
     pointer = json.loads((results / POINTER).read_text())
     if set(pointer) != POINTER_KEYS:
@@ -82,8 +93,13 @@ def read_pointer(results):
         raise ValueError(f"{POINTER} has no valid sha256")
     if not re.fullmatch(r"[0-9a-f]{40}", pointer["measured_commit"]):
         raise ValueError(f"{POINTER} has no valid measured_commit")
-    if not pointer["url"].endswith("/" + pointer["asset"]):
-        raise ValueError(f"{POINTER} url does not name its asset")
+    release = pointer["release"]
+    if not re.fullmatch(r"v\d+\.\d+\.\d+", release) or (
+        pointer["asset"] != asset_name(release) or pointer["url"] != asset_url(release)
+    ):
+        raise ValueError(
+            f"{POINTER} asset or url does not match its release {release!r}"
+        )
     return pointer
 
 
@@ -127,7 +143,8 @@ def published_dataset(results):
 
 
 def verify(results):
-    actual = {p.name for p in results.iterdir()}
+    # Hidden files such as .DS_Store are ignored by Git and are not data.
+    actual = {p.name for p in results.iterdir() if not p.name.startswith(".")}
     if actual != REPOSITORY_FILES:
         raise ValueError(
             f"{results} must hold only {sorted(REPOSITORY_FILES)}; "
@@ -158,18 +175,18 @@ def package(dataset, release, archive_path, results):
         raise ValueError(f"release must be a version tag, got {release!r}")
     manifest = verify_inputs(dataset, check_report=False)
     data = archive_bytes(dataset)
-    asset = f"as-cache-evidence-{release}.tar.gz"
+    asset = asset_name(release)
     archive_path.write_bytes(data)
     pointer = {
         "release": release,
         "asset": asset,
-        "url": f"https://github.com/sshaplygin/as-cache/releases/download/{release}/{asset}",
+        "url": asset_url(release),
         "sha256": sha256(data),
         "measured_commit": manifest["commit"],
     }
     results.mkdir(parents=True, exist_ok=True)
     for stale in results.iterdir():
-        if stale.name not in REPOSITORY_FILES:
+        if stale.name not in REPOSITORY_FILES and not stale.name.startswith("."):
             raise ValueError(
                 f"remove {stale} first: {results} keeps no measurement data"
             )
