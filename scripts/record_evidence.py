@@ -153,7 +153,10 @@ def record(directory):
         subprocess.run(command, cwd=source, env=env, check=True)
 
 
-def verify_inputs(directory):
+def verify_inputs(directory, check_report=True):
+    """Validate retained measurements. With check_report False the README hash is
+    not compared: a published archive carries no README, and the caller renders it
+    with the current generator before comparing it with the repository copy."""
     manifest = json.loads((directory / "manifest.json").read_text())
     artifacts = manifest.get("artifacts_sha256", {})
     if not REQUIRED_ARTIFACTS.issubset(artifacts):
@@ -183,6 +186,8 @@ def verify_inputs(directory):
         if run.get("exit_code") != 0:
             raise ValueError("a recorded measurement command failed")
     for name, expected in artifacts.items():
+        if name == "README.md" and not check_report:
+            continue
         if digest(directory / name) != expected:
             raise ValueError(f"artifact hash mismatch: {name}")
     for name in (
