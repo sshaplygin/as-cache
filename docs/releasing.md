@@ -1,7 +1,9 @@
 # Development and releasing
 
-The next release candidate is **v0.4.0**, recorded in `release-version`.
-A successful candidate check does not mean that version has been published.
+The release version is **v0.4.0**, recorded in `release-version`. The checks
+below validate a commit as that version; a passing candidate check publishes
+nothing. A version is published only when its tags are pushed, and is confirmed
+by `make release-check-published`.
 
 ## Developing the repository
 
@@ -53,8 +55,8 @@ create tags or test the existence of remote versions. CI runs the same check.
 ## Publishing
 
 Review the final changelog, evidence and CI results before merging. Release
-from the reviewed commit on `main`, using the same commit for every tag. Publish
-these tags in dependency order:
+from the reviewed commit on `main`, using the same commit for every tag. The
+v0.4.0 release set is these eight tags, pushed in dependency order:
 
 | Module | Tag |
 | --- | --- |

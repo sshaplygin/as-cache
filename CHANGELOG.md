@@ -4,7 +4,9 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and from v0.1.0 the
 project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — v0.4.0 candidate
+## [Unreleased]
+
+## [0.4.0] — 2026-11-04
 
 ### Removed
 
@@ -24,14 +26,22 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   Redis `Options`, `Store` and `New` are removed with that module. Local
   `Thompson` and `Greedy` remain. No replacement fleet package is published by
   this release; users of the old API must retain the v0.3.1 module family.
+  The `bandit/redis` module is not tagged at v0.4.0; its last version is
+  `bandit/redis/v0.3.1`.
 - Fleet benchmarks, Redis examples and the unused stitchfix bandit dependency.
   Examples now use the repository's native bandits.
+- The per-release notes pages (`docs/release-notes-v0.1.0.md` to
+  `docs/release-notes-v0.3.1.md`) and the fleet guide (`docs/fleet.md`).
+  Version history is kept in this changelog and on the releases page.
 
 ### Changed
 
 - Bandit callbacks run outside the cache mutex, remain serialized separately,
   and stale epoch results are discarded. A slow callback no longer holds the
   cache lock; concurrent traffic can advance while selection is in progress.
+  The `Bandit` contract no longer requires non-blocking methods. Under
+  `Settings.EpochRequests` the `Get` that completes an epoch still waits for
+  the bandit, the switch and any migration.
 - Eight published modules use consistent v0.4.0 sibling requirements without
   local `replace` directives. A development `go.work` joins the repository's
   modules. Release checks now build each module through an isolated external
@@ -58,7 +68,11 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 - `Settings.MigrationMaxRequests` bounds a gradual migration window by request
   count. The default zero retains unlimited request count; see configuration
-  for its interaction with the existing migration limits.
+  for its interaction with the existing migration limits. A negative value is
+  rejected with the new sentinel error `ErrInvalidMigrationMaxRequests`.
+- `PolicyType` constants `S3FIFO` and `SIEVE` in the root module, appended
+  after `TinyLFU` so existing values keep their numbers. Their adapters are in
+  the unpublished `policies/fifo` module.
 - MSR Cambridge block-I/O and Meta kvcache trace loaders, fetch support, format
   fixtures and independent LRU calibration against pinned libCacheSim.
 - Generated [current results](bench/results/current/README.md) with input/output
@@ -387,6 +401,9 @@ seven policies, and - for the first time - measured against published traces.
   sampling at every rate measured, but the absolute figure depends on which
   slice of the keyspace the seed selected.
 
+[Unreleased]: https://github.com/sshaplygin/as-cache/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sshaplygin/as-cache/releases/tag/v0.4.0
+[0.3.1]: https://github.com/sshaplygin/as-cache/releases/tag/v0.3.1
 [0.3.0]: https://github.com/sshaplygin/as-cache/releases/tag/v0.3.0
 [0.2.0]: https://github.com/sshaplygin/as-cache/releases/tag/v0.2.0
 [0.1.1]: https://github.com/sshaplygin/as-cache/releases/tag/v0.1.1
