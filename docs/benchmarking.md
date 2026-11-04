@@ -128,7 +128,11 @@ Use an empty output directory and run heavy measurements sequentially. The
 recorder calibrates LRU, runs the object/byte comparison, executes `make evidence`
 three times, merges the observations, generates the tables and hashes the
 outputs. After review, package it for the release it belongs to and attach the
-archive there. The recorder exports one resolved HEAD into a temporary,
+archive there. `--package` rewrites `release-asset.json` and `README.md` in
+`bench/results/current/` (relative to the working directory unless `--results`
+says otherwise); commit both. `make evidence-check` can download the asset only
+once that release is published - assets of a draft release are not public - so
+check a draft's archive with `AS_CACHE_EVIDENCE_ARCHIVE` set to the local file. The recorder exports one resolved HEAD into a temporary,
 private Git checkout and runs that commit's scripts there. Developer edits,
 ignored tests, embeds and other untracked assets cannot enter the measurements.
 The original workspace, including preserved local probes, is left untouched.
@@ -162,11 +166,21 @@ It also refuses any other file in `bench/results/current/`, so measurement data
 cannot creep back into the repository. Set `AS_CACHE_EVIDENCE_ARCHIVE` to a
 local copy to verify offline; the hash check still applies.
 
-Packaging is deterministic: the same dataset always yields the same archive
-bytes. A change to the report generator needs `make evidence-render` and a
-commit of the regenerated README, not a new measurement or a new upload. One
-dataset belongs to one release; an uploaded asset is never replaced - a new
-measurement is attached to the release it was taken for.
+Packaging is deterministic for a given zlib build: the same dataset yields the
+same archive bytes. Verification never repacks; it checks the downloaded bytes
+against the pinned hash. A change to the report generator needs
+`make evidence-render` and a commit of the regenerated README, not a new
+measurement or a new upload. One dataset belongs to one release; an uploaded
+asset is never replaced - a new measurement is attached to the release it was
+taken for.
+
+The pooling code is the exception. Published assets carry the hashes of the
+pooled `traces.json` and `tuning.json` that verification rebuilds from the raw
+batches with `scripts/evidence_batches.py` and `combine` in
+`scripts/record_evidence.py`. Their byte output - indentation, key order,
+trailing newline - must therefore not change while any attached asset has to
+stay verifiable, and a test pins it. Changing it means measuring again for every
+release that must remain verifiable.
 
 For one diagnostic batch, use `AS_CACHE_TRACES=... AS_CACHE_EVIDENCE_OUT=... make evidence`.
 This is not a replacement for the three-batch publication procedure.
@@ -275,12 +289,13 @@ cached files fail with their name. The complete evidence command verifies the
 same catalog before loading any trace, so partial input sets cannot quietly
 become a publication dataset.
 
-`make evidence-check` verifies the retained artifact hashes, pooled observations,
-and exact generated report without downloading traces or running measurements.
-It is part of `make all` and CI. After committing a report-template change, use
-`python3 scripts/record_evidence.py --render bench/results/current` to validate
-the existing inputs and regenerate presentation; the manifest records the new
-report-generator commit. Refresh executes the generator from an isolated export
-of that commit, so Git index flags cannot substitute working-tree code while
-claiming committed provenance. Strict verification compares exact UTF-8 report
-bytes, including line endings, without modifying any artifact.
+`make evidence-check` verifies the published asset's hashes, the pooled
+observations rebuilt from its raw batches, and the exact generated report,
+without downloading traces or running measurements. It is part of `make all`
+and CI. After changing the report generator (`scripts/render_evidence.py`), run
+`make evidence-render` and commit the regenerated `README.md`; the asset and its
+pointer stay as they are, and CI checks the committed README against the
+committed generator. Strict verification compares exact UTF-8 report bytes,
+including line endings, without modifying any file. On a full recorded dataset
+directory, before packaging, `python3 scripts/record_evidence.py --render <dir>`
+still regenerates its report from an isolated export of the committed generator.

@@ -100,8 +100,10 @@ replaced. v0.4.0 carries `as-cache-evidence-v0.4.0.tar.gz`.
 `make evidence-check` downloads the asset that `bench/results/current/release-asset.json`
 names, so that asset must exist whenever CI checks the pointer. For a release
 that changes measurements this ordering is not settled yet: the tagged commit
-should contain the new pointer, but the release object that hosts its asset
-exists only after the tags are pushed. Until it is decided, a release that
+should contain the new pointer, but its asset becomes downloadable only when
+that release is published, after the tags are pushed. A draft release can hold
+the asset earlier, but draft assets cannot be downloaded without credentials, so
+CI cannot verify them. Until it is decided, a release that
 changes no measurement keeps the previous release's pointer, and the order is
 fixed before the next release that does.
 
