@@ -99,8 +99,9 @@ it. They are pinned against fixtures copied from the real files in
 
 ## Saved baseline
 
-The [current artifact](../bench/results/current/README.md) retains all twelve
-traces, three full evidence logs and generated provenance for one clean commit.
+The [current results](../bench/results/current/README.md) are generated from a
+release asset that retains all twelve traces, three full evidence logs and the
+measurement manifest for one clean commit.
 The trace matrix uses nine arms, warm migration, requested sampling 0.05 and
 minimum shadow capacity 64 (the library default is 256). Per-trace effective
 rates and 10/20/50 request epochs are recorded explicitly.
@@ -117,13 +118,17 @@ To produce and verify a new current dataset from committed HEAD:
 ```sh
 AS_CACHE_TRACES="$PWD/traces" python3 scripts/record_evidence.py --out /tmp/as-cache-current
 python3 scripts/record_evidence.py --verify /tmp/as-cache-current
+python3 scripts/evidence_archive.py --package /tmp/as-cache-current \
+  --release vX.Y.Z --archive /tmp/as-cache-evidence-vX.Y.Z.tar.gz
+gh release upload vX.Y.Z /tmp/as-cache-evidence-vX.Y.Z.tar.gz
+make evidence-check
 ```
 
 Use an empty output directory and run heavy measurements sequentially. The
 recorder calibrates LRU, runs the object/byte comparison, executes `make evidence`
 three times, merges the observations, generates the tables and hashes the
-outputs. After review, replace `bench/results/current/`; do not retain past
-iteration datasets. The recorder exports one resolved HEAD into a temporary,
+outputs. After review, package it for the release it belongs to and attach the
+archive there. The recorder exports one resolved HEAD into a temporary,
 private Git checkout and runs that commit's scripts there. Developer edits,
 ignored tests, embeds and other untracked assets cannot enter the measurements.
 The original workspace, including preserved local probes, is left untouched.
@@ -139,6 +144,29 @@ traces and failed commands. Failed commands
 retain their log and exit code for diagnosis. The verifier requires every
 artifact and measurement command and recomputes the pooled JSON from the raw
 batches, checking settings, trace inventories and observation counts.
+
+### Where the data lives
+
+The repository keeps two files in `bench/results/current/`: the generated
+`README.md` and `release-asset.json`, which names the asset, its download URL,
+its SHA-256 and the measured commit. The asset holds the raw batches, the three
+evidence logs, the reference and byte results and their manifest - everything
+needed to verify the published numbers without traces or a rerun. It does not
+hold the README or the pooled `traces.json` and `tuning.json`: those are derived.
+
+`make evidence-check` downloads the asset and refuses it unless its SHA-256
+matches, extracts only the expected files, rebuilds the pooled results from the
+raw batches, validates every hash, command and observation count, renders the
+README with the current generator and requires it to equal the committed copy.
+It also refuses any other file in `bench/results/current/`, so measurement data
+cannot creep back into the repository. Set `AS_CACHE_EVIDENCE_ARCHIVE` to a
+local copy to verify offline; the hash check still applies.
+
+Packaging is deterministic: the same dataset always yields the same archive
+bytes. A change to the report generator needs `make evidence-render` and a
+commit of the regenerated README, not a new measurement or a new upload. One
+dataset belongs to one release; an uploaded asset is never replaced - a new
+measurement is attached to the release it was taken for.
 
 For one diagnostic batch, use `AS_CACHE_TRACES=... AS_CACHE_EVIDENCE_OUT=... make evidence`.
 This is not a replacement for the three-batch publication procedure.

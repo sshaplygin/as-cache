@@ -6,6 +6,20 @@ project follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Evidence datasets are release assets, not repository files.** The
+  measurements behind the published tables - raw batches, evidence logs,
+  reference and byte results and their manifest - moved from
+  `bench/results/current/` to the asset `as-cache-evidence-v0.4.0.tar.gz` on
+  the v0.4.0 release (65,793 bytes, SHA-256 `d003b288...`). The repository keeps
+  the generated `README.md` and `release-asset.json`, which pins the asset's
+  hash and measured commit. `make evidence-check` now downloads the asset,
+  verifies it and regenerates the README byte for byte; `make evidence-render`
+  regenerates the README after a report-generator change without a new upload.
+  `scripts/evidence_archive.py` packages a recorded dataset deterministically.
+  The data is unchanged: the asset is the dataset in the v0.4.0 tag's tree.
+
 ## [0.4.0] — 2026-11-04
 
 ### Removed

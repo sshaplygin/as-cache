@@ -132,7 +132,7 @@ compares all four combinations of cold/warm migration and stability gates
 on/off, at 10/20/50 request-counted epochs. Three batches of five replays give
 fifteen observations per cell; every result is retained. Gates use
 `MinHitRateImprovement: 0.02` and `SwitchCooldownEpochs: 3`. Each cell in
-[tuning.json](../bench/results/current/tuning.json) retains the actual constructor
+`tuning.json`, rebuilt from the release asset's raw batches, retains the actual constructor
 settings, including its request threshold; this makes the configuration behind
 each observation inspectable.
 

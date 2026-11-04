@@ -85,6 +85,26 @@ the GitHub release. If a published version is broken, prepare a new patch
 version rather than moving public tags. Update downstream consumers only after
 this check succeeds.
 
+Probe the public proxy for an unused version well before pushing tags. A probe
+in the minute before the push gets its "not found" cached by proxy.golang.org
+and sum.golang.org for about thirty minutes, and `make release-check-published`
+fails until it expires.
+
+### Evidence asset
+
+A release's evidence dataset is measured on its candidate commit, packaged with
+`scripts/evidence_archive.py --package` (see [benchmarking](benchmarking.md#where-the-data-lives))
+and attached to that release with `gh release upload`. An attached asset is never
+replaced. v0.4.0 carries `as-cache-evidence-v0.4.0.tar.gz`.
+
+`make evidence-check` downloads the asset that `bench/results/current/release-asset.json`
+names, so that asset must exist whenever CI checks the pointer. For a release
+that changes measurements this ordering is not settled yet: the tagged commit
+should contain the new pointer, but the release object that hosts its asset
+exists only after the tags are pushed. Until it is decided, a release that
+changes no measurement keeps the previous release's pointer, and the order is
+fixed before the next release that does.
+
 ## Upgrading from v0.3.1
 
 Upgrade the used modules together to v0.4.0. `bandit.Thompson` and `bandit.Greedy`

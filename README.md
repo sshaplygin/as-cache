@@ -28,12 +28,13 @@ do not measure a serving loss from following advice.
 It is pre-1.0, the API may change, and production use has not been established.
 The repository includes nine policy arms; S3-FIFO and SIEVE are experimental
 adapters planned for v0.5; their module is excluded from v0.4. The
-[evidence](docs/evidence.md) links to raw results, input checksums and the
-measured revision. Reproduce the dataset with the
+[evidence](docs/evidence.md) links to the raw results, published as a release
+asset, the input checksums and the measured revision. Reproduce the dataset with the
 [three-batch recorder](docs/benchmarking.md#saved-baseline); `make evidence` runs
 one diagnostic batch. Random sampling, Random and asynchronous W-TinyLFU mean
-some numbers vary between runs. `make evidence-check` verifies the retained
-measurements and exact generated tables without rerunning the experiments.
+some numbers vary between runs. `make evidence-check` downloads the published
+measurements, checks their hash and regenerates the tables byte for byte without
+rerunning the experiments.
 
 ## Documentation
 
