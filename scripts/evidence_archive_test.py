@@ -20,7 +20,8 @@ from evidence_archive import (
     sha256,
     verify,
 )
-from record_evidence_test import complete_manifest
+from record_evidence import combine
+from record_evidence_test import batch_fixture, complete_manifest, write_batches
 from trace_inputs import digest
 
 
@@ -48,6 +49,20 @@ def tar_with(members):
             info = tarfile.TarInfo(name)
             info.size = len(data)
             archive.addfile(info, io.BytesIO(data))
+    return buffer.getvalue()
+
+
+def tar_raw(entries):
+    """Build a tar.gz from (TarInfo-kwargs, data) pairs, allowing duplicate
+    names and non-regular members."""
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        for fields, data in entries:
+            info = tarfile.TarInfo(fields["name"])
+            for key, value in fields.items():
+                setattr(info, key, value)
+            info.size = len(data) if info.type == tarfile.REGTYPE else 0
+            archive.addfile(info, io.BytesIO(data) if data else None)
     return buffer.getvalue()
 
 
@@ -178,6 +193,104 @@ class EvidenceArchiveTest(unittest.TestCase):
                         verify(self.results)
         finally:
             self.env.start()
+
+    def test_duplicate_and_non_regular_members_are_refused(self):
+        with tarfile.open(self.archive) as archive:
+            members = [(m.name, archive.extractfile(m).read()) for m in archive]
+        regular = [({"name": name}, data) for name, data in members]
+        cases = {
+            "duplicate": (
+                regular + [({"name": "bytes.log"}, b"second copy")],
+                "duplicate archive member",
+            ),
+            "symlink": (
+                [e for e in regular if e[0]["name"] != "bytes.log"]
+                + [
+                    (
+                        {
+                            "name": "bytes.log",
+                            "type": tarfile.SYMTYPE,
+                            "linkname": "/etc/passwd",
+                        },
+                        b"",
+                    )
+                ],
+                "unexpected archive member",
+            ),
+            "hard link": (
+                [e for e in regular if e[0]["name"] != "bytes.log"]
+                + [
+                    (
+                        {
+                            "name": "bytes.log",
+                            "type": tarfile.LNKTYPE,
+                            "linkname": "reference.log",
+                        },
+                        b"",
+                    )
+                ],
+                "unexpected archive member",
+            ),
+        }
+        for description, (entries, message) in cases.items():
+            with self.subTest(description):
+                data = tar_raw(entries)
+                self.archive.write_bytes(data)
+                repoint(self.results, data)
+                with self.assertRaisesRegex(ValueError, message):
+                    verify(self.results)
+
+    def test_pointer_must_name_exactly_the_release_asset(self):
+        good = json.loads((self.results / POINTER).read_text())
+        asset = good["asset"]
+        cases = {
+            "other release in url": dict(
+                good,
+                url=f"https://github.com/sshaplygin/as-cache/releases/download/v9.9.9/{asset}",
+            ),
+            "other host": dict(good, url=f"https://example.com/{asset}"),
+            "asset of another release": dict(
+                good,
+                asset="as-cache-evidence-v9.9.9.tar.gz",
+                url="https://github.com/sshaplygin/as-cache/releases/download/v0.0.1/as-cache-evidence-v9.9.9.tar.gz",
+            ),
+        }
+        for description, pointer in cases.items():
+            with self.subTest(description):
+                (self.results / POINTER).write_text(json.dumps(pointer))
+                with self.assertRaisesRegex(ValueError, "does not match its release"):
+                    verify(self.results)
+
+    def test_packaging_refuses_an_invalid_dataset(self):
+        (self.dataset / "bytes.log").unlink()
+        with self.assertRaises(ValueError):
+            package(
+                self.dataset, "v0.0.2", self.root / "invalid.tar.gz", self.root / "r2"
+            )
+        self.assertFalse((self.root / "invalid.tar.gz").exists())
+
+    def test_ignored_dotfiles_do_not_count_as_repository_data(self):
+        (self.results / ".DS_Store").write_bytes(b"finder")
+        verify(self.results)
+
+    def test_pooled_output_bytes_are_pinned_for_published_assets(self):
+        # Published assets carry the hashes of the pooled files that verification
+        # rebuilds with combine(). Changing its byte output - indentation, key
+        # order, trailing newline - makes every attached asset unverifiable, and
+        # assets are never replaced. Change these constants only together with a
+        # new measurement for every release that must stay verifiable.
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            write_batches(directory, [batch_fixture() for _ in range(3)])
+            combine(directory, "a" * 40)
+            self.assertEqual(
+                "3359b6ecdd6445c5a41aed98b35c0b8550e9bc8a0684658ae453fdd3e1f03127",
+                sha256((directory / "traces.json").read_bytes()),
+            )
+            self.assertEqual(
+                "9e75c468501cdd4d2fb80402a6344fb7709ee22ec7d6f65eca64d6485f9edf38",
+                sha256((directory / "tuning.json").read_bytes()),
+            )
 
     def test_make_gate_is_read_only_and_rejects_tampering(self):
         root = self.root / "repository"
